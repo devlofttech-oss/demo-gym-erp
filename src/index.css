@@ -1,0 +1,126 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-on-primary-container: #2e1065;
+  --color-on-surface-variant: #48454f;
+  --color-on-error: #ffffff;
+  --color-secondary-fixed-dim: #e3c45e;
+  --color-on-error-container: #93000a;
+  --color-on-tertiary: #ffffff;
+  --color-secondary: #725c00;
+  --color-secondary-fixed: #ffe080;
+  --color-inverse-on-surface: #f0f0f2;
+  --color-inverse-primary: #e9d5ff;
+  --color-on-primary: #ffffff;
+  --color-surface-bright: #f9f9fb;
+  --color-on-primary-fixed-variant: #4c1d95;
+  --color-primary: #3b0764;
+  --color-on-secondary: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-surface-container-high: #e8e8ea;
+  --color-on-secondary-container: #776000;
+  --color-background: #f9f9fb;
+  --color-on-tertiary-container: #545656;
+  --color-surface-container-highest: #e2e2e4;
+  --color-surface-container-low: #f3f3f5;
+  --color-tertiary-fixed-dim: #c6c6c7;
+  --color-on-surface: #1a1c1d;
+  --color-surface-container-lowest: #ffffff;
+  --color-tertiary-container: #cbcbcb;
+  --color-outline-variant: #c9c4d0;
+  --color-on-tertiary-fixed: #1a1c1c;
+  --color-on-primary-fixed: #1c1343;
+  --color-outline: #797580;
+  --color-tertiary-fixed: #e2e2e2;
+  --color-tertiary: #5d5f5f;
+  --color-surface: #f9f9fb;
+  --color-error: #ba1a1a;
+  --color-secondary-container: #fedd74;
+  --color-surface-tint: #3b0764;
+  --color-on-secondary-fixed-variant: #564500;
+  --color-surface-container: #eeeef0;
+  --color-surface-variant: #e2e2e4;
+  --color-primary-fixed: #faf5ff;
+  --color-on-background: #1a1c1d;
+  --color-surface-dim: #d9dadc;
+  --color-primary-fixed-dim: #e9d5ff;
+  --color-on-tertiary-fixed-variant: #454747;
+  --color-on-secondary-fixed: #231b00;
+  --color-primary-container: #f3e8ff;
+  --color-inverse-surface: #2f3132;
+
+  --spacing-card-padding: 1.5rem;
+  --spacing-stack-gap: 1rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-container-margin: 2rem;
+  --spacing-section-gap: 2.5rem;
+
+  --font-h2: "Plus Jakarta Sans", sans-serif;
+  --font-h1: "Plus Jakarta Sans", sans-serif;
+  --font-body-md: "Plus Jakarta Sans", sans-serif;
+  --font-body-lg: "Plus Jakarta Sans", sans-serif;
+  --font-label-caps: "Plus Jakarta Sans", sans-serif;
+  --font-stat-value: "Plus Jakarta Sans", sans-serif;
+  --font-h3: "Plus Jakarta Sans", sans-serif;
+
+  --text-h2: 24px;
+  --text-h2--line-height: 1.3;
+  --text-h2--font-weight: 700;
+
+  --text-h1: 32px;
+  --text-h1--line-height: 1.2;
+  --text-h1--font-weight: 700;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 1.5;
+  --text-body-md--font-weight: 400;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--font-weight: 400;
+
+  --text-label-caps: 12px;
+  --text-label-caps--line-height: 1;
+  --text-label-caps--font-weight: 600;
+
+  --text-stat-value: 28px;
+  --text-stat-value--line-height: 1;
+  --text-stat-value--font-weight: 700;
+
+  --text-h3: 20px;
+  --text-h3--line-height: 1.4;
+  --text-h3--font-weight: 600;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+@layer base {
+  .dark {
+    color-scheme: dark;
+    --color-on-surface: #f8fafc;
+    --color-on-surface-variant: #94a3b8;
+    --color-on-background: #f8fafc;
+    --color-background: #020617;
+    --color-surface-container-lowest: #0f172a;
+    --color-surface-container-low: #1e293b;
+    --color-surface-container: #334155;
+    --color-surface-container-high: #475569;
+    --color-surface-container-highest: #64748b;
+    --color-surface-dim: #020617;
+    --color-surface: #020617;
+    --color-outline: #94a3b8;
+    --color-outline-variant: #334155;
+    --color-primary-container: #4c1d95;
+    --color-on-primary-container: #f3e8ff;
+    --color-secondary-container: #854d0e;
+    --color-on-secondary-container: #fef08a;
+    --color-inverse-surface: #f8fafc;
+    --color-inverse-on-surface: #0f172a;
+  }
+}

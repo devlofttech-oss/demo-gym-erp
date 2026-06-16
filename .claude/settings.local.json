@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"attendance\\\\|checkin\")",
+      "Bash(xargs wc -l)",
+      "Bash(find . -name \"*.log\" -o -name \"*.txt\" 2>nul | head -20)",
+      "Bash(dir \"d:\\\\Devloft-work\\\\deepfitness-erp\\\\src\")",
+      "Bash(find \"d:\\\\Devloft-work\\\\deepfitness-erp\\\\src\\\\context\" -name \"*.jsx\" -o -name \"*.js\" 2>nul)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Devloft-work\\\\deepfitness-erp\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "WebSearch",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" remote -v)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" status)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" diff)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" diff --cached -- server.js vite.config.js)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" check-ignore -v .env)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" add server.js .claude/settings.local.json)",
+      "Bash(git -C 'd:\\\\Devloft-work\\\\deepfitness-erp' commit -m ' *)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" push origin main)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" diff src/components/ui/PhotoUpload.jsx src/pages/members/MemberProfile.jsx src/pages/staff/StaffProfile.jsx)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" add src/components/ui/PhotoUpload.jsx src/pages/members/MemberProfile.jsx src/pages/staff/StaffProfile.jsx)",
+      "Bash(git -C \"d:\\\\Devloft-work\\\\deepfitness-erp\" add src/pages/members/MemberProfile.jsx)",
+      "Bash(xargs grep -l \"buzz\\\\|sound\\\\|audio\\\\|alert\")",
+      "Bash(xargs grep -l \"discount\")",
+      "Bash(dir \"d:\\\\Devloft-work\\\\deepfitness-erp\\\\src\\\\pages\\\\members\")",
+      "Bash(dir \"d:\\\\Devloft-work\\\\deepfitness-erp\\\\src\\\\components\")",
+      "Bash(xargs grep -l \"totalFees\\\\|paidFees\\\\|balanceFees\")",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)"
+    ],
+    "additionalDirectories": [
+      "d:\\Devloft-work\\deepfitness-erp"
+    ]
+  }
+}
