@@ -1,25 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase/config';
-import { getCollection, setDocument } from '../../firebase/db';
+import { setDocument } from '../../firebase/db';
 import toast from 'react-hot-toast';
 
 export default function SetupSuperAdmin() {
   const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
-  const [alreadyExists, setAlreadyExists] = useState(false);
   const [form, setForm] = useState({ email: 'devlofttech@gmail.com', password: 'devlofttech@321', name: 'Super Admin' });
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    getCollection('users', [{ field: 'role', op: '==', value: 'superadmin' }])
-      .then(docs => {
-        if (docs.length > 0) setAlreadyExists(true);
-      })
-      .catch(console.error)
-      .finally(() => setChecking(false));
-  }, []);
 
   const handleSetup = async (e) => {
     e.preventDefault();
@@ -45,14 +34,6 @@ export default function SetupSuperAdmin() {
     }
   };
 
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <span className="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
-      </div>
-    );
-  }
-
   const inputCls = 'w-full px-4 py-3 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary transition-colors';
 
   return (
@@ -69,37 +50,24 @@ export default function SetupSuperAdmin() {
             </div>
           </div>
 
-          {alreadyExists ? (
-            <div className="flex flex-col gap-4">
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40 rounded-xl p-4 flex items-center gap-3">
-                <span className="material-symbols-outlined text-emerald-600 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Super admin is already configured.</p>
-              </div>
-              <button onClick={() => navigate('/login')}
-                className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors">
-                Go to Login
-              </button>
+          <form onSubmit={handleSetup} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-on-surface-variant">Name</label>
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputCls} placeholder="Super Admin" />
             </div>
-          ) : (
-            <form onSubmit={handleSetup} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-on-surface-variant">Name</label>
-                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className={inputCls} placeholder="Super Admin" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-on-surface-variant">Email</label>
-                <input type="email" required value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputCls} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-on-surface-variant">Password</label>
-                <input type="password" required minLength={6} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputCls} />
-              </div>
-              <button type="submit" disabled={saving}
-                className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 mt-2">
-                {saving ? <><span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Creating…</> : 'Create Super Admin'}
-              </button>
-            </form>
-          )}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-on-surface-variant">Email</label>
+              <input type="email" required value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className={inputCls} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-on-surface-variant">Password</label>
+              <input type="password" required minLength={6} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputCls} />
+            </div>
+            <button type="submit" disabled={saving}
+              className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 mt-2">
+              {saving ? <><span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Creating…</> : 'Create Super Admin'}
+            </button>
+          </form>
         </div>
       </div>
     </div>

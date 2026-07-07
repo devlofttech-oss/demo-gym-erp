@@ -7,20 +7,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function userDoc() {
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userDocData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isSuperAdmin() {
-      return isSignedIn() && userDoc().role == 'superadmin';
+      return isSignedIn() && userDocExists() && userDocData().role == 'superadmin';
     }
 
     function isAdminOf(gymId) {
-      return isSignedIn() && userDoc().role == 'admin' && userDoc().gymId == gymId;
+      return isSignedIn() && userDocExists()
+        && userDocData().role == 'admin'
+        && userDocData().gymId == gymId;
     }
 
     function isStaffOf(gymId) {
-      return isSignedIn() && userDoc().role == 'staff' && userDoc().gymId == gymId;
+      return isSignedIn() && userDocExists()
+        && userDocData().role == 'staff'
+        && userDocData().gymId == gymId;
     }
 
     // ── Users collection ─────────────────────────────────────────
@@ -28,30 +36,35 @@ service cloud.firestore {
       // User reads their own doc; superadmin reads all
       allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
 
-      // Superadmin creates gym owner accounts
+      // Any authenticated user can create their own doc
+      // (needed for superadmin bootstrap — no users doc exists yet to check against)
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      // Superadmin creates gym owner accounts (secondary app pattern)
       allow create: if isSuperAdmin();
 
-      // Admin creates staff accounts for their own gym
-      allow create: if isSignedIn()
-        && userDoc().role == 'admin'
-        && request.resource.data.gymId == userDoc().gymId
+      // Admin creates staff accounts for their own gym (secondary app pattern)
+      allow create: if isSignedIn() && userDocExists()
+        && userDocData().role == 'admin'
+        && request.resource.data.gymId == userDocData().gymId
         && request.resource.data.role == 'staff';
 
       // User updates their own doc; superadmin updates anyone;
-      // admin updates their gym's staff docs
+      // admin updates their gym's staff
       allow update: if isSignedIn() && (
         request.auth.uid == userId ||
         isSuperAdmin() ||
-        (userDoc().role == 'admin'
-          && resource.data.gymId == userDoc().gymId
+        (userDocExists()
+          && userDocData().role == 'admin'
+          && resource.data.gymId == userDocData().gymId
           && resource.data.role == 'staff')
       );
 
-      // Superadmin deletes anyone; admin deletes their own gym's staff
+      // Superadmin deletes anyone; admin deletes their gym's staff
       allow delete: if isSuperAdmin() || (
-        isSignedIn()
-        && userDoc().role == 'admin'
-        && resource.data.gymId == userDoc().gymId
+        isSignedIn() && userDocExists()
+        && userDocData().role == 'admin'
+        && resource.data.gymId == userDocData().gymId
         && resource.data.role == 'staff'
       );
     }
@@ -68,13 +81,13 @@ service cloud.firestore {
 
     // ── Gym tenant data ───────────────────────────────────────────
     match /gyms/{gymId}/{collection}/{docId} {
-      // Superadmin and gym admin: full access to all sub-collections
+      // Superadmin and gym admin: full access
       allow read, write: if isSuperAdmin() || isAdminOf(gymId);
 
       // Staff: read members and attendance (for check-in lookup)
       allow read: if isStaffOf(gymId) && collection in ['members', 'attendance'];
 
-      // Staff: write attendance (log check-ins) and update members (lastCheckin timestamp)
+      // Staff: write attendance; update members (lastCheckin timestamp)
       allow create: if isStaffOf(gymId) && collection == 'attendance';
       allow update: if isStaffOf(gymId) && collection in ['attendance', 'members'];
     }
