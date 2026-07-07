@@ -21,6 +21,7 @@ import ClassList from './pages/classes/ClassList';
 import ClassDetail from './pages/classes/ClassDetail';
 import AddClass from './pages/classes/AddClass';
 import ExpenseList from './pages/expenses/ExpenseList';
+import MonthlyReport from './pages/reports/MonthlyReport';
 
 // Super Admin
 import SuperAdminLayout from './pages/super-admin/SuperAdminLayout';
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="equipment"         element={<RoleRoute allowedRoles={ADMIN}><EquipmentList /></RoleRoute>} />
         <Route path="supplements"       element={<RoleRoute allowedRoles={ADMIN}><SupplementList /></RoleRoute>} />
         <Route path="expenses"          element={<RoleRoute allowedRoles={ADMIN}><ExpenseList /></RoleRoute>} />
+        <Route path="reports/monthly"   element={<RoleRoute allowedRoles={ADMIN}><MonthlyReport /></RoleRoute>} />
         <Route path="settings"          element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
 
         <Route path="attendance" element={<RoleRoute allowedRoles={ALL}><AllCheckins /></RoleRoute>} />

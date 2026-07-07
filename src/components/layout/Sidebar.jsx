@@ -15,8 +15,9 @@ const ADMIN_NAV = [
   { to: '/staff',       icon: 'badge',               label: 'Staff',       fill: true  },
   { to: '/equipment',   icon: 'fitness_center',      label: 'Equipment',   fill: false },
   { to: '/supplements', icon: 'medication',          label: 'Supplements', fill: true  },
-  { to: '/expenses',    icon: 'receipt',             label: 'Expenses',    fill: true  },
-  { to: '/settings',    icon: 'settings',            label: 'Settings',    fill: true  },
+  { to: '/expenses',        icon: 'receipt',          label: 'Expenses',  fill: true  },
+  { to: '/reports/monthly', icon: 'insert_chart',    label: 'Reports',   fill: true  },
+  { to: '/settings',        icon: 'settings',        label: 'Settings',  fill: true  },
 ];
 
 const STAFF_NAV = [

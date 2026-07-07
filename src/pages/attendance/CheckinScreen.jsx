@@ -3,6 +3,7 @@ import { getTenantCollection, createTenantDocument, updateTenantDocument } from 
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import MembershipExpiredModal from '../../components/ui/MembershipExpiredModal';
 
 const playBeep = (type) => {
   try {
@@ -53,6 +54,7 @@ export default function CheckinScreen({ isKiosk = false }) {
   const [checkingIn, setCheckingIn] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [recentCheckins, setRecentCheckins] = useState([]);
+  const [expiredMember, setExpiredMember] = useState(null);
   const [tabVisible, setTabVisible] = useState(!document.hidden);
   const [scannerKey, setScannerKey] = useState(0);
   const lastScannedRef = useRef({ id: null, time: 0 });
@@ -176,8 +178,8 @@ export default function CheckinScreen({ isKiosk = false }) {
 
   const processMemberCheckin = async (member) => {
     if (member.status !== 'Active') {
-      playBeep('error');
-      toast.error(`${member.name} - Membership Expired! Please renew.`, { duration: 4000 });
+      playBeep('warning');
+      setExpiredMember(member);
       return;
     }
 
@@ -306,6 +308,7 @@ export default function CheckinScreen({ isKiosk = false }) {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+      <MembershipExpiredModal member={expiredMember} onClose={() => setExpiredMember(null)} />
       {!isKiosk && (
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex flex-col gap-1.5">
