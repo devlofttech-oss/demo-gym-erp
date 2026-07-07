@@ -4,6 +4,7 @@ import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAuth } from '../../context/AuthContext';
 import logoImage from '../../assets/logo.png';
 
+
 const ADMIN_NAV = [
   { to: '/',            icon: 'monitoring',          label: 'Dashboard',   fill: true  },
   { to: '/members',     icon: 'group',               label: 'Members',     fill: true  },
@@ -25,7 +26,7 @@ const STAFF_NAV = [
 
 export default function Sidebar({ onExpandChange }) {
   const { isDarkMode, setLightMode, setDarkMode } = useDarkMode();
-  const { role } = useAuth();
+  const { role, gymData } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
   const navItems = role === 'staff' ? STAFF_NAV : ADMIN_NAV;
@@ -60,8 +61,15 @@ export default function Sidebar({ onExpandChange }) {
             </button>
           ) : (
             <>
-              <img src={logoImage} alt="Logo" className="w-8 h-8 object-contain shrink-0" />
-              <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm">Deep Fitness</span>
+              <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-primary-container/20 flex items-center justify-center">
+                {gymData?.logoUrl
+                  ? <img src={gymData.logoUrl} alt={gymData.name} className="w-full h-full object-cover" />
+                  : <img src={logoImage} alt="Logo" className="w-full h-full object-contain" />
+                }
+              </div>
+              <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm truncate max-w-32">
+                {gymData?.name || 'Deep Fitness'}
+              </span>
             </>
           )}
         </div>

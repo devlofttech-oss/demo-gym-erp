@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCollection, createDocument, updateDocument, deleteDocument } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = { name: '', stock: '', price: '' };
@@ -67,6 +68,7 @@ function SupplementModal({ initial, onSave, onClose }) {
 }
 
 export default function SupplementList() {
+  const { gymId } = useAuth();
   const [supplements, setSupplements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -77,7 +79,7 @@ export default function SupplementList() {
   const fetchSupplements = async () => {
     try {
       setLoading(true);
-      const data = await getCollection('supplements');
+      const data = await getTenantCollection(gymId, 'supplements');
       setSupplements(data.sort((a, b) => Number(a.stock) - Number(b.stock)));
     } catch { toast.error('Failed to load supplements'); }
     finally { setLoading(false); }
@@ -86,14 +88,14 @@ export default function SupplementList() {
   useEffect(() => { fetchSupplements(); }, []);
 
   const handleAdd = async (form) => {
-    await createDocument('supplements', { ...form, stock: Number(form.stock) || 0, price: Number(form.price) || 0 });
+    await createTenantDocument(gymId, 'supplements', { ...form, stock: Number(form.stock) || 0, price: Number(form.price) || 0 });
     toast.success('Supplement added!');
     setShowModal(false);
     fetchSupplements();
   };
 
   const handleEdit = async (form) => {
-    await updateDocument('supplements', editingItem.id, { ...form, stock: Number(form.stock) || 0, price: Number(form.price) || 0 });
+    await updateTenantDocument(gymId, 'supplements', editingItem.id, { ...form, stock: Number(form.stock) || 0, price: Number(form.price) || 0 });
     toast.success('Supplement updated!');
     setEditingItem(null);
     fetchSupplements();
@@ -101,7 +103,7 @@ export default function SupplementList() {
 
   const handleDelete = async (id) => {
     try {
-      await deleteDocument('supplements', id);
+      await deleteTenantDocument(gymId, 'supplements', id);
       toast.success('Supplement deleted');
       setDeletingId(null);
       fetchSupplements();

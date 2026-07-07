@@ -9,8 +9,12 @@ export default function RoleRoute({ children, allowedRoles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Super admin can only access /super-admin/* routes
+  if (role === 'superadmin' && !allowedRoles?.includes('superadmin')) {
+    return <Navigate to="/super-admin" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.includes(role)) {
-    // Staff lands on /checkin, anyone else back to root
     return <Navigate to={role === 'staff' ? '/checkin' : '/'} replace />;
   }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCollection } from '../../firebase/db';
+import { getTenantCollection } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const CLASS_TYPES = ['All', 'Zumba', 'Yoga', 'Dance', 'HIIT', 'Kids Dance', 'Gym', 'Other'];
@@ -22,6 +23,7 @@ const TYPE_META = {
 };
 
 export default function ClassList() {
+  const { gymId } = useAuth();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('All');
@@ -30,7 +32,7 @@ export default function ClassList() {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const data = await getCollection('classes');
+      const data = await getTenantCollection(gymId, 'classes');
       setClasses(data);
     } catch { toast.error('Failed to load classes'); }
     finally { setLoading(false); }

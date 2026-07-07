@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { getCollection, createDocument, updateDocument, getDocument } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument, getTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const CLASS_TYPES = ['Zumba', 'Yoga', 'Dance', 'HIIT', 'Kids Dance', 'Gym', 'Other'];
@@ -12,6 +13,7 @@ const EMPTY = {
 };
 
 export default function AddClass() {
+  const { gymId } = useAuth();
   const navigate = useNavigate();
   const { id: editId } = useParams();
   const isEdit = Boolean(editId);
@@ -25,8 +27,8 @@ export default function AddClass() {
     const init = async () => {
       setLoading(true);
       const [staffData, classData] = await Promise.all([
-        getCollection('staff'),
-        isEdit ? getDocument('classes', editId) : Promise.resolve(null),
+        getTenantCollection(gymId, 'staff'),
+        isEdit ? getTenantDocument(gymId, 'classes', editId) : Promise.resolve(null),
       ]);
       setStaff(staffData.filter(s => s.role === 'Trainer'));
       if (classData) setForm({
@@ -71,11 +73,11 @@ export default function AddClass() {
     try {
       const data = { ...form, capacity: Number(form.capacity) || 0 };
       if (isEdit) {
-        await updateDocument('classes', editId, data);
+        await updateTenantDocument(gymId, 'classes', editId, data);
         toast.success('Class updated!');
         navigate(`/classes/${editId}`);
       } else {
-        const doc = await createDocument('classes', { ...data, enrolledMemberIds: [] });
+        const doc = await createTenantDocument(gymId, 'classes', { ...data, enrolledMemberIds: [] });
         toast.success('Class created!');
         navigate(`/classes/${doc.id}`);
       }

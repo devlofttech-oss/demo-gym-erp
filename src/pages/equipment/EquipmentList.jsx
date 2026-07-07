@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCollection, createDocument, updateDocument, deleteDocument } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const EMPTY_FORM = {
@@ -86,6 +87,7 @@ function EquipmentModal({ initial, onSave, onClose }) {
 }
 
 export default function EquipmentList() {
+  const { gymId } = useAuth();
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -96,7 +98,7 @@ export default function EquipmentList() {
   const fetchEquipment = async () => {
     try {
       setLoading(true);
-      const data = await getCollection('equipment');
+      const data = await getTenantCollection(gymId, 'equipment');
       setEquipment(data.sort((a, b) => daysUntilService(a.nextServiceDate) - daysUntilService(b.nextServiceDate)));
     } catch { toast.error('Failed to load equipment'); }
     finally { setLoading(false); }
@@ -105,14 +107,14 @@ export default function EquipmentList() {
   useEffect(() => { fetchEquipment(); }, []);
 
   const handleAdd = async (form) => {
-    await createDocument('equipment', { ...form, price: Number(form.price) || 0 });
+    await createTenantDocument(gymId, 'equipment', { ...form, price: Number(form.price) || 0 });
     toast.success('Equipment added!');
     setShowModal(false);
     fetchEquipment();
   };
 
   const handleEdit = async (form) => {
-    await updateDocument('equipment', editingItem.id, { ...form, price: Number(form.price) || 0 });
+    await updateTenantDocument(gymId, 'equipment', editingItem.id, { ...form, price: Number(form.price) || 0 });
     toast.success('Equipment updated!');
     setEditingItem(null);
     fetchEquipment();
@@ -120,7 +122,7 @@ export default function EquipmentList() {
 
   const handleDelete = async (id) => {
     try {
-      await deleteDocument('equipment', id);
+      await deleteTenantDocument(gymId, 'equipment', id);
       toast.success('Equipment deleted');
       setDeletingId(null);
       fetchEquipment();

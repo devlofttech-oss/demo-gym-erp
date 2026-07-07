@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getDocument, getCollection, updateDocument } from '../../firebase/db';
+import { getTenantDocument, getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
@@ -20,6 +21,7 @@ function formatTime(d) {
 const ROLES = ['Trainer', 'Staff', 'Manager', 'Receptionist'];
 
 export default function StaffProfile() {
+  const { gymId } = useAuth();
   const { id } = useParams();
   const [member, setMember] = useState(null);
   const [attendance, setAttendance] = useState([]);
@@ -33,8 +35,8 @@ export default function StaffProfile() {
     try {
       setLoading(true);
       const [doc, att] = await Promise.all([
-        getDocument('staff', id),
-        getCollection('staffAttendance', [{ field: 'staffId', op: '==', value: id }]),
+        getTenantDocument(gymId, 'staff', id),
+        getTenantCollection(gymId, 'staffAttendance', [{ field: 'staffId', op: '==', value: id }]),
       ]);
       setMember(doc);
       setAttendance(att.sort((a, b) => new Date(b.checkInTime) - new Date(a.checkInTime)));
@@ -48,7 +50,7 @@ export default function StaffProfile() {
     e.preventDefault();
     setSaving(true);
     try {
-      await updateDocument('staff', id, { ...editForm, salary: Number(editForm.salary) || 0 });
+      await updateTenantDocument(gymId, 'staff', id, { ...editForm, salary: Number(editForm.salary) || 0 });
       toast.success('Profile updated!');
       setIsEditing(false);
       fetchData();
@@ -57,13 +59,13 @@ export default function StaffProfile() {
   };
 
   const handlePhotoUpload = async (url) => {
-    await updateDocument('staff', id, { photoUrl: url });
+    await updateTenantDocument(gymId, 'staff', id, { photoUrl: url });
     toast.success('Photo updated!');
     fetchData();
   };
 
   const handlePhotoDelete = async () => {
-    await updateDocument('staff', id, { photoUrl: null });
+    await updateTenantDocument(gymId, 'staff', id, { photoUrl: null });
     toast.success('Photo removed!');
     fetchData();
   };

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getDocument, getCollection, updateDocument, deleteDocument } from '../../firebase/db';
+import { useAuth } from '../../context/AuthContext';
+import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
@@ -105,6 +106,7 @@ function ConfirmModal({ title, message, confirmLabel = 'Delete', confirmClass = 
 export default function MemberProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { gymId } = useAuth();
   const [member, setMember] = useState(null);
   const [payments, setPayments] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -275,8 +277,8 @@ export default function MemberProfile() {
       try {
         setLoading(true);
         const [profileData, settingsDoc] = await Promise.all([
-          getDocument('members', id),
-          getDocument('settings', 'general'),
+          getTenantDocument(gymId, 'members', id),
+          getTenantDocument(gymId, 'settings', 'general'),
         ]);
         setMember(profileData);
         if (settingsDoc?.gymInfo) setGymInfo(settingsDoc.gymInfo);
@@ -293,10 +295,10 @@ export default function MemberProfile() {
           balanceFees: profileData?.balanceFees ?? '',
         });
 
-        const paymentsData = await getCollection('payments', [{ field: 'memberId', op: '==', value: id }]);
+        const paymentsData = await getTenantCollection(gymId, 'payments', [{ field: 'memberId', op: '==', value: id }]);
         setPayments(paymentsData.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 
-        const attendanceData = await getCollection('attendance', [{ field: 'memberId', op: '==', value: id }]);
+        const attendanceData = await getTenantCollection(gymId, 'attendance', [{ field: 'memberId', op: '==', value: id }]);
         setAttendance(attendanceData.sort((a, b) => new Date(b.checkInTime || b.timestamp || b.date || 0) - new Date(a.checkInTime || a.timestamp || a.date || 0)));
       } catch (error) {
         console.error('Error fetching data', error);
@@ -324,7 +326,7 @@ export default function MemberProfile() {
         paidFees: Number(editForm.paidFees) || 0,
         balanceFees: Number(editForm.balanceFees) || 0,
       };
-      await updateDocument('members', id, updates);
+      await updateTenantDocument(gymId, 'members', id, updates);
       setMember(prev => ({ ...prev, ...updates }));
       setIsEditing(false);
       toast.success('Member updated!');
@@ -336,11 +338,11 @@ export default function MemberProfile() {
 
   const handleDeleteMember = async () => {
     try {
-      await deleteDocument('members', id);
+      await deleteTenantDocument(gymId, 'members', id);
       // cascade delete payments and attendance
       await Promise.all([
-        ...payments.map(p => deleteDocument('payments', p.id)),
-        ...attendance.map(a => deleteDocument('attendance', a.id)),
+        ...payments.map(p => deleteTenantDocument(gymId, 'payments', p.id)),
+        ...attendance.map(a => deleteTenantDocument(gymId, 'attendance', a.id)),
       ]);
       toast.success('Member deleted.');
       navigate('/members');
@@ -378,7 +380,7 @@ export default function MemberProfile() {
         balanceFees: Number(paymentEditForm.balanceFees) || 0,
         notes: paymentEditForm.notes,
       };
-      await updateDocument('payments', editingPayment.id, updates);
+      await updateTenantDocument(gymId, 'payments', editingPayment.id, updates);
       setPayments(prev => prev.map(p => p.id === editingPayment.id ? { ...p, ...updates } : p));
       setEditingPayment(null);
       toast.success('Payment updated!');
@@ -390,7 +392,7 @@ export default function MemberProfile() {
 
   const handleDeletePayment = async () => {
     try {
-      await deleteDocument('payments', deletingPaymentId);
+      await deleteTenantDocument(gymId, 'payments', deletingPaymentId);
       setPayments(prev => prev.filter(p => p.id !== deletingPaymentId));
       setDeletingPaymentId(null);
       toast.success('Payment record deleted.');
@@ -404,7 +406,7 @@ export default function MemberProfile() {
 
   const handleDeleteAttendance = async () => {
     try {
-      await deleteDocument('attendance', deletingAttendanceId);
+      await deleteTenantDocument(gymId, 'attendance', deletingAttendanceId);
       setAttendance(prev => prev.filter(a => a.id !== deletingAttendanceId));
       setDeletingAttendanceId(null);
       toast.success('Attendance record deleted.');
@@ -442,12 +444,12 @@ export default function MemberProfile() {
               compact
               hasPhoto={!!member.photoUrl}
               onUpload={async (url) => {
-                await updateDocument('members', id, { photoUrl: url });
+                await updateTenantDocument(gymId, 'members', id, { photoUrl: url });
                 setMember(prev => ({ ...prev, photoUrl: url }));
                 toast.success('Photo updated!');
               }}
               onDelete={async () => {
-                await updateDocument('members', id, { photoUrl: null });
+                await updateTenantDocument(gymId, 'members', id, { photoUrl: null });
                 setMember(prev => ({ ...prev, photoUrl: null }));
                 toast.success('Photo removed!');
               }}

@@ -3,6 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
+import crypto from 'crypto'
 import dotenv from 'dotenv'
 
 // Load .env if it exists
@@ -14,12 +15,23 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
+app.use(express.json())
 const PORT = process.env.PORT || 3000
 const API_URL = process.env.VITE_ERP_URL || 'https://erpnext-devloft.m.frappe.cloud'
 
 // API Keys from environment
 const API_KEY = process.env.VITE_API_KEY
 const API_SECRET = process.env.VITE_API_SECRET
+
+// ImageKit upload auth signature endpoint
+app.get('/api/imagekit-auth', (req, res) => {
+  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY
+  if (!privateKey) return res.status(500).json({ error: 'ImageKit not configured' })
+  const token = crypto.randomUUID()
+  const expire = Math.floor(Date.now() / 1000) + 2400
+  const signature = crypto.createHmac('sha1', privateKey).update(token + expire).digest('hex')
+  res.json({ token, expire, signature })
+})
 
 // Serve static React files
 app.use(express.static(path.join(__dirname, 'dist')))

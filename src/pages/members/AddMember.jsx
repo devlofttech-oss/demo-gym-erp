@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createDocument } from '../../firebase/db';
+import { useAuth } from '../../context/AuthContext';
+import { getTenantDocument, createTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 
@@ -12,6 +13,7 @@ function addDays(dateStr, days) {
 
 export default function AddMember() {
   const navigate = useNavigate();
+  const { gymId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
 
@@ -43,7 +45,7 @@ export default function AddMember() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const doc = await import('../../firebase/db').then(m => m.getDocument('settings', 'general'));
+        const doc = await getTenantDocument(gymId, 'settings', 'general');
         if (doc && doc.categories && doc.categories.length > 0) {
           setPlanCategories(doc.categories);
           const firstCat = doc.categories[0];
@@ -109,7 +111,7 @@ export default function AddMember() {
     try {
       setLoading(true);
 
-      const memberDoc = await createDocument('members', {
+      const memberDoc = await createTenantDocument(gymId, 'members', {
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
@@ -126,7 +128,7 @@ export default function AddMember() {
         ...(photoUrl && { photoUrl }),
       });
 
-      await createDocument('payments', {
+      await createTenantDocument(gymId, 'payments', {
         memberId: memberDoc.id,
         memberName: formData.name,
         memberPhone: formData.phone,

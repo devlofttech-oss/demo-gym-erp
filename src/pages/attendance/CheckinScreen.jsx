@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { getCollection, createDocument, updateDocument } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 
@@ -45,6 +46,7 @@ const playBeep = (type) => {
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 export default function CheckinScreen({ isKiosk = false }) {
+  const { gymId } = useAuth();
   const [members, setMembers] = useState([]);
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,8 +66,8 @@ export default function CheckinScreen({ isKiosk = false }) {
     const fetchData = async () => {
       try {
         const [membersData, staffData] = await Promise.all([
-          getCollection('members'),
-          getCollection('staff'),
+          getTenantCollection(gymId, 'members'),
+          getTenantCollection(gymId, 'staff'),
         ]);
         setMembers(membersData);
         setStaff(staffData);
@@ -182,7 +184,7 @@ export default function CheckinScreen({ isKiosk = false }) {
     const today = todayStr();
 
     // Find active session for today (checked in but not checked out)
-    const todayRecords = await getCollection('attendance', [
+    const todayRecords = await getTenantCollection(gymId, 'attendance', [
       { field: 'memberId', op: '==', value: member.id },
       { field: 'date', op: '==', value: today },
     ]);
@@ -196,7 +198,7 @@ export default function CheckinScreen({ isKiosk = false }) {
       // Check-out
       const checkOutTime = new Date().toISOString();
       const duration = Math.round((new Date(checkOutTime) - new Date(activeSession.checkInTime)) / 60000);
-      await updateDocument('attendance', activeSession.id, { checkOutTime, duration });
+      await updateTenantDocument(gymId, 'attendance', activeSession.id, { checkOutTime, duration });
 
       playBeep('checkout');
       toast.success(`${member.name} checked out! (${duration} min)`, { duration: 3000 });
@@ -207,7 +209,7 @@ export default function CheckinScreen({ isKiosk = false }) {
     } else {
       // Check-in
       const checkInTime = new Date().toISOString();
-      await createDocument('attendance', {
+      await createTenantDocument(gymId, 'attendance', {
         memberId: member.id,
         memberName: member.name,
         date: today,
@@ -244,7 +246,7 @@ export default function CheckinScreen({ isKiosk = false }) {
   const processStaffCheckin = async (staffMember) => {
     const today = todayStr();
 
-    const todayRecords = await getCollection('staffAttendance', [
+    const todayRecords = await getTenantCollection(gymId, 'staffAttendance', [
       { field: 'staffId', op: '==', value: staffMember.id },
       { field: 'date', op: '==', value: today },
     ]);
@@ -253,7 +255,7 @@ export default function CheckinScreen({ isKiosk = false }) {
     if (activeSession) {
       const checkOutTime = new Date().toISOString();
       const duration = Math.round((new Date(checkOutTime) - new Date(activeSession.checkInTime)) / 60000);
-      await updateDocument('staffAttendance', activeSession.id, { checkOutTime, duration });
+      await updateTenantDocument(gymId, 'staffAttendance', activeSession.id, { checkOutTime, duration });
 
       playBeep('checkout');
       toast.success(`${staffMember.name} checked out! (${duration} min)`);
@@ -263,7 +265,7 @@ export default function CheckinScreen({ isKiosk = false }) {
       ].slice(0, 10));
     } else {
       const checkInTime = new Date().toISOString();
-      await createDocument('staffAttendance', {
+      await createTenantDocument(gymId, 'staffAttendance', {
         staffId: staffMember.id,
         staffName: staffMember.name,
         role: staffMember.role,

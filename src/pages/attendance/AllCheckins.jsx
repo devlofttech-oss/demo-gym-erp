@@ -1,5 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
-import { getCollection } from '../../firebase/db';
+import { getTenantCollection } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const PAGE_SIZE = 30;
@@ -47,6 +48,7 @@ function formatDateLabel(iso) {
 }
 
 export default function AllCheckins() {
+  const { gymId } = useAuth();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -58,7 +60,7 @@ export default function AllCheckins() {
     const fetch = async () => {
       try {
         setLoading(true);
-        const data = await getCollection('attendance');
+        const data = await getTenantCollection(gymId, 'attendance');
         data.sort((a, b) => {
           const da = a.checkInTime || a.timestamp || a.date || 0;
           const db = b.checkInTime || b.timestamp || b.date || 0;

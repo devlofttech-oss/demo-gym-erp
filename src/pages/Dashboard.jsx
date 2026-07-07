@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCollection } from '../firebase/db';
+import { useAuth } from '../context/AuthContext';
+import { getTenantCollection } from '../firebase/tenantDb';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid, Legend } from 'recharts';
 
 const todayISO = () => new Date().toISOString().split('T')[0];
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { gymId } = useAuth();
   const [stats, setStats] = useState({ revenue: 0, monthlyRevenue: 0, activeMembers: 0, totalMembers: 0, dailyAttendance: 0, expiringSoon: 0, totalExpenses: 0, monthlyExpenses: 0, netProfit: 0 });
   const [chartData, setChartData] = useState({ revenueTrend: [], memberStatus: [], revenueByPlan: [], revVsExp: [] });
   const [recentActivity, setRecentActivity] = useState([]);
@@ -20,10 +22,10 @@ export default function Dashboard() {
       try {
         setLoading(true);
         const [members, payments, attendance, expenses] = await Promise.all([
-          getCollection('members'),
-          getCollection('payments'),
-          getCollection('attendance'),
-          getCollection('expenses'),
+          getTenantCollection(gymId, 'members'),
+          getTenantCollection(gymId, 'payments'),
+          getTenantCollection(gymId, 'attendance'),
+          getTenantCollection(gymId, 'expenses'),
         ]);
 
         const now = new Date();

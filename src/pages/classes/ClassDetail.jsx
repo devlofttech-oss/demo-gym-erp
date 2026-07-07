@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getDocument, getCollection, updateDocument, deleteDocument } from '../../firebase/db';
+import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import SendSMSModal from '../../components/messaging/SendSMSModal';
 
@@ -22,6 +23,7 @@ const TYPE_META = {
 };
 
 export default function ClassDetail() {
+  const { gymId } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -40,8 +42,8 @@ export default function ClassDetail() {
     try {
       setLoading(true);
       const [classDoc, members] = await Promise.all([
-        getDocument('classes', id),
-        getCollection('members'),
+        getTenantDocument(gymId, 'classes', id),
+        getTenantCollection(gymId, 'members'),
       ]);
       setCls(classDoc);
       setAllMembers(members);
@@ -69,7 +71,7 @@ export default function ClassDetail() {
     setEnrolling(true);
     try {
       const ids = [...new Set([...(cls.enrolledMemberIds || []), ...selectedIds])];
-      await updateDocument('classes', id, { enrolledMemberIds: ids });
+      await updateTenantDocument(gymId, 'classes', id, { enrolledMemberIds: ids });
       toast.success(`${selectedIds.size} member${selectedIds.size > 1 ? 's' : ''} added!`);
       setShowAddMember(false);
       setSelectedIds(new Set());
@@ -80,14 +82,14 @@ export default function ClassDetail() {
 
   const removeMember = async (memberId) => {
     const ids = (cls.enrolledMemberIds || []).filter(x => x !== memberId);
-    await updateDocument('classes', id, { enrolledMemberIds: ids });
+    await updateTenantDocument(gymId, 'classes', id, { enrolledMemberIds: ids });
     toast.success('Member removed from class');
     fetchData();
   };
 
   const handleDeleteClass = async () => {
     try {
-      await deleteDocument('classes', id);
+      await deleteTenantDocument(gymId, 'classes', id);
       toast.success('Class deleted');
       navigate('/classes');
     } catch { toast.error('Delete failed'); }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCollection, createDocument, updateDocument, deleteDocument } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = ['Rent', 'Electricity', 'Salaries', 'Equipment', 'Supplements', 'Maintenance', 'Marketing', 'Other'];
@@ -25,6 +26,7 @@ const empty = () => ({
 });
 
 export default function ExpenseList() {
+  const { gymId } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -38,7 +40,7 @@ export default function ExpenseList() {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const data = await getCollection('expenses');
+      const data = await getTenantCollection(gymId, 'expenses');
       setExpenses(data.sort((a, b) => new Date(b.date) - new Date(a.date)));
     } catch { toast.error('Failed to load expenses'); }
     finally { setLoading(false); }
@@ -66,10 +68,10 @@ export default function ExpenseList() {
     try {
       const payload = { ...form, amount: Number(form.amount) };
       if (editing) {
-        await updateDocument('expenses', editing.id, payload);
+        await updateTenantDocument(gymId, 'expenses', editing.id, payload);
         toast.success('Expense updated!');
       } else {
-        await createDocument('expenses', payload);
+        await createTenantDocument(gymId, 'expenses', payload);
         toast.success('Expense added!');
       }
       setShowModal(false);
@@ -80,7 +82,7 @@ export default function ExpenseList() {
 
   const handleDelete = async () => {
     try {
-      await deleteDocument('expenses', deletingId);
+      await deleteTenantDocument(gymId, 'expenses', deletingId);
       toast.success('Expense deleted');
       setDeletingId(null);
       setExpenses(prev => prev.filter(e => e.id !== deletingId));

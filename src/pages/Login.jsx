@@ -10,7 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login, currentUser } = useAuth()
+  const { login, currentUser, inactiveGymError } = useAuth()
   const navigate = useNavigate()
 
   // If already logged in, redirect
@@ -44,6 +44,13 @@ export default function Login() {
         
         <h1 className="text-2xl font-bold text-on-surface text-center mb-1">Deep Fitness ERP</h1>
         <p className="text-on-surface-variant text-center mb-8 text-sm">Sign in to your management dashboard</p>
+
+        {inactiveGymError && (
+          <div className="w-full p-3 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 rounded-xl text-sm font-medium text-center flex items-center gap-2 justify-center">
+            <span className="material-symbols-outlined text-[16px]">block</span>
+            Your gym account is currently inactive. Please contact support.
+          </div>
+        )}
 
         {error && (
           <div className="w-full p-3 mb-6 bg-error-container text-on-error-container rounded-xl text-sm font-medium text-center">

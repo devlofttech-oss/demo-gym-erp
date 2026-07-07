@@ -22,59 +22,75 @@ import ClassDetail from './pages/classes/ClassDetail';
 import AddClass from './pages/classes/AddClass';
 import ExpenseList from './pages/expenses/ExpenseList';
 
+// Super Admin
+import SuperAdminLayout from './pages/super-admin/SuperAdminLayout';
+import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard';
+import GymList from './pages/super-admin/GymList';
+import GymForm from './pages/super-admin/GymForm';
+import SetupSuperAdmin from './pages/super-admin/SetupSuperAdmin';
+
 function RoleRedirect() {
   const { role } = useAuth();
   if (role === 'staff') return <Navigate to="/checkin" replace />;
   return <Dashboard />;
 }
 
-const ADMIN = ['admin'];
-const ALL   = ['admin', 'staff'];
+const ADMIN      = ['admin'];
+const ALL        = ['admin', 'staff'];
+const SUPERADMIN = ['superadmin'];
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
 
-      {/* Standalone scanner kiosk — no sidebar/nav, opens in popup window */}
+      {/* Standalone scanner kiosk */}
       <Route path="/scanner" element={
         <RoleRoute allowedRoles={ALL}>
           <ScannerKiosk />
         </RoleRoute>
       } />
 
-      <Route
-        path="/*"
-        element={
-          <RoleRoute allowedRoles={ALL}>
-            <DashboardLayout />
-          </RoleRoute>
-        }
-      >
-        {/* Default — redirects based on role */}
+      {/* Super Admin panel */}
+      <Route path="/super-admin" element={
+        <RoleRoute allowedRoles={SUPERADMIN}>
+          <SuperAdminLayout />
+        </RoleRoute>
+      }>
+        <Route index element={<SuperAdminDashboard />} />
+        <Route path="gyms" element={<GymList />} />
+        <Route path="gyms/new" element={<GymForm />} />
+        <Route path="gyms/:id/edit" element={<GymForm />} />
+      </Route>
+
+      {/* Gym ERP (admin + staff) */}
+      <Route path="/*" element={
+        <RoleRoute allowedRoles={ALL}>
+          <DashboardLayout />
+        </RoleRoute>
+      }>
         <Route index element={<RoleRedirect />} />
 
         {/* Admin-only */}
-        <Route path="members"       element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
-        <Route path="members/add"   element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
-        <Route path="members/:id"   element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />
-        <Route path="payments"      element={<RoleRoute allowedRoles={ADMIN}><PaymentsList /></RoleRoute>} />
-        <Route path="payments/new"  element={<RoleRoute allowedRoles={ADMIN}><PaymentPage /></RoleRoute>} />
+        <Route path="members"           element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
+        <Route path="members/add"       element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
+        <Route path="members/:id"       element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />
+        <Route path="payments"          element={<RoleRoute allowedRoles={ADMIN}><PaymentsList /></RoleRoute>} />
+        <Route path="payments/new"      element={<RoleRoute allowedRoles={ADMIN}><PaymentPage /></RoleRoute>} />
         <Route path="classes"           element={<RoleRoute allowedRoles={ADMIN}><ClassList /></RoleRoute>} />
         <Route path="classes/add"       element={<RoleRoute allowedRoles={ADMIN}><AddClass /></RoleRoute>} />
         <Route path="classes/edit/:id"  element={<RoleRoute allowedRoles={ADMIN}><AddClass /></RoleRoute>} />
         <Route path="classes/:id"       element={<RoleRoute allowedRoles={ADMIN}><ClassDetail /></RoleRoute>} />
-        <Route path="staff"         element={<RoleRoute allowedRoles={ADMIN}><StaffList /></RoleRoute>} />
-        <Route path="staff/:id"     element={<RoleRoute allowedRoles={ADMIN}><StaffProfile /></RoleRoute>} />
-        <Route path="equipment"     element={<RoleRoute allowedRoles={ADMIN}><EquipmentList /></RoleRoute>} />
-        <Route path="supplements"   element={<RoleRoute allowedRoles={ADMIN}><SupplementList /></RoleRoute>} />
-        <Route path="expenses"      element={<RoleRoute allowedRoles={ADMIN}><ExpenseList /></RoleRoute>} />
-        <Route path="settings"      element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
+        <Route path="staff"             element={<RoleRoute allowedRoles={ADMIN}><StaffList /></RoleRoute>} />
+        <Route path="staff/:id"         element={<RoleRoute allowedRoles={ADMIN}><StaffProfile /></RoleRoute>} />
+        <Route path="equipment"         element={<RoleRoute allowedRoles={ADMIN}><EquipmentList /></RoleRoute>} />
+        <Route path="supplements"       element={<RoleRoute allowedRoles={ADMIN}><SupplementList /></RoleRoute>} />
+        <Route path="expenses"          element={<RoleRoute allowedRoles={ADMIN}><ExpenseList /></RoleRoute>} />
+        <Route path="settings"          element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
 
         <Route path="attendance" element={<RoleRoute allowedRoles={ALL}><AllCheckins /></RoleRoute>} />
-
-        {/* Admin + Staff */}
-        <Route path="checkin" element={<RoleRoute allowedRoles={ALL}><CheckinScreen /></RoleRoute>} />
+        <Route path="checkin"    element={<RoleRoute allowedRoles={ALL}><CheckinScreen /></RoleRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

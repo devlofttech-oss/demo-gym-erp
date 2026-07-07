@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && userDoc().role == 'superadmin';
+    }
+
+    function isAdminOf(gymId) {
+      return isSignedIn() && userDoc().role == 'admin' && userDoc().gymId == gymId;
+    }
+
+    function isStaffOf(gymId) {
+      return isSignedIn() && userDoc().role == 'staff' && userDoc().gymId == gymId;
+    }
+
+    // ── Users collection ─────────────────────────────────────────
+    match /users/{userId} {
+      // User reads their own doc; superadmin reads all
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+
+      // Superadmin creates gym owner accounts
+      allow create: if isSuperAdmin();
+
+      // Admin creates staff accounts for their own gym
+      allow create: if isSignedIn()
+        && userDoc().role == 'admin'
+        && request.resource.data.gymId == userDoc().gymId
+        && request.resource.data.role == 'staff';
+
+      // User updates their own doc; superadmin updates anyone;
+      // admin updates their gym's staff docs
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId ||
+        isSuperAdmin() ||
+        (userDoc().role == 'admin'
+          && resource.data.gymId == userDoc().gymId
+          && resource.data.role == 'staff')
+      );
+
+      // Superadmin deletes anyone; admin deletes their own gym's staff
+      allow delete: if isSuperAdmin() || (
+        isSignedIn()
+        && userDoc().role == 'admin'
+        && resource.data.gymId == userDoc().gymId
+        && resource.data.role == 'staff'
+      );
+    }
+
+    // ── Gym metadata (root gyms collection) ──────────────────────
+    match /gyms/{gymId} {
+      // Admin/staff read their own gym doc (AuthContext loads gymData on login)
+      allow read: if isSignedIn() && (
+        isSuperAdmin() || isAdminOf(gymId) || isStaffOf(gymId)
+      );
+      // Only superadmin can create, update, or delete gym records
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Gym tenant data ───────────────────────────────────────────
+    match /gyms/{gymId}/{collection}/{docId} {
+      // Superadmin and gym admin: full access to all sub-collections
+      allow read, write: if isSuperAdmin() || isAdminOf(gymId);
+
+      // Staff: read members and attendance (for check-in lookup)
+      allow read: if isStaffOf(gymId) && collection in ['members', 'attendance'];
+
+      // Staff: write attendance (log check-ins) and update members (lastCheckin timestamp)
+      allow create: if isStaffOf(gymId) && collection == 'attendance';
+      allow update: if isStaffOf(gymId) && collection in ['attendance', 'members'];
+    }
+  }
+}

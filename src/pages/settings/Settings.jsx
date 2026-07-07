@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDarkMode } from '../../hooks/useDarkMode';
-import { getDocument, setDocument } from '../../firebase/db';
+import { getTenantDocument, setTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const DEFAULT_CATEGORIES = [
@@ -61,6 +62,7 @@ const CATEGORY_META = {
 };
 
 export default function Settings() {
+  const { gymId } = useAuth();
   const { isDarkMode, setLightMode, setDarkMode } = useDarkMode();
 
   const [gymInfo, setGymInfo]         = useState(DEFAULT_GYM_INFO);
@@ -78,17 +80,17 @@ export default function Settings() {
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const doc = await getDocument('settings', 'general');
+        const doc = await getTenantDocument(gymId, 'settings', 'general');
         if (doc) {
           if (doc.gymInfo) setGymInfo(doc.gymInfo);
           if (doc.categories) {
             setCategories(doc.categories);
           } else {
-            await setDocument('settings', 'general', { categories: DEFAULT_CATEGORIES });
+            await setTenantDocument(gymId, 'settings', 'general', { categories: DEFAULT_CATEGORIES });
             setCategories(DEFAULT_CATEGORIES);
           }
         } else {
-          await setDocument('settings', 'general', { gymInfo: DEFAULT_GYM_INFO, categories: DEFAULT_CATEGORIES });
+          await setTenantDocument(gymId, 'settings', 'general', { gymInfo: DEFAULT_GYM_INFO, categories: DEFAULT_CATEGORIES });
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -102,7 +104,7 @@ export default function Settings() {
   const handleSaveGymInfo = async (e) => {
     e.preventDefault();
     try {
-      await setDocument('settings', 'general', { gymInfo: editGymInfo });
+      await setTenantDocument(gymId, 'settings', 'general', { gymInfo: editGymInfo });
       setGymInfo(editGymInfo);
       setIsEditGymInfoOpen(false);
       toast.success('Gym Information updated!');
@@ -114,7 +116,7 @@ export default function Settings() {
 
   const handleSaveCategories = async () => {
     try {
-      await setDocument('settings', 'general', { categories: editCategories });
+      await setTenantDocument(gymId, 'settings', 'general', { categories: editCategories });
       setCategories(editCategories);
       setIsEditPlansOpen(false);
       toast.success('Membership Plans updated!');

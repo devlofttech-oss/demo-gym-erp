@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCollection, createDocument, updateDocument, deleteDocument, setDocument } from '../../firebase/db';
+import { setDocument, deleteDocument as deleteDocumentFlat } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import { firebaseConfig } from '../../firebase/config';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -17,7 +19,7 @@ function generateQrId() {
   return 'staff_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-function StaffModal({ initial, onSave, onClose }) {
+function StaffModal({ initial, onSave, onClose, gymId }) {
   const [form, setForm] = useState(initial || EMPTY_FORM);
   const [createLogin, setCreateLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState(initial?.email || '');
@@ -49,7 +51,7 @@ function StaffModal({ initial, onSave, onClose }) {
         } finally {
           await deleteApp(secondaryApp);
         }
-        await setDocument('users', authUid, { role: 'staff', name: form.name, email: loginEmail });
+        await setDocument('users', authUid, { role: 'staff', name: form.name, email: loginEmail, gymId });
       }
       await onSave({ ...form, ...(authUid && { authUid }) });
     } catch (err) {
@@ -164,6 +166,7 @@ function StaffModal({ initial, onSave, onClose }) {
 }
 
 export default function StaffList() {
+  const { gymId } = useAuth();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('All');
@@ -175,7 +178,7 @@ export default function StaffList() {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const data = await getCollection('staff');
+      const data = await getTenantCollection(gymId, 'staff');
       setStaff(data);
     } catch { toast.error('Failed to load staff'); }
     finally { setLoading(false); }
@@ -184,14 +187,14 @@ export default function StaffList() {
   useEffect(() => { fetchStaff(); }, []);
 
   const handleAdd = async (form) => {
-    await createDocument('staff', { ...form, salary: Number(form.salary) || 0, qrId: generateQrId() });
+    await createTenantDocument(gymId, 'staff', { ...form, salary: Number(form.salary) || 0, qrId: generateQrId() });
     toast.success('Staff member added!');
     setShowModal(false);
     fetchStaff();
   };
 
   const handleEdit = async (form) => {
-    await updateDocument('staff', editingStaff.id, { ...form, salary: Number(form.salary) || 0 });
+    await updateTenantDocument(gymId, 'staff', editingStaff.id, { ...form, salary: Number(form.salary) || 0 });
     toast.success('Staff member updated!');
     setEditingStaff(null);
     fetchStaff();
@@ -200,9 +203,9 @@ export default function StaffList() {
   const handleDelete = async (id) => {
     try {
       const staffMember = staff.find(s => s.id === id);
-      await deleteDocument('staff', id);
+      await deleteTenantDocument(gymId, 'staff', id);
       if (staffMember?.authUid) {
-        await deleteDocument('users', staffMember.authUid);
+        await deleteDocumentFlat('users', staffMember.authUid);
       }
       toast.success('Staff member deleted');
       setDeletingId(null);
@@ -343,11 +346,12 @@ export default function StaffList() {
       </div>
 
       {/* Add Modal */}
-      {showModal && <StaffModal onSave={handleAdd} onClose={() => setShowModal(false)} />}
+      {showModal && <StaffModal gymId={gymId} onSave={handleAdd} onClose={() => setShowModal(false)} />}
 
       {/* Edit Modal */}
       {editingStaff && (
         <StaffModal
+          gymId={gymId}
           initial={{ name: editingStaff.name, role: editingStaff.role, phone: editingStaff.phone,
             email: editingStaff.email || '', address: editingStaff.address || '',
             joiningDate: editingStaff.joiningDate || '', salary: editingStaff.salary || '', photoUrl: editingStaff.photoUrl || '' }}

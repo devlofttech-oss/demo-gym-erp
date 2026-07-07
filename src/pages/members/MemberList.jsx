@@ -11,7 +11,8 @@ function paginationPages(page, total) {
   pages.push(total);
   return pages;
 }
-import { getCollection, createDocument } from '../../firebase/db';
+import { useAuth } from '../../context/AuthContext';
+import { getTenantCollection, createTenantDocument } from '../../firebase/tenantDb';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -27,6 +28,7 @@ function daysUntilExpiry(expiryDate) {
 }
 
 export default function MemberList() {
+  const { gymId } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,7 +69,7 @@ export default function MemberList() {
       thirtyDaysAgo.setDate(today.getDate() - 30);
       const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-      const recentAttendance = await getCollection('attendance', [
+      const recentAttendance = await getTenantCollection(gymId, 'attendance', [
         { field: 'date', op: '>=', value: thirtyDaysAgoStr },
       ]);
 
@@ -102,7 +104,7 @@ export default function MemberList() {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const data = await getCollection('members');
+      const data = await getTenantCollection(gymId, 'members');
       setMembers(data);
     } catch (error) {
       console.error('Failed to fetch members', error);
@@ -193,7 +195,7 @@ export default function MemberList() {
             ? 'Expired'
             : (statusRaw ? String(statusRaw).trim() : 'Active');
 
-          await createDocument('members', {
+          await createTenantDocument(gymId, 'members', {
             name: String(name).trim(),
             phone: String(phone).trim(),
             email: String(email).trim(),

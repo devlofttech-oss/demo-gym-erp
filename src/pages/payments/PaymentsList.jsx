@@ -12,7 +12,8 @@ function paginationPages(page, total) {
   return pages;
 }
 import { Link } from 'react-router-dom';
-import { getCollection, updateDocument } from '../../firebase/db';
+import { getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import SendSMSModal from '../../components/messaging/SendSMSModal';
 
@@ -46,6 +47,7 @@ function daysUntilExpiry(expiryDate) {
 }
 
 export default function PaymentsList() {
+  const { gymId } = useAuth();
   const [activeTab, setActiveTab] = useState('payments');
   const [payments, setPayments] = useState([]);
   const [members, setMembers] = useState([]);
@@ -62,8 +64,8 @@ export default function PaymentsList() {
     try {
       setLoading(true);
       const [payData, memData] = await Promise.all([
-        getCollection('payments'),
-        getCollection('members'),
+        getTenantCollection(gymId, 'payments'),
+        getTenantCollection(gymId, 'members'),
       ]);
       const sorted = payData.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       setPayments(sorted);
@@ -120,7 +122,7 @@ export default function PaymentsList() {
     if (!editingPayment) return;
     try {
       setSaving(true);
-      await updateDocument('payments', editingPayment.id, {
+      await updateTenantDocument(gymId, 'payments', editingPayment.id, {
         paymentMode: editingPayment.paymentMode,
         amount: Number(editingPayment.amount),
         notes: editingPayment.notes,

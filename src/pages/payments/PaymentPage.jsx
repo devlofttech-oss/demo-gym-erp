@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { getCollection, createDocument, updateDocument } from '../../firebase/db';
+import { getTenantCollection, createTenantDocument, updateTenantDocument, getTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 function addDays(dateStr, days) {
@@ -10,6 +11,7 @@ function addDays(dateStr, days) {
 }
 
 export default function PaymentPage() {
+  const { gymId } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialMemberId = searchParams.get('memberId') || '';
@@ -50,7 +52,7 @@ export default function PaymentPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const doc = await import('../../firebase/db').then(m => m.getDocument('settings', 'general'));
+        const doc = await getTenantDocument(gymId, 'settings', 'general');
         if (doc && doc.categories && doc.categories.length > 0) {
           setPlanCategories(doc.categories);
           const firstCat = doc.categories[0];
@@ -84,7 +86,7 @@ export default function PaymentPage() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const data = await getCollection('members');
+        const data = await getTenantCollection(gymId, 'members');
         setMembers(data);
       } catch (error) {
         console.error(error);
@@ -215,7 +217,7 @@ export default function PaymentPage() {
     try {
       setSaving(true);
 
-      await createDocument('payments', {
+      await createTenantDocument(gymId, 'payments', {
         memberId: formData.memberId,
         memberName: selectedMember?.name || '',
         memberPhone: selectedMember?.phone || '',
@@ -232,7 +234,7 @@ export default function PaymentPage() {
         status: 'Paid',
       });
 
-      await updateDocument('members', formData.memberId, {
+      await updateTenantDocument(gymId, 'members', formData.memberId, {
         planName: formData.planName,
         planActiveFrom: formData.planActiveFrom,
         expiryDate: formData.expiryDate,
