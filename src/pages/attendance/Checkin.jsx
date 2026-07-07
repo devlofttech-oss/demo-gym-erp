@@ -144,9 +144,9 @@ export default function Checkin() {
 
       <div className="brand" style={{ textAlign: 'center', marginBottom: 'var(--space-8)', marginTop: 'var(--space-8)' }}>
         <div style={{ width: '64px', height: '64px', background: 'var(--primary)', color: '#fff', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold', margin: '0 auto var(--space-4)' }}>
-          DF
+          GO
         </div>
-        <h1 style={{ fontSize: '28px', color: 'var(--text-color)' }}>Deep Fitness</h1>
+        <h1 style={{ fontSize: '28px', color: 'var(--text-color)' }}>GYM-OS</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>Member Check-in Portal</p>
       </div>
 

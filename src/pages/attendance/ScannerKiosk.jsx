@@ -11,7 +11,7 @@ export default function ScannerKiosk() {
           <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
             qr_code_scanner
           </span>
-          <span className="font-bold text-sm tracking-wide">Deep Fitness — Scanner Kiosk</span>
+          <span className="font-bold text-sm tracking-wide">GYM-OS — Scanner Kiosk</span>
           <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-medium hidden sm:inline">
             Standalone Mode
           </span>

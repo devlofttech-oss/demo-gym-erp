@@ -25,9 +25,9 @@ const TABS = [
 
 function getSMSDefaultMessage(member) {
   if (member.expiryDate && new Date(member.expiryDate) < new Date()) {
-    return `Hi ${member.name}! Your Deep Fitness membership expired on ${member.expiryDate}. Please renew to continue your fitness journey. Visit us today! - Deep Fitness`;
+    return `Hi ${member.name}! Your membership expired on ${member.expiryDate}. Please renew to continue your fitness journey. Visit us today!`;
   }
-  return `Hi ${member.name}! This is a reminder that your Deep Fitness membership payment is due. Please clear your dues at the earliest. - Deep Fitness`;
+  return `Hi ${member.name}! This is a reminder that your membership payment is due. Please clear your dues at the earliest.`;
 }
 
 function formatDate(dateStr) {

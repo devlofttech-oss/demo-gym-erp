@@ -111,7 +111,7 @@ export default function MemberProfile() {
   const [payments, setPayments] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [gymInfo, setGymInfo] = useState({ name: 'Deep Fitness', location: '', contact: '' });
+  const [gymInfo, setGymInfo] = useState({ name: '', location: '', contact: '' });
   const [attendanceTab, setAttendanceTab] = useState('calendar');
   const [showQR, setShowQR] = useState(false);
   const qrRef = useRef(null);
@@ -159,7 +159,7 @@ export default function MemberProfile() {
       ctx.fillText(member?.name || '', canvas.width / 2, qrSize + padding + 22);
       ctx.fillStyle = '#7c3aed';
       ctx.font = '11px sans-serif';
-      ctx.fillText('DEEP FITNESS', canvas.width / 2, qrSize + padding + 42);
+      ctx.fillText(gymInfo?.name?.toUpperCase() || 'GYM-OS', canvas.width / 2, qrSize + padding + 42);
       URL.revokeObjectURL(url);
       const a = document.createElement('a');
       a.download = `${member?.name || 'member'}-qr.png`;
@@ -221,7 +221,7 @@ export default function MemberProfile() {
         <div class="header">
           <div class="logo-circle">${initials}</div>
           <div>
-            <div class="gym-name">${gymInfo.name || 'Deep Fitness'}</div>
+            <div class="gym-name">${gymInfo.name || 'GYM-OS'}</div>
             ${subLine ? `<div class="gym-sub">${subLine}</div>` : ''}
           </div>
           <div class="receipt-label">
@@ -258,7 +258,7 @@ export default function MemberProfile() {
         </div>
 
         <div class="footer">
-          Thank you for choosing ${gymInfo.name || 'Deep Fitness'}!<br/>
+          Thank you for choosing ${gymInfo.name || 'GYM-OS'}!<br/>
           Generated: ${new Date().toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </div></body></html>

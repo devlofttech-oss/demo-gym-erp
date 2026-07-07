@@ -68,7 +68,7 @@ export default function Sidebar({ onExpandChange }) {
                 }
               </div>
               <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm truncate max-w-32">
-                {gymData?.name || 'Deep Fitness'}
+                {gymData?.name || 'GYM-OS'}
               </span>
             </>
           )}

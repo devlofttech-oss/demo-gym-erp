@@ -124,7 +124,7 @@ export default function Dashboard() {
     <>
       <div className="flex flex-col gap-2">
         <h1 className="font-h1 text-h1 text-on-surface">Dashboard Overview</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant">Welcome back to Deep Fitness ERP. Here's what's happening today.</p>
+        <p className="font-body-lg text-body-lg text-on-surface-variant">Here's what's happening today.</p>
       </div>
 
       {/* KPI Grid */}

@@ -50,7 +50,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_GYM_INFO = {
-  name: 'Deep Fitness',
+  name: '',
   location: 'Bangalore, Karnataka',
   contact: '+91 94497 49003',
 };
@@ -301,7 +301,7 @@ export default function Settings() {
 
       {/* Version */}
       <div className="text-center text-xs text-on-surface-variant opacity-50 pb-4">
-        Deep Fitness ERP v1.0 · Powered by Firebase
+        GYM-OS v1.0 · Powered by Firebase
       </div>
 
       {/* Edit Gym Info Modal */}

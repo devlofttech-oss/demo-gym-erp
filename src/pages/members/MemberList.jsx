@@ -680,7 +680,7 @@ export default function MemberList() {
                             <button
                               onClick={() => {
                                 setSmsMember(member);
-                                setSmsMessage(`Hi ${member.name}! Your Deep Fitness membership expires on ${member.expiryDate}. Renew now to continue your fitness journey! Visit us or call us to renew. - Deep Fitness`);
+                                setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now to continue your fitness journey! Visit us or call us to renew.`);
                               }}
                               title={`Send SMS renewal reminder to ${member.name}`}
                               className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-on-primary px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm animate-pulse hover:animate-none"

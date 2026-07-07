@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { LogIn } from 'lucide-react'
-import logoImage from '../assets/logo.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -38,12 +37,9 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-surface dark:bg-slate-900 p-4 font-['Plus_Jakarta_Sans']">
       <div className="bg-surface-container-lowest dark:bg-slate-950 w-full max-w-md p-8 md:p-10 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-outline-variant/30 flex flex-col items-center">
         
-        <div className="w-40 h-40 mb-6 flex items-center justify-center">
-          <img src={logoImage} alt="Deep Fitness Logo" className="w-full h-full object-contain" />
-        </div>
-        
-        <h1 className="text-2xl font-bold text-on-surface text-center mb-1">Deep Fitness ERP</h1>
-        <p className="text-on-surface-variant text-center mb-8 text-sm">Sign in to your management dashboard</p>
+        <h1 className="text-3xl font-extrabold text-on-surface text-center mb-1 tracking-tight">GYM-OS</h1>
+        <p className="text-primary font-medium text-center text-sm mb-1">by Devloft Technologies</p>
+        <p className="text-on-surface-variant text-center mb-8 text-sm mt-3">Sign in to your management dashboard</p>
 
         {inactiveGymError && (
           <div className="w-full p-3 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 rounded-xl text-sm font-medium text-center flex items-center gap-2 justify-center">

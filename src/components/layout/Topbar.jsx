@@ -68,7 +68,7 @@ export default function Topbar() {
   return (
     <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md text-purple-900 dark:text-purple-400 font-['Plus_Jakarta_Sans'] text-sm sticky top-4 z-40 mx-4 md:mx-gutter lg:mx-container-margin md:ml-0 mt-4 mb-4 border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-full flex justify-between items-center h-16 px-6">
       <div className="flex items-center gap-6">
-        <div className="flex md:hidden font-bold text-slate-900 dark:text-white text-sm tracking-tight">Deep Fitness</div>
+        <div className="flex md:hidden font-bold text-slate-900 dark:text-white text-sm tracking-tight">GYM-OS</div>
         <div className="hidden md:flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium bg-slate-100/50 dark:bg-slate-800/50 px-4 py-1.5 rounded-full">
           <span className="material-symbols-outlined text-[18px]">calendar_today</span>
           {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

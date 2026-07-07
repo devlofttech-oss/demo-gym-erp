@@ -334,7 +334,7 @@ export default function ClassDetail() {
         <SendSMSModal
           phones={phones}
           recipientLabel={`${phones.length} members in ${cls.name}`}
-          defaultMessage={`Dear Students,\n\nThis is a kind reminder from Deep Fitness Gym.\n\nWe noticed your absence from recent classes. Regular attendance is very important to achieve your fitness goals and maintain consistency.\n\nKindly make sure to attend your upcoming sessions without fail. If you are unable to attend due to any reason, please inform the trainer in advance.\n\nLet's stay consistent and achieve your fitness goals together 💪\n\nThank you\nDeep Fitness Gym`}
+          defaultMessage={`Dear Students,\n\nThis is a kind reminder from your gym.\n\nWe noticed your absence from recent classes. Regular attendance is very important to achieve your fitness goals and maintain consistency.\n\nKindly make sure to attend your upcoming sessions without fail. If you are unable to attend due to any reason, please inform the trainer in advance.\n\nLet's stay consistent and achieve your fitness goals together 💪\n\nThank you`}
           onClose={() => setShowSMS(false)}
         />
       )}
