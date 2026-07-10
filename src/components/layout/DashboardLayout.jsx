@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import { useAuth } from '../../context/AuthContext';
 
 const mobileNavItems = [
   { to: '/', label: 'Dashboard', icon: 'monitoring', end: true },
@@ -13,9 +14,31 @@ const mobileNavItems = [
 
 export default function DashboardLayout() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const { isImpersonating, gymData, exitGym } = useAuth();
+  const navigate = useNavigate();
+
+  const handleExit = () => {
+    exitGym();
+    navigate('/super-admin');
+  };
 
   return (
-    <div className="bg-background text-on-background antialiased flex h-screen overflow-hidden">
+    <div className="bg-background text-on-background antialiased flex flex-col h-screen overflow-hidden">
+      {isImpersonating && (
+        <div className="shrink-0 z-50 bg-amber-500 text-white flex items-center justify-between px-4 py-2 text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">visibility</span>
+            Viewing as Super Admin: <span className="font-bold ml-1">{gymData?.name}</span>
+          </div>
+          <button
+            onClick={handleExit}
+            className="flex items-center gap-1 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors text-xs font-semibold">
+            <span className="material-symbols-outlined text-[14px]">logout</span>
+            Exit to Super Admin
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden">
       <Sidebar onExpandChange={setSidebarExpanded} />
       <div
         className={`flex-1 flex flex-col overflow-hidden relative transition-all duration-300 ${
@@ -55,6 +78,7 @@ export default function DashboardLayout() {
           </NavLink>
         ))}
       </nav>
+      </div>
     </div>
   );
 }

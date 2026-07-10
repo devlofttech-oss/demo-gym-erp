@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getCollection, updateDocument, deleteDocument, getDocument } from '../../firebase/db';
 import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 
 const SUB_COLLECTIONS = [
   'members', 'payments', 'attendance', 'staffAttendance',
@@ -31,6 +32,8 @@ async function deleteGymFully(gymId) {
 }
 
 export default function GymList() {
+  const { enterGym } = useAuth();
+  const navigate = useNavigate();
   const [gyms, setGyms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState(null);
@@ -179,6 +182,12 @@ export default function GymList() {
 
                     <td className="p-4">
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { enterGym(gym); navigate('/'); }}
+                          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">login</span>
+                          Enter
+                        </button>
                         <Link to={`/super-admin/gyms/${gym.id}/edit`}
                           className="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1">
                           <span className="material-symbols-outlined text-[14px]">edit</span>

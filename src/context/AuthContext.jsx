@@ -18,6 +18,18 @@ export function AuthProvider({ children }) {
   const [isSuperAdmin, setIsSuperAdmin]   = useState(false);
   const [loading, setLoading]             = useState(true);
   const [inactiveGymError, setInactiveGymError] = useState(false);
+  const [impersonatedGymId, setImpersonatedGymId]     = useState(null);
+  const [impersonatedGymData, setImpersonatedGymData] = useState(null);
+
+  const enterGym = (gym) => {
+    setImpersonatedGymId(gym.id);
+    setImpersonatedGymData(gym);
+  };
+
+  const exitGym = () => {
+    setImpersonatedGymId(null);
+    setImpersonatedGymData(null);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -75,11 +87,17 @@ export function AuthProvider({ children }) {
 
   const logout = () => signOut(auth);
 
+  const isImpersonating = !!impersonatedGymId;
+
   return (
     <AuthContext.Provider value={{
       currentUser, role, userName,
-      gymId, gymData, isSuperAdmin,
+      gymId: impersonatedGymId ?? gymId,
+      gymData: impersonatedGymData ?? gymData,
+      isSuperAdmin,
       inactiveGymError,
+      isImpersonating,
+      enterGym, exitGym,
       login, logout,
     }}>
       {!loading && children}
