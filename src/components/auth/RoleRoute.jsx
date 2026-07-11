@@ -14,7 +14,7 @@ export default function RoleRoute({ children, allowedRoles }) {
     return <Navigate to="/super-admin" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(role)) {
+  if (allowedRoles && !allowedRoles.includes(role) && !isImpersonating) {
     return <Navigate to={role === 'staff' ? '/checkin' : '/'} replace />;
   }
 
