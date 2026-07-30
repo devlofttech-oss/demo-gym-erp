@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useDarkMode } from '../../hooks/useDarkMode';
-import { getTenantDocument, setTenantDocument } from '../../firebase/tenantDb';
+import { getTenantDocument, setTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
+import { updateDocument } from '../../firebase/db';
 import toast from 'react-hot-toast';
 
 const DEFAULT_CATEGORIES = [
@@ -62,7 +63,7 @@ const CATEGORY_META = {
 };
 
 export default function Settings() {
-  const { gymId } = useAuth();
+  const { gymId, updateGymData } = useAuth();
   const { isDarkMode, setLightMode, setDarkMode } = useDarkMode();
 
   const [gymInfo, setGymInfo]         = useState(DEFAULT_GYM_INFO);
@@ -104,8 +105,12 @@ export default function Settings() {
   const handleSaveGymInfo = async (e) => {
     e.preventDefault();
     try {
-      await setTenantDocument(gymId, 'settings', 'general', { gymInfo: editGymInfo });
+      await Promise.all([
+        setTenantDocument(gymId, 'settings', 'general', { gymInfo: editGymInfo }),
+        updateDocument('gyms', gymId, { name: editGymInfo.name }),
+      ]);
       setGymInfo(editGymInfo);
+      updateGymData({ name: editGymInfo.name });
       setIsEditGymInfoOpen(false);
       toast.success('Gym Information updated!');
     } catch (error) {

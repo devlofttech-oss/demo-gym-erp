@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAuth } from '../../context/AuthContext';
-import logoImage from '../../assets/logo.png';
+import logoImage from '../../assets/kilos_logo.png';
 
 
 const ADMIN_NAV = [
@@ -62,30 +62,26 @@ export default function Sidebar({ onExpandChange }) {
       <div className={`h-14 bg-white dark:bg-slate-900 flex items-center shadow-sm shrink-0 transition-all duration-300 overflow-hidden ${
         expanded ? 'w-full rounded-2xl justify-between px-3' : 'w-14 rounded-full justify-center flex-col relative'
       }`}>
-        <div className={`flex items-center gap-3 overflow-hidden ${expanded ? 'w-auto' : 'w-full justify-center'}`}>
-          {!expanded ? (
-            <button onClick={toggle} className="w-full h-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors" title="Expand menu">
-              <span className="material-symbols-outlined text-[20px]">menu</span>
-            </button>
-          ) : (
-            <>
-              <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-primary-container/20 flex items-center justify-center">
-                {gymData?.logoUrl
-                  ? <img src={gymData.logoUrl} alt={gymData.name} className="w-full h-full object-cover" />
-                  : <img src={logoImage} alt="Logo" className="w-full h-full object-contain" />
-                }
-              </div>
-              <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm truncate max-w-32">
-                {gymData?.name || 'GYM-OS'}
-              </span>
-            </>
+        <button
+          onClick={toggle}
+          className={`flex items-center gap-2.5 overflow-hidden ${expanded ? 'flex-1 min-w-0' : 'w-full h-full justify-center'}`}
+          title={expanded ? 'Collapse menu' : 'Expand menu'}
+        >
+          {/* Always-visible software logo */}
+          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-primary-container/10 flex items-center justify-center">
+            <img src={logoImage} alt="GYM-OS" className="w-full h-full object-contain" />
+          </div>
+          {expanded && (
+            <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm truncate">
+              {gymData?.name || 'GYM-OS'}
+            </span>
           )}
-        </div>
+        </button>
 
         {expanded && (
           <button
             onClick={toggle}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 ml-1"
             title="Collapse menu"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>

@@ -31,6 +31,14 @@ export function AuthProvider({ children }) {
     setImpersonatedGymData(null);
   };
 
+  const updateGymData = (partial) => {
+    if (impersonatedGymId) {
+      setImpersonatedGymData(prev => ({ ...prev, ...partial }));
+    } else {
+      setGymData(prev => ({ ...prev, ...partial }));
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -97,7 +105,7 @@ export function AuthProvider({ children }) {
       isSuperAdmin,
       inactiveGymError,
       isImpersonating,
-      enterGym, exitGym,
+      enterGym, exitGym, updateGymData,
       login, logout,
     }}>
       {!loading && children}
