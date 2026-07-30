@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { getTenantCollection, createTenantDocument, updateTenantDocument, getTenantDocument } from '../../firebase/tenantDb';
+import { getTenantCollection, createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+
+const TYPE_LABELS = {
+  'gym': 'Gym',
+  'personal-training': 'Personal Training',
+  'group-class': 'Group Class',
+  'addon': 'Add-on',
+};
 
 function addDays(dateStr, days) {
   const d = new Date(dateStr);
@@ -23,7 +30,7 @@ export default function PaymentPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const [planCategories, setPlanCategories] = useState([]);
+  const [plans, setPlans] = useState([]);
 
   const [formData, setFormData] = useState({
     memberId: initialMemberId,
@@ -48,30 +55,29 @@ export default function PaymentPage() {
     : Number(formData.totalFees || 0);
   const balanceFees = Math.max(0, outstandingBase - Number(formData.paidNow || 0));
 
-  // Load plan categories from settings
+  // Load plans from plans collection
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchPlans = async () => {
       try {
-        const doc = await getTenantDocument(gymId, 'settings', 'general');
-        if (doc && doc.categories && doc.categories.length > 0) {
-          setPlanCategories(doc.categories);
-          const firstCat = doc.categories[0];
-          const firstPlan = firstCat?.plans?.[0];
-          if (firstPlan && !initialMemberId) {
-            setFormData(prev => ({
-              ...prev,
-              planName: `${firstCat.name} - ${firstPlan.name}`,
-              durationDays: firstPlan.durationDays,
-              totalFees: firstPlan.amount,
-              expiryDate: addDays(prev.planActiveFrom, firstPlan.durationDays),
-            }));
-          }
+        const data = await getTenantCollection(gymId, 'plans');
+        const active = data.filter(p => p.isActive !== false);
+        setPlans(active);
+        const first = active[0];
+        if (first && !initialMemberId) {
+          const days = first.durationMonths ? first.durationMonths * 30 : 30;
+          setFormData(prev => ({
+            ...prev,
+            planName: first.name,
+            durationDays: days,
+            totalFees: first.price || 0,
+            expiryDate: addDays(prev.planActiveFrom, days),
+          }));
         }
       } catch (error) {
         console.error('Failed to load plans', error);
       }
     };
-    fetchSettings();
+    fetchPlans();
   }, []);
 
   // Recalculate expiry when planActiveFrom or durationDays changes
@@ -131,33 +137,15 @@ export default function PaymentPage() {
       return;
     }
 
-    // ── Fully paid: renewal mode — find matching plan in settings ──────────
-    let matchedPlan = null;
-    let matchedPlanFullName = '';
-    if (planCategories.length) {
-      outer: for (const cat of planCategories) {
-        for (const plan of cat.plans) {
-          if (`${cat.name} - ${plan.name}` === member.planName) {
-            matchedPlan = plan;
-            matchedPlanFullName = `${cat.name} - ${plan.name}`;
-            break outer;
-          }
-        }
-      }
-      // No exact match in settings → default to first plan
-      if (!matchedPlan) {
-        const firstCat = planCategories[0];
-        const firstPlan = firstCat?.plans?.[0];
-        if (firstPlan) {
-          matchedPlan = firstPlan;
-          matchedPlanFullName = `${firstCat.name} - ${firstPlan.name}`;
-        }
-      }
-    }
+    // ── Fully paid: renewal mode — find matching plan in plans collection ──
+    let matchedPlan = plans.find(p => p.name === member.planName)
+      || plans.find(p => member.planName?.includes(p.name))
+      || plans[0]
+      || null;
 
-    const planPrice    = matchedPlan ? Number(matchedPlan.amount || 0) : Number(member.totalFees || 0);
-    const durationDays = matchedPlan ? Number(matchedPlan.durationDays || 30) : 30;
-    const planFullName = matchedPlanFullName || member.planName || '';
+    const planPrice    = matchedPlan ? Number(matchedPlan.price || 0) : Number(member.totalFees || 0);
+    const durationDays = matchedPlan?.durationMonths ? matchedPlan.durationMonths * 30 : 30;
+    const planFullName = matchedPlan?.name || member.planName || '';
 
     setFormData(prev => ({
       ...prev,
@@ -186,21 +174,18 @@ export default function PaymentPage() {
   };
 
   const handlePlanChange = (e) => {
-    const fullName = e.target.value;
-    for (const cat of planCategories) {
-      const plan = cat.plans.find(p => `${cat.name} - ${p.name}` === fullName);
-      if (plan) {
-        setFormData(prev => ({
-          ...prev,
-          planName: fullName,
-          durationDays: plan.durationDays,
-          totalFees: plan.amount,
-          // Keep the already-set planActiveFrom (renewal date); recalculate expiry from it
-          expiryDate: addDays(prev.planActiveFrom, plan.durationDays),
-          paidNow: '',
-        }));
-        return;
-      }
+    const planId = e.target.value;
+    const plan = plans.find(p => p.id === planId);
+    if (plan) {
+      const days = plan.durationMonths ? plan.durationMonths * 30 : 30;
+      setFormData(prev => ({
+        ...prev,
+        planName: plan.name,
+        durationDays: days,
+        totalFees: plan.price || 0,
+        expiryDate: addDays(prev.planActiveFrom, days),
+        paidNow: '',
+      }));
     }
   };
 
@@ -380,22 +365,25 @@ export default function PaymentPage() {
                 ) : (
                   <select
                     name="planName"
-                    value={formData.planName}
+                    value={plans.find(p => p.name === formData.planName)?.id || ''}
                     onChange={handlePlanChange}
                     className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none"
                   >
-                    {planCategories.map(cat => (
-                      <optgroup key={cat.id} label={cat.name}>
-                        {cat.plans.map(p => {
-                          const fullName = `${cat.name} - ${p.name}`;
-                          return (
-                            <option key={fullName} value={fullName}>
-                              {p.name}{p.amount > 0 ? ` — ₹${Number(p.amount).toLocaleString('en-IN')}` : ''}
+                    {plans.length === 0 && <option value="">No plans — add from Plans page</option>}
+                    {Object.entries(TYPE_LABELS).map(([type, label]) => {
+                      const group = plans.filter(p => p.type === type);
+                      if (!group.length) return null;
+                      return (
+                        <optgroup key={type} label={label}>
+                          {group.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}{p.price > 0 ? ` — ₹${Number(p.price).toLocaleString('en-IN')}` : ''}
+                              {p.durationMonths ? ` (${p.durationMonths}m)` : p.sessions ? ` (${p.sessions} sessions)` : ''}
                             </option>
-                          );
-                        })}
-                      </optgroup>
-                    ))}
+                          ))}
+                        </optgroup>
+                      );
+                    })}
                   </select>
                 )}
               </div>

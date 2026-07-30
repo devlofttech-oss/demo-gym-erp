@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getTenantDocument, createTenantDocument } from '../../firebase/tenantDb';
+import { getTenantCollection, createTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
+
+const TYPE_LABELS = {
+  'gym': 'Gym',
+  'personal-training': 'Personal Training',
+  'group-class': 'Group Class',
+  'addon': 'Add-on',
+};
 
 function addDays(dateStr, days) {
   const d = new Date(dateStr);
@@ -19,7 +26,7 @@ export default function AddMember() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const [planCategories, setPlanCategories] = useState([]);
+  const [plans, setPlans] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,28 +50,27 @@ export default function AddMember() {
   const balanceFees = Math.max(0, discountedTotal - Number(formData.paidNow || 0));
 
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchPlans = async () => {
       try {
-        const doc = await getTenantDocument(gymId, 'settings', 'general');
-        if (doc && doc.categories && doc.categories.length > 0) {
-          setPlanCategories(doc.categories);
-          const firstCat = doc.categories[0];
-          const firstPlan = firstCat?.plans?.[0];
-          if (firstPlan) {
-            setFormData(prev => ({
-              ...prev,
-              planName: `${firstCat.name} - ${firstPlan.name}`,
-              durationDays: firstPlan.durationDays,
-              totalFees: firstPlan.amount,
-              expiryDate: addDays(prev.planActiveFrom, firstPlan.durationDays),
-            }));
-          }
+        const data = await getTenantCollection(gymId, 'plans');
+        const active = data.filter(p => p.isActive !== false);
+        setPlans(active);
+        const first = active[0];
+        if (first) {
+          const days = first.durationMonths ? first.durationMonths * 30 : 30;
+          setFormData(prev => ({
+            ...prev,
+            planName: first.name,
+            durationDays: days,
+            totalFees: first.price || 0,
+            expiryDate: addDays(prev.planActiveFrom, days),
+          }));
         }
       } catch (error) {
         console.error('Failed to load plans', error);
       }
     };
-    fetchSettings();
+    fetchPlans();
   }, []);
 
   useEffect(() => {
@@ -79,20 +85,18 @@ export default function AddMember() {
   };
 
   const handlePlanChange = (e) => {
-    const fullName = e.target.value;
-    for (const cat of planCategories) {
-      const plan = cat.plans.find(p => `${cat.name} - ${p.name}` === fullName);
-      if (plan) {
-        setFormData(prev => ({
-          ...prev,
-          planName: fullName,
-          durationDays: plan.durationDays,
-          totalFees: plan.amount,
-          discountPercent: '',
-          paidNow: '',
-        }));
-        return;
-      }
+    const planId = e.target.value;
+    const plan = plans.find(p => p.id === planId);
+    if (plan) {
+      const days = plan.durationMonths ? plan.durationMonths * 30 : 30;
+      setFormData(prev => ({
+        ...prev,
+        planName: plan.name,
+        durationDays: days,
+        totalFees: plan.price || 0,
+        discountPercent: '',
+        paidNow: '',
+      }));
     }
   };
 
@@ -269,25 +273,33 @@ export default function AddMember() {
 
               {/* Plan dropdown */}
               <div className="flex flex-col gap-2">
-                <label className="font-medium text-sm text-on-surface">Membership Plan</label>
+                <label className="font-medium text-sm text-on-surface">
+                  Membership Plan
+                  {plans.length === 0 && (
+                    <Link to="/plans" className="ml-2 text-xs text-primary underline font-normal">Add plans first</Link>
+                  )}
+                </label>
                 <select
                   name="planName"
-                  value={formData.planName}
+                  value={plans.find(p => p.name === formData.planName)?.id || ''}
                   onChange={handlePlanChange}
                   className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none"
                 >
-                  {planCategories.map(cat => (
-                    <optgroup key={cat.id} label={cat.name}>
-                      {cat.plans.map(p => {
-                        const fullName = `${cat.name} - ${p.name}`;
-                        return (
-                          <option key={fullName} value={fullName}>
-                            {p.name}{p.amount > 0 ? ` — ₹${Number(p.amount).toLocaleString('en-IN')}` : ''}
+                  {plans.length === 0 && <option value="">No plans — go to Settings &gt; Plans</option>}
+                  {Object.entries(TYPE_LABELS).map(([type, label]) => {
+                    const group = plans.filter(p => p.type === type);
+                    if (!group.length) return null;
+                    return (
+                      <optgroup key={type} label={label}>
+                        {group.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}{p.price > 0 ? ` — ₹${Number(p.price).toLocaleString('en-IN')}` : ''}
+                            {p.durationMonths ? ` (${p.durationMonths}m)` : p.sessions ? ` (${p.sessions} sessions)` : ''}
                           </option>
-                        );
-                      })}
-                    </optgroup>
-                  ))}
+                        ))}
+                      </optgroup>
+                    );
+                  })}
                 </select>
               </div>
 
