@@ -90,7 +90,7 @@ export default function Sidebar({ onExpandChange }) {
       </div>
 
       {/* Nav Links */}
-      <div className={`bg-white dark:bg-slate-900 py-3 flex flex-col gap-2 shadow-sm shrink-0 transition-all duration-300 overflow-hidden overflow-y-auto ${
+      <div className={`bg-white dark:bg-slate-900 py-3 flex flex-col gap-2 shadow-sm flex-1 min-h-0 overflow-y-auto transition-all duration-300 ${
         expanded ? 'w-full rounded-3xl items-stretch' : 'w-14 rounded-full items-center'
       }`}>
         {navItems.map(({ to, icon, label, fill }) => (
@@ -110,9 +110,6 @@ export default function Sidebar({ onExpandChange }) {
           </NavLink>
         ))}
       </div>
-
-      {/* Spacer */}
-      <div className="flex-1"></div>
 
       {/* Theme Toggle */}
       <div className={`bg-white dark:bg-slate-900 p-1.5 flex shadow-sm shrink-0 transition-all duration-300 ${
