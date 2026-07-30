@@ -6,18 +6,25 @@ import logoImage from '../../assets/logo.png';
 
 
 const ADMIN_NAV = [
-  { to: '/',            icon: 'monitoring',          label: 'Dashboard',   fill: true  },
-  { to: '/members',     icon: 'group',               label: 'Members',     fill: true  },
-  { to: '/payments',    icon: 'account_balance_wallet', label: 'Payments', fill: false },
-  { to: '/checkin',     icon: 'how_to_reg',          label: 'Check-in',    fill: true  },
-  { to: '/attendance',  icon: 'event_available',     label: 'Attendance',  fill: true  },
-  { to: '/classes',     icon: 'sports_gymnastics',   label: 'Classes',     fill: true  },
-  { to: '/staff',       icon: 'badge',               label: 'Staff',       fill: true  },
-  { to: '/equipment',   icon: 'fitness_center',      label: 'Equipment',   fill: false },
-  { to: '/supplements', icon: 'medication',          label: 'Supplements', fill: true  },
-  { to: '/expenses',        icon: 'receipt',          label: 'Expenses',  fill: true  },
-  { to: '/reports/monthly', icon: 'insert_chart',    label: 'Reports',   fill: true  },
-  { to: '/settings',        icon: 'settings',        label: 'Settings',  fill: true  },
+  { to: '/',              icon: 'monitoring',            label: 'Dashboard',    fill: true  },
+  { to: '/members',       icon: 'group',                 label: 'Members',      fill: true  },
+  { to: '/payments',      icon: 'account_balance_wallet',label: 'Payments',     fill: false },
+  { to: '/checkin',       icon: 'how_to_reg',            label: 'Check-in',     fill: true  },
+  { to: '/attendance',    icon: 'event_available',       label: 'Attendance',   fill: true  },
+  { to: '/classes',       icon: 'sports_gymnastics',     label: 'Classes',      fill: true  },
+  { to: '/staff',         icon: 'badge',                 label: 'Staff',        fill: true  },
+  { to: '/equipment',     icon: 'fitness_center',        label: 'Equipment',    fill: false },
+  { to: '/supplements',   icon: 'medication',            label: 'Supplements',  fill: true  },
+  { to: '/plans',         icon: 'loyalty',               label: 'Plans',        fill: true  },
+  { to: '/leads',         icon: 'person_search',         label: 'Leads & CRM',  fill: true  },
+  { to: '/measurements',  icon: 'monitor_weight',        label: 'Measurements', fill: false },
+  { to: '/workouts',      icon: 'exercise',              label: 'Workouts',     fill: true  },
+  { to: '/pt',            icon: 'sports_martial_arts',   label: 'Personal Trng',fill: true  },
+  { to: '/diet',          icon: 'restaurant',            label: 'Diet & Nutrition', fill: true },
+  { to: '/communication', icon: 'campaign',              label: 'Communication',fill: true  },
+  { to: '/expenses',      icon: 'receipt',               label: 'Expenses',     fill: true  },
+  { to: '/reports/monthly',icon: 'insert_chart',         label: 'Reports',      fill: true  },
+  { to: '/settings',      icon: 'settings',              label: 'Settings',     fill: true  },
 ];
 
 const STAFF_NAV = [

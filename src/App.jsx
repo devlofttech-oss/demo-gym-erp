@@ -22,6 +22,13 @@ import ClassDetail from './pages/classes/ClassDetail';
 import AddClass from './pages/classes/AddClass';
 import ExpenseList from './pages/expenses/ExpenseList';
 import MonthlyReport from './pages/reports/MonthlyReport';
+import PlanList from './pages/plans/PlanList';
+import LeadList from './pages/leads/LeadList';
+import MeasurementList from './pages/measurements/MeasurementList';
+import WorkoutList from './pages/workouts/WorkoutList';
+import PTList from './pages/pt/PTList';
+import DietList from './pages/diet/DietList';
+import CommunicationHub from './pages/communication/CommunicationHub';
 
 // Super Admin
 import SuperAdminLayout from './pages/super-admin/SuperAdminLayout';
@@ -88,6 +95,13 @@ export default function App() {
         <Route path="equipment"         element={<RoleRoute allowedRoles={ADMIN}><EquipmentList /></RoleRoute>} />
         <Route path="supplements"       element={<RoleRoute allowedRoles={ADMIN}><SupplementList /></RoleRoute>} />
         <Route path="expenses"          element={<RoleRoute allowedRoles={ADMIN}><ExpenseList /></RoleRoute>} />
+        <Route path="plans"             element={<RoleRoute allowedRoles={ADMIN}><PlanList /></RoleRoute>} />
+        <Route path="leads"             element={<RoleRoute allowedRoles={ADMIN}><LeadList /></RoleRoute>} />
+        <Route path="measurements"      element={<RoleRoute allowedRoles={ADMIN}><MeasurementList /></RoleRoute>} />
+        <Route path="workouts"          element={<RoleRoute allowedRoles={ADMIN}><WorkoutList /></RoleRoute>} />
+        <Route path="pt"                element={<RoleRoute allowedRoles={ADMIN}><PTList /></RoleRoute>} />
+        <Route path="diet"              element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} />
+        <Route path="communication"     element={<RoleRoute allowedRoles={ADMIN}><CommunicationHub /></RoleRoute>} />
         <Route path="reports/monthly"   element={<RoleRoute allowedRoles={ADMIN}><MonthlyReport /></RoleRoute>} />
         <Route path="settings"          element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
 
