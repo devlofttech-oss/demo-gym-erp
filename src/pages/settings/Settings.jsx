@@ -306,7 +306,7 @@ export default function Settings() {
 
       {/* Version */}
       <div className="text-center text-xs text-on-surface-variant opacity-50 pb-4">
-        GYM-OS v1.0 · Powered by Firebase
+        Kilos v1.0 · Powered by Firebase
       </div>
 
       {/* Edit Gym Info Modal */}

@@ -69,11 +69,11 @@ export default function Sidebar({ onExpandChange }) {
         >
           {/* Always-visible software logo */}
           <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-primary-container/10 flex items-center justify-center">
-            <img src={logoImage} alt="GYM-OS" className="w-full h-full object-contain" />
+            <img src={logoImage} alt="Kilos" className="w-full h-full object-contain" />
           </div>
           {expanded && (
             <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm truncate">
-              {gymData?.name || 'GYM-OS'}
+              {gymData?.name || 'Kilos'}
             </span>
           )}
         </button>

@@ -53,7 +53,7 @@ export default function SuperAdminLayout() {
           </div>
           <div>
             <div className="font-bold text-on-surface text-sm">Super Admin</div>
-            <div className="text-xs text-on-surface-variant">GYM-OS Platform</div>
+            <div className="text-xs text-on-surface-variant">Kilos Platform</div>
           </div>
         </div>
       </div>

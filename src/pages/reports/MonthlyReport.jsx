@@ -166,7 +166,7 @@ export default function MonthlyReport() {
 
     // Summary
     const summaryRows = [
-      ['GYM-OS — Monthly Business Report'],
+      ['Kilos — Monthly Business Report'],
       [`Month: ${monthLabel(selectedMonth)}`],
       [],
       ['Metric', monthLabel(selectedMonth), monthLabel(prev), 'Change'],

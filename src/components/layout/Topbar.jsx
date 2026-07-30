@@ -66,7 +66,7 @@ export default function Topbar() {
   const displayName = userName || currentUser?.email?.split('@')[0] || 'User';
   const roleLabel = role === 'admin' ? 'Admin' : role === 'staff' ? 'Staff' : role || 'User';
   const { gymData } = useAuth();
-  const gymName = gymData?.name || 'GYM-OS';
+  const gymName = gymData?.name || 'Kilos';
 
   return (
     <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md font-['Plus_Jakarta_Sans'] text-sm sticky top-4 z-40 mx-4 md:mx-gutter lg:mx-container-margin md:ml-0 mt-4 mb-4 border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-full flex justify-between items-center h-16 px-4 md:px-6">
@@ -74,7 +74,7 @@ export default function Topbar() {
       <div className="flex items-center gap-2 md:min-w-0">
         <div className="flex md:hidden items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-lg overflow-hidden bg-primary-container/10 flex items-center justify-center">
-            <img src={logoImage} alt="GYM-OS" className="w-full h-full object-contain" />
+            <img src={logoImage} alt="Kilos" className="w-full h-full object-contain" />
           </div>
         </div>
         {/* Date pill — desktop only */}
@@ -87,7 +87,7 @@ export default function Topbar() {
       {/* Center — Gym name */}
       <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center leading-tight pointer-events-none">
         <span className="font-bold text-slate-900 dark:text-white text-sm md:text-base tracking-tight whitespace-nowrap">{gymName}</span>
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase hidden sm:block">powered by GYM-OS</span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase hidden sm:block">powered by Kilos</span>
       </div>
 
       <div className="flex items-center gap-3 relative">
