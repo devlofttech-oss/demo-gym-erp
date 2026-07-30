@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import logoImage from '../../assets/kilos_logo.png';
 
 const NAV = [
   { to: '/super-admin',       label: 'Dashboard', icon: 'monitoring',      end: true },
@@ -48,12 +49,12 @@ export default function SuperAdminLayout() {
       {/* Header */}
       <div className="px-5 py-5 border-b border-outline-variant/20">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-white text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
+          <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 bg-primary-container/10 flex items-center justify-center">
+            <img src={logoImage} alt="Kilos" className="w-full h-full object-contain" />
           </div>
           <div>
-            <div className="font-bold text-on-surface text-sm">Super Admin</div>
-            <div className="text-xs text-on-surface-variant">Kilos Platform</div>
+            <div className="font-bold text-on-surface text-sm">Kilos</div>
+            <div className="text-xs text-on-surface-variant">Super Admin Platform</div>
           </div>
         </div>
       </div>
@@ -101,10 +102,10 @@ export default function SuperAdminLayout() {
             <span className="material-symbols-outlined text-[22px]">menu</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-white text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
+            <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0 bg-primary-container/10 flex items-center justify-center">
+              <img src={logoImage} alt="Kilos" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-on-surface text-sm">Super Admin</span>
+            <span className="font-bold text-on-surface text-sm">Kilos</span>
           </div>
         </div>
         <button onClick={handleLogout} className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
