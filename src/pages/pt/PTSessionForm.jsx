@@ -15,6 +15,9 @@ export default function PTSessionForm({ session, onClose, onSaved }) {
   const [packages, setPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
 
+  const [members, setMembers] = useState([]);
+  const [trainers, setTrainers] = useState([]);
+
   const [form, setForm] = useState({
     date: session?.date ?? todayStr(),
     time: session?.time ?? '',
@@ -26,17 +29,23 @@ export default function PTSessionForm({ session, onClose, onSaved }) {
   });
 
   useEffect(() => {
-    async function fetchPackages() {
+    async function fetchAll() {
       try {
-        const data = await getTenantCollection(gymId, 'ptPackages');
-        setPackages(data);
+        const [pkgData, memData, staffData] = await Promise.all([
+          getTenantCollection(gymId, 'ptPackages'),
+          getTenantCollection(gymId, 'members'),
+          getTenantCollection(gymId, 'staff'),
+        ]);
+        setPackages(pkgData);
+        setMembers(memData.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+        setTrainers(staffData.filter(s => s.role === 'Trainer' || s.role === 'Manager'));
       } catch (err) {
-        toast.error('Failed to load packages');
+        toast.error('Failed to load data');
       } finally {
         setLoadingPackages(false);
       }
     }
-    fetchPackages();
+    fetchAll();
   }, [gymId]);
 
   function handle(e) {
@@ -131,30 +140,34 @@ export default function PTSessionForm({ session, onClose, onSaved }) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-on-surface-variant">
-              Member Name <span className="text-error">*</span>
+              Member <span className="text-error">*</span>
             </label>
-            <input
-              name="memberName"
-              type="text"
-              value={form.memberName}
-              onChange={handle}
-              placeholder="e.g. Priya Sharma"
-              className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary"
-            />
+            {members.length > 0 ? (
+              <select name="memberName" value={form.memberName} onChange={handle}
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary appearance-none">
+                <option value="">Select member...</option>
+                {members.map(m => <option key={m.id} value={m.name}>{m.name} — {m.phone}</option>)}
+              </select>
+            ) : (
+              <input name="memberName" type="text" value={form.memberName} onChange={handle} placeholder="e.g. Priya Sharma"
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary" />
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-on-surface-variant">
-              Trainer Name <span className="text-error">*</span>
+              Trainer <span className="text-error">*</span>
             </label>
-            <input
-              name="trainerName"
-              type="text"
-              value={form.trainerName}
-              onChange={handle}
-              placeholder="e.g. Rajesh Kumar"
-              className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary"
-            />
+            {trainers.length > 0 ? (
+              <select name="trainerName" value={form.trainerName} onChange={handle}
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary appearance-none">
+                <option value="">Select trainer...</option>
+                {trainers.map(t => <option key={t.id} value={t.name}>{t.name} ({t.role})</option>)}
+              </select>
+            ) : (
+              <input name="trainerName" type="text" value={form.trainerName} onChange={handle} placeholder="e.g. Rajesh Kumar"
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary" />
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

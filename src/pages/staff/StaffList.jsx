@@ -12,7 +12,7 @@ const ROLES = ['Trainer', 'Staff', 'Manager', 'Receptionist'];
 const EMPTY_FORM = {
   name: '', role: 'Trainer', phone: '', email: '',
   address: '', joiningDate: new Date().toISOString().split('T')[0],
-  salary: '', photoUrl: '',
+  salary: '', photoUrl: '', certifications: '', commissionType: 'salary', commissionPercent: '',
 };
 
 function generateQrId() {
@@ -116,6 +116,27 @@ function StaffModal({ initial, onSave, onClose, gymId }) {
               <input name="address" value={form.address} onChange={handle} placeholder="Full address"
                 className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary" />
             </div>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-on-surface-variant">Certifications</label>
+              <input name="certifications" value={form.certifications} onChange={handle} placeholder="e.g. ACE CPT, NASM, Zumba Instructor"
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-on-surface-variant">Commission Type</label>
+              <select name="commissionType" value={form.commissionType} onChange={handle}
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary appearance-none">
+                <option value="salary">Fixed Salary Only</option>
+                <option value="commission">Commission Only</option>
+                <option value="both">Salary + Commission</option>
+              </select>
+            </div>
+            {(form.commissionType === 'commission' || form.commissionType === 'both') && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-on-surface-variant">Commission %</label>
+                <input type="number" min="0" max="100" name="commissionPercent" value={form.commissionPercent} onChange={handle} placeholder="e.g. 10"
+                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary" />
+              </div>
+            )}
           </div>
 
           {/* Login Access */}
@@ -415,7 +436,9 @@ export default function StaffList() {
           gymId={gymId}
           initial={{ name: editingStaff.name, role: editingStaff.role, phone: editingStaff.phone,
             email: editingStaff.email || '', address: editingStaff.address || '',
-            joiningDate: editingStaff.joiningDate || '', salary: editingStaff.salary || '', photoUrl: editingStaff.photoUrl || '' }}
+            joiningDate: editingStaff.joiningDate || '', salary: editingStaff.salary || '', photoUrl: editingStaff.photoUrl || '',
+            certifications: editingStaff.certifications || '', commissionType: editingStaff.commissionType || 'salary',
+            commissionPercent: editingStaff.commissionPercent || '' }}
           onSave={handleEdit}
           onClose={() => setEditingStaff(null)}
         />

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
+import { useState, useEffect } from 'react';
+import { createTenantDocument, updateTenantDocument, getTenantCollection } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,8 @@ const EMPTY_FORM = {
   daysPerWeek: '',
   description: '',
   exercises: [],
+  assignedMemberId: '',
+  assignedMemberName: '',
 };
 
 const LEVEL_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
@@ -31,10 +33,18 @@ export default function WorkoutForm({ workout, onClose, onSaved }) {
       daysPerWeek: workout.daysPerWeek != null ? String(workout.daysPerWeek) : '',
       description: workout.description || '',
       exercises: workout.exercises ? workout.exercises.map(ex => ({ ...ex })) : [],
+      assignedMemberId: workout.assignedMemberId || '',
+      assignedMemberName: workout.assignedMemberName || '',
     };
   });
 
   const [saving, setSaving] = useState(false);
+  const [membersList, setMembersList] = useState([]);
+  useEffect(() => {
+    getTenantCollection(gymId, 'members').then(data => {
+      setMembersList(data.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+    }).catch(() => {});
+  }, [gymId]);
 
   const handle = (e) => {
     const { name, value } = e.target;
@@ -73,6 +83,8 @@ export default function WorkoutForm({ workout, onClose, onSaved }) {
         durationMinutes: Number(form.durationMinutes),
         daysPerWeek: Number(form.daysPerWeek),
         description: form.description.trim(),
+        assignedMemberId: form.assignedMemberId || null,
+        assignedMemberName: form.assignedMemberName || null,
         exercises: form.exercises.map(ex => ({
           name: ex.name.trim(),
           sets: ex.sets ? Number(ex.sets) : null,
@@ -195,6 +207,27 @@ export default function WorkoutForm({ workout, onClose, onSaved }) {
                 className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary"
               />
             </div>
+          </div>
+
+          {/* Assigned Member */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-on-surface-variant">
+              Assigned Member <span className="text-xs font-normal text-on-surface-variant opacity-60">(optional — leave blank to save as template)</span>
+            </label>
+            <select
+              name="assignedMemberId"
+              value={form.assignedMemberId}
+              onChange={e => {
+                const m = membersList.find(m => m.id === e.target.value);
+                setForm(p => ({ ...p, assignedMemberId: e.target.value, assignedMemberName: m?.name || '' }));
+              }}
+              className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary appearance-none"
+            >
+              <option value="">No member — save as template</option>
+              {membersList.map(m => (
+                <option key={m.id} value={m.id}>{m.name} — {m.phone}</option>
+              ))}
+            </select>
           </div>
 
           {/* Description */}

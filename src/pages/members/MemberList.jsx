@@ -228,6 +228,13 @@ export default function MemberList() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const getStatusBadge = (status) => {
+    if (status === 'Frozen') {
+      return (
+        <span className="flex items-center gap-1 text-blue-600 font-label-caps text-label-caps bg-blue-50 px-2 py-1 rounded-md w-fit">
+          <span className="material-symbols-outlined text-[11px]">ac_unit</span> Frozen
+        </span>
+      );
+    }
     if (status === 'Active') {
       return (
         <span className="flex items-center gap-1 text-emerald-600 font-label-caps text-label-caps bg-emerald-50 px-2 py-1 rounded-md w-fit">
@@ -262,10 +269,12 @@ export default function MemberList() {
     const term = searchTerm.toLowerCase();
     const matchSearch = !term || m.name?.toLowerCase().includes(term) || m.phone?.includes(term);
     const days = daysUntilExpiry(m.expiryDate);
+    const isFrozen = m.status === 'Frozen';
     let matchStatus = true;
-    if (filterStatus === 'Active') matchStatus = days === null || days >= 0;
-    else if (filterStatus === 'Expired') matchStatus = days !== null && days < 0;
-    else if (filterStatus === 'Expiring') matchStatus = days !== null && days >= 0 && days <= 7;
+    if (filterStatus === 'Active') matchStatus = !isFrozen && (days === null || days >= 0);
+    else if (filterStatus === 'Expired') matchStatus = !isFrozen && days !== null && days < 0;
+    else if (filterStatus === 'Expiring') matchStatus = !isFrozen && days !== null && days >= 0 && days <= 7;
+    else if (filterStatus === 'Frozen') matchStatus = isFrozen;
     return matchSearch && matchStatus && matchesCategory(m, filterCategory);
   });
 
@@ -475,6 +484,7 @@ export default function MemberList() {
             { id: 'Active',    label: 'Active' },
             { id: 'Expiring',  label: 'Expiring Soon' },
             { id: 'Expired',   label: 'Expired' },
+            { id: 'Frozen',    label: 'Frozen' },
             { id: 'Absentees', label: 'Absentees' },
           ].map(({ id, label }) => (
             <button
@@ -696,7 +706,7 @@ export default function MemberList() {
                   const days = daysUntilExpiry(member.expiryDate);
                   const isExpiringSoon = days !== null && days >= 0 && days <= 7;
                   const isExpired = days !== null && days < 0;
-                  const effectiveStatus = isExpired ? 'Expired' : 'Active';
+                  const effectiveStatus = member.status === 'Frozen' ? 'Frozen' : isExpired ? 'Expired' : 'Active';
 
                   return (
                     <tr key={member.id} className="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors">

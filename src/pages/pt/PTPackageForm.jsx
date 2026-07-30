@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
-import { createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
+import { createTenantDocument, updateTenantDocument, getTenantCollection } from '../../firebase/tenantDb';
 
 export default function PTPackageForm({ package: pkg, onClose, onSaved }) {
   const { gymId } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [trainers, setTrainers] = useState([]);
 
   const [form, setForm] = useState({
     name: '',
@@ -28,6 +29,12 @@ export default function PTPackageForm({ package: pkg, onClose, onSaved }) {
       });
     }
   }, [pkg]);
+
+  useEffect(() => {
+    getTenantCollection(gymId, 'staff').then(data => {
+      setTrainers(data.filter(s => s.role === 'Trainer' || s.role === 'Manager'));
+    }).catch(() => {});
+  }, [gymId]);
 
   function handle(e) {
     const { name, value } = e.target;
@@ -106,15 +113,29 @@ export default function PTPackageForm({ package: pkg, onClose, onSaved }) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-on-surface-variant">
-              Trainer Name <span className="text-error">*</span>
+              Trainer <span className="text-error">*</span>
             </label>
-            <input
-              name="trainerName"
-              value={form.trainerName}
-              onChange={handle}
-              placeholder="e.g. Rajesh Kumar"
-              className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary"
-            />
+            {trainers.length > 0 ? (
+              <select
+                name="trainerName"
+                value={form.trainerName}
+                onChange={handle}
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary appearance-none"
+              >
+                <option value="">Select trainer...</option>
+                {trainers.map(t => (
+                  <option key={t.id} value={t.name}>{t.name} ({t.role})</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                name="trainerName"
+                value={form.trainerName}
+                onChange={handle}
+                placeholder="e.g. Rajesh Kumar"
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -9,6 +9,7 @@ const ADMIN_NAV = [
   { to: '/',              icon: 'monitoring',            label: 'Dashboard',    fill: true  },
   { to: '/members',       icon: 'group',                 label: 'Members',      fill: true  },
   { to: '/payments',      icon: 'account_balance_wallet',label: 'Payments',     fill: false },
+  { to: '/renewals',      icon: 'autorenew',             label: 'Renewals',     fill: false },
   { to: '/checkin',       icon: 'how_to_reg',            label: 'Check-in',     fill: true  },
   { to: '/attendance',    icon: 'event_available',       label: 'Attendance',   fill: true  },
   { to: '/classes',       icon: 'sports_gymnastics',     label: 'Classes',      fill: true  },

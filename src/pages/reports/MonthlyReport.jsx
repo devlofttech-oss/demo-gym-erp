@@ -79,12 +79,19 @@ function StatCard({ icon, iconColor = 'text-primary', label, value, sub, trend }
   );
 }
 
+const REPORT_TABS = [
+  { id: 'overview', label: 'Overview', icon: 'bar_chart' },
+  { id: 'leads', label: 'Leads', icon: 'person_search' },
+];
+
 // ── Main page ─────────────────────────────────────────────────────
 export default function MonthlyReport() {
   const { gymId } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(toYYYYMM(new Date()));
+  const [activeTab, setActiveTab] = useState('overview');
   const [members, setMembers]   = useState([]);
   const [payments, setPayments] = useState([]);
+  const [leads, setLeads]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef(null);
@@ -95,9 +102,11 @@ export default function MonthlyReport() {
     Promise.all([
       getTenantCollection(gymId, 'members'),
       getTenantCollection(gymId, 'payments'),
-    ]).then(([m, p]) => {
+      getTenantCollection(gymId, 'leads'),
+    ]).then(([m, p, l]) => {
       setMembers(m);
       setPayments(p);
+      setLeads(l);
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [gymId]);
@@ -115,6 +124,22 @@ export default function MonthlyReport() {
   const prevPayments   = filterByMonth(payments, 'date', prev);
   const prevRenewals   = prevPayments.filter((p) => p.type === 'renewal');
   const prevRevenue    = prevPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+  // Leads for month
+  const currLeads = filterByMonth(leads, 'createdAt', selectedMonth);
+  const prevLeads = filterByMonth(leads, 'createdAt', prev);
+  const leadsByStatus = currLeads.reduce((acc, l) => {
+    acc[l.status] = (acc[l.status] || 0) + 1;
+    return acc;
+  }, {});
+  const leadsBySource = currLeads.reduce((acc, l) => {
+    const src = l.source || 'unknown';
+    acc[src] = (acc[src] || 0) + 1;
+    return acc;
+  }, {});
+  const conversionRate = currLeads.length > 0
+    ? ((leadsByStatus['won'] || 0) / currLeads.length * 100).toFixed(1)
+    : 0;
 
   const revChange    = pct(currRevenue, prevRevenue);
   const memberChange = pct(currNewMembers.length, prevNewMembers.length);
@@ -236,9 +261,118 @@ export default function MonthlyReport() {
         </div>
       </div>
 
+      {/* Report tabs */}
+      <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit">
+        {REPORT_TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              activeTab === tab.id
+                ? 'bg-surface-container-lowest text-on-surface shadow-sm'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}>
+            <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+        </div>
+      ) : activeTab === 'leads' ? (
+        <div className="flex flex-col gap-6">
+          {/* Leads Summary */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon="person_search" iconColor="text-primary" label="Total Leads" value={currLeads.length} sub={`${prevLeads.length} last month`} />
+            <StatCard icon="check_circle" iconColor="text-emerald-600" label="Converted (Won)" value={leadsByStatus['won'] || 0} />
+            <StatCard icon="cancel" iconColor="text-rose-600" label="Lost" value={leadsByStatus['lost'] || 0} />
+            <StatCard icon="trending_up" iconColor="text-amber-600" label="Conversion Rate" value={`${conversionRate}%`} sub={`${currLeads.length} total leads`} />
+          </div>
+          {/* Leads by status */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/20">
+              <h3 className="font-semibold text-on-surface mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[20px]">donut_small</span>
+                Leads by Status
+              </h3>
+              {Object.keys(leadsByStatus).length === 0 ? (
+                <p className="text-sm text-on-surface-variant">No leads this month.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {Object.entries(leadsByStatus).map(([status, count]) => (
+                    <div key={status} className="flex items-center justify-between">
+                      <span className="capitalize text-sm text-on-surface">{status}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 rounded-full bg-surface-container overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${(count / currLeads.length) * 100}%` }} />
+                        </div>
+                        <span className="text-sm font-semibold text-on-surface w-6 text-right">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/20">
+              <h3 className="font-semibold text-on-surface mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-600 text-[20px]">source</span>
+                Leads by Source
+              </h3>
+              {Object.keys(leadsBySource).length === 0 ? (
+                <p className="text-sm text-on-surface-variant">No leads this month.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {Object.entries(leadsBySource).map(([source, count]) => (
+                    <div key={source} className="flex items-center justify-between">
+                      <span className="capitalize text-sm text-on-surface">{source}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-2 rounded-full bg-surface-container overflow-hidden">
+                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(count / currLeads.length) * 100}%` }} />
+                        </div>
+                        <span className="text-sm font-semibold text-on-surface w-6 text-right">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Lead list */}
+          {currLeads.length > 0 && (
+            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/20">
+              <h3 className="font-semibold text-on-surface mb-4">All Leads This Month ({currLeads.length})</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-outline-variant/30">
+                      {['Name', 'Phone', 'Source', 'Status', 'Plan', 'Budget'].map(h => (
+                        <th key={h} className="text-left py-2 pr-4 font-semibold text-on-surface-variant">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currLeads.map(l => (
+                      <tr key={l.id} className="border-b border-outline-variant/10">
+                        <td className="py-2.5 pr-4 font-medium text-on-surface">{l.name}</td>
+                        <td className="py-2.5 pr-4 text-on-surface-variant">{l.phone}</td>
+                        <td className="py-2.5 pr-4 capitalize text-on-surface-variant">{l.source || '—'}</td>
+                        <td className="py-2.5 pr-4">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            l.status === 'won' ? 'bg-emerald-100 text-emerald-700' :
+                            l.status === 'lost' ? 'bg-red-100 text-red-700' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>{l.status}</span>
+                        </td>
+                        <td className="py-2.5 pr-4 text-on-surface-variant">{l.interestedPlan || '—'}</td>
+                        <td className="py-2.5 text-on-surface-variant">{l.budget ? `₹${Number(l.budget).toLocaleString('en-IN')}` : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div ref={reportRef} className="flex flex-col gap-6 bg-surface rounded-2xl">

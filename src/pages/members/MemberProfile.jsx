@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { getTenantDocument, getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
@@ -127,6 +127,11 @@ export default function MemberProfile() {
   // ── Delete member confirm ──
   const [showDeleteMember, setShowDeleteMember] = useState(false);
 
+  // ── Freeze modal ──
+  const [showFreezeModal, setShowFreezeModal] = useState(false);
+  const [freezeDate, setFreezeDate] = useState('');
+  const [freezing, setFreezing] = useState(false);
+
   // ── Payment edit/delete ──
   const [editingPayment, setEditingPayment] = useState(null); // full payment object
   const [paymentEditForm, setPaymentEditForm] = useState({});
@@ -134,6 +139,11 @@ export default function MemberProfile() {
 
   // ── Attendance delete ──
   const [deletingAttendanceId, setDeletingAttendanceId] = useState(null);
+
+  // ── Measurements ──
+  const [measurements, setMeasurements] = useState([]);
+  const [newMeasure, setNewMeasure] = useState({ date: new Date().toISOString().split('T')[0], weight: '', notes: '' });
+  const [addingMeasure, setAddingMeasure] = useState(false);
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -249,6 +259,7 @@ export default function MemberProfile() {
           <div class="section">
             <div class="section-title">Payment Summary</div>
             <div class="row"><span class="label">Total Fees</span><span class="value">&#8377;${Number(member?.totalFees || 0).toLocaleString('en-IN')}</span></div>
+            ${member?.gstPercent > 0 ? `<div class="row"><span class="label">GST (${member.gstPercent}%)</span><span class="value">&#8377;${(Number(member.totalFees || 0) * member.gstPercent / 100).toLocaleString('en-IN')}</span></div>` : ''}
             <div class="row"><span class="label">Amount Paid</span><span class="value green">&#8377;${Number(member?.paidFees || 0).toLocaleString('en-IN')}</span></div>
             <div class="row ${bal > 0 ? 'bal-row' : ''}">
               <span class="label">Balance Due</span>
@@ -300,6 +311,9 @@ export default function MemberProfile() {
 
         const attendanceData = await getTenantCollection(gymId, 'attendance', [{ field: 'memberId', op: '==', value: id }]);
         setAttendance(attendanceData.sort((a, b) => new Date(b.checkInTime || b.timestamp || b.date || 0) - new Date(a.checkInTime || a.timestamp || a.date || 0)));
+
+        const measureData = await getTenantCollection(gymId, 'measurements', [{ field: 'memberId', op: '==', value: id }]);
+        setMeasurements(measureData.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
       } catch (error) {
         console.error('Error fetching data', error);
       } finally {
@@ -308,6 +322,30 @@ export default function MemberProfile() {
     };
     if (id) fetchData();
   }, [id]);
+
+  // ── Freeze / Unfreeze ────────────────────────────────────────────────────
+  const handleFreeze = async () => {
+    if (!freezeDate) { toast.error('Select a resume date'); return; }
+    setFreezing(true);
+    try {
+      const updates = { status: 'Frozen', frozenOn: new Date().toISOString().split('T')[0], resumeDate: freezeDate };
+      await updateTenantDocument(gymId, 'members', id, updates);
+      setMember(prev => ({ ...prev, ...updates }));
+      setShowFreezeModal(false);
+      setFreezeDate('');
+      toast.success('Membership frozen');
+    } catch { toast.error('Failed to freeze membership'); }
+    finally { setFreezing(false); }
+  };
+
+  const handleUnfreeze = async () => {
+    try {
+      const updates = { status: 'Active', frozenOn: null, resumeDate: null };
+      await updateTenantDocument(gymId, 'members', id, updates);
+      setMember(prev => ({ ...prev, ...updates }));
+      toast.success('Membership resumed');
+    } catch { toast.error('Failed to unfreeze'); }
+  };
 
   // ── Member handlers ──────────────────────────────────────────────────────
 
@@ -402,6 +440,29 @@ export default function MemberProfile() {
     }
   };
 
+  // ── Measurement handlers ─────────────────────────────────────────────────
+
+  const handleAddMeasure = async () => {
+    if (!newMeasure.weight) { toast.error('Enter weight'); return; }
+    setAddingMeasure(true);
+    try {
+      const payload = { memberId: id, date: newMeasure.date, weight: Number(newMeasure.weight), notes: newMeasure.notes, createdAt: new Date().toISOString() };
+      const docRef = await createTenantDocument(gymId, 'measurements', payload);
+      setMeasurements(prev => [{ id: docRef?.id || String(Date.now()), ...payload }, ...prev]);
+      setNewMeasure(p => ({ ...p, weight: '', notes: '' }));
+      toast.success('Measurement saved');
+    } catch { toast.error('Failed to save measurement'); }
+    finally { setAddingMeasure(false); }
+  };
+
+  const handleDeleteMeasure = async (measureId) => {
+    try {
+      await deleteTenantDocument(gymId, 'measurements', measureId);
+      setMeasurements(prev => prev.filter(m => m.id !== measureId));
+      toast.success('Entry removed');
+    } catch { toast.error('Failed to delete'); }
+  };
+
   // ── Attendance handlers ──────────────────────────────────────────────────
 
   const handleDeleteAttendance = async () => {
@@ -425,6 +486,9 @@ export default function MemberProfile() {
     ? Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
     : null;
   const isExpired = expiryDays !== null && expiryDays < 0;
+  const isFrozen = member.status === 'Frozen';
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const minFreezeDate = tomorrow.toISOString().split('T')[0];
 
   return (
     <div className="flex flex-col gap-6">
@@ -462,7 +526,12 @@ export default function MemberProfile() {
               {member.joinDate && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">calendar_month</span> Joined {member.joinDate}</span>}
             </div>
             <div className="mt-2">
-              {isExpired ? (
+              {isFrozen ? (
+                <span className="inline-flex items-center gap-1 text-blue-600 font-label-caps text-label-caps bg-blue-50 px-2 py-1 rounded-md">
+                  <span className="material-symbols-outlined text-[12px]">ac_unit</span> Frozen
+                  {member.resumeDate && <span className="ml-1 opacity-70">until {member.resumeDate}</span>}
+                </span>
+              ) : isExpired ? (
                 <span className="inline-flex items-center gap-1 text-rose-600 font-label-caps text-label-caps bg-rose-50 px-2 py-1 rounded-md">
                   <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div> Expired Member
                 </span>
@@ -487,6 +556,17 @@ export default function MemberProfile() {
             <span className="material-symbols-outlined text-[18px]">edit</span>
             Edit
           </button>
+          {isFrozen ? (
+            <button onClick={handleUnfreeze} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px]">play_circle</span>
+              Unfreeze
+            </button>
+          ) : (
+            <button onClick={() => { setFreezeDate(''); setShowFreezeModal(true); }} className="flex-1 md:flex-none bg-blue-50 border border-blue-200 text-blue-600 px-5 py-2.5 rounded-lg font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px]">ac_unit</span>
+              Freeze
+            </button>
+          )}
           <button onClick={() => setShowDeleteMember(true)} className="flex-1 md:flex-none bg-rose-50 border border-rose-200 text-rose-600 px-5 py-2.5 rounded-lg font-medium hover:bg-rose-100 transition-colors shadow-sm flex items-center justify-center gap-1.5">
             <span className="material-symbols-outlined text-[18px]">delete</span>
             Delete
@@ -534,6 +614,30 @@ export default function MemberProfile() {
               </div>
             </div>
           </div>
+
+          {/* Extra info: emergency contact / health notes */}
+          {(member.emergencyContact || member.healthNotes) && (
+            <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)]">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="material-symbols-outlined text-amber-600">health_and_safety</span>
+                <h3 className="font-h3 text-h3 text-on-surface">Health Info</h3>
+              </div>
+              <div className="flex flex-col gap-3">
+                {member.emergencyContact && (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Emergency Contact</span>
+                    <span className="text-sm text-on-surface">{member.emergencyContact}</span>
+                  </div>
+                )}
+                {member.healthNotes && (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Health Notes</span>
+                    <span className="text-sm text-on-surface">{member.healthNotes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* QR Code */}
           <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)]">
@@ -608,6 +712,51 @@ export default function MemberProfile() {
                         <span className="material-symbols-outlined text-[16px]">delete</span>
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Measurements ── */}
+          <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)]">
+            <div className="flex items-center gap-2 mb-5">
+              <span className="material-symbols-outlined text-primary">monitor_weight</span>
+              <h3 className="font-h3 text-h3 text-on-surface">Progress / Weight Log</h3>
+              {member.fitnessGoal && <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{member.fitnessGoal}</span>}
+            </div>
+            {/* Add entry row */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <input type="date" value={newMeasure.date} onChange={e => setNewMeasure(p => ({ ...p, date: e.target.value }))}
+                className="px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface text-sm outline-none focus:border-primary" />
+              <input type="number" min="1" max="300" step="0.1" value={newMeasure.weight} onChange={e => setNewMeasure(p => ({ ...p, weight: e.target.value }))}
+                placeholder="Weight (kg)"
+                className="w-32 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface text-sm outline-none focus:border-primary" />
+              <input type="text" value={newMeasure.notes} onChange={e => setNewMeasure(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Note (optional)"
+                className="flex-1 min-w-28 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface text-sm outline-none focus:border-primary" />
+              <button onClick={handleAddMeasure} disabled={addingMeasure}
+                className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center gap-1 shrink-0">
+                <span className="material-symbols-outlined text-[16px]">add</span> Log
+              </button>
+            </div>
+            {measurements.length === 0 ? (
+              <p className="text-sm text-on-surface-variant text-center py-4">No measurements logged yet.</p>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1">
+                {measurements.map(m => (
+                  <div key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-bold">
+                      {Number(m.weight).toFixed(1)}
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-semibold text-on-surface">{m.weight} kg</span>
+                      <span className="text-xs text-on-surface-variant">{m.date}{m.notes && ` — ${m.notes}`}</span>
+                    </div>
+                    <button onClick={() => handleDeleteMeasure(m.id)}
+                      className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[14px]">delete</span>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -864,6 +1013,39 @@ export default function MemberProfile() {
           onConfirm={handleDeleteAttendance}
           onCancel={() => setDeletingAttendanceId(null)}
         />
+      )}
+
+      {/* ── Freeze Modal ── */}
+      {showFreezeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-blue-600">ac_unit</span>
+              </div>
+              <div>
+                <p className="font-bold text-on-surface">Freeze Membership</p>
+                <p className="text-sm text-on-surface-variant">{member.name}</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-on-surface-variant">Resume Date</label>
+              <input type="date" value={freezeDate} min={minFreezeDate}
+                onChange={e => setFreezeDate(e.target.value)}
+                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary text-sm" />
+              <p className="text-xs text-on-surface-variant">Membership will be paused and resumed on this date.</p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowFreezeModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancel</button>
+              <button onClick={handleFreeze} disabled={!freezeDate || freezing}
+                className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 flex items-center gap-2">
+                {freezing && <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>}
+                Freeze
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

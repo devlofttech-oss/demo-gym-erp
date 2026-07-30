@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
@@ -56,6 +57,7 @@ function thisMonthISO() {
 
 export default function LeadList() {
   const { gymId } = useAuth();
+  const navigate = useNavigate();
 
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -440,6 +442,16 @@ export default function LeadList() {
                       {/* Actions */}
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {(lead.status === 'won' || lead.status === 'interested') && (
+                            <button
+                              onClick={() => navigate(`/members/add?name=${encodeURIComponent(lead.name)}&phone=${encodeURIComponent(lead.phone)}&email=${encodeURIComponent(lead.email || '')}&plan=${encodeURIComponent(lead.interestedPlan || '')}`)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors text-xs font-medium"
+                              title="Convert to Member"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">person_add</span>
+                              Convert
+                            </button>
+                          )}
                           <button
                             onClick={() => openEdit(lead)}
                             className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"

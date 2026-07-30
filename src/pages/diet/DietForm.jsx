@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
+import { useState, useEffect } from 'react';
+import { createTenantDocument, updateTenantDocument, getTenantCollection } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -70,6 +70,12 @@ export default function DietForm({ plan, onClose, onSaved }) {
   const [carbs, setCarbs] = useState(plan?.carbs || '');
   const [fat, setFat] = useState(plan?.fat || '');
   const [assignedMemberId, setAssignedMemberId] = useState(plan?.assignedMemberId || '');
+  const [membersList, setMembersList] = useState([]);
+  useEffect(() => {
+    getTenantCollection(gymId, 'members').then(data => {
+      setMembersList(data.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+    }).catch(() => {});
+  }, [gymId]);
   const [description, setDescription] = useState(plan?.description || '');
   const [meals, setMeals] = useState(
     plan?.meals?.length > 0 ? plan.meals : [emptyMeal()]
@@ -112,8 +118,8 @@ export default function DietForm({ plan, onClose, onSaved }) {
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
-      assignedMemberId: assignedMemberId.trim() || null,
-      assignedMemberName: assignedMemberId.trim() || null,
+      assignedMemberId: assignedMemberId || null,
+      assignedMemberName: assignedMemberId ? (membersList.find(m => m.id === assignedMemberId)?.name || null) : null,
       description: description.trim(),
       meals: meals
         .filter((m) => m.mealName || m.description || m.calories)
@@ -294,14 +300,17 @@ export default function DietForm({ plan, onClose, onSaved }) {
               <span className="ml-1.5 text-xs font-normal text-on-surface-variant opacity-60">(leave blank to save as template)</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] text-on-surface-variant">person</span>
-              <input
-                type="text"
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] text-on-surface-variant pointer-events-none">person</span>
+              <select
                 value={assignedMemberId}
                 onChange={(e) => setAssignedMemberId(e.target.value)}
-                placeholder="Member name or ID (optional)"
-                className="w-full pl-9 pr-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary text-sm transition-colors"
-              />
+                className="w-full pl-9 pr-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface outline-none focus:border-primary text-sm transition-colors appearance-none"
+              >
+                <option value="">No member — save as template</option>
+                {membersList.map(m => (
+                  <option key={m.id} value={m.id}>{m.name} — {m.phone}</option>
+                ))}
+              </select>
             </div>
             {!assignedMemberId.trim() && (
               <p className="text-xs text-amber-600 flex items-center gap-1">

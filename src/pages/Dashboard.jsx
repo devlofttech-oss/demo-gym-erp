@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getTenantCollection } from '../firebase/tenantDb';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid, Legend } from 'recharts';
@@ -122,9 +122,29 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <h1 className="font-h1 text-h1 text-on-surface">Dashboard Overview</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant">Here's what's happening today.</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="font-h1 text-h1 text-on-surface">Dashboard Overview</h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant">Here's what's happening today.</p>
+        </div>
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-2">
+          <Link to="/members/add" className="flex items-center gap-1.5 px-3 py-2 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+            <span className="material-symbols-outlined text-[16px]">person_add</span> New Member
+          </Link>
+          <Link to="/payments/new" className="flex items-center gap-1.5 px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface rounded-xl text-sm font-medium hover:bg-surface-container transition-colors shadow-sm">
+            <span className="material-symbols-outlined text-[16px]">payments</span> Record Payment
+          </Link>
+          <Link to="/checkin" className="flex items-center gap-1.5 px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface rounded-xl text-sm font-medium hover:bg-surface-container transition-colors shadow-sm">
+            <span className="material-symbols-outlined text-[16px]">how_to_reg</span> Check-in
+          </Link>
+          <Link to="/renewals" className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors shadow-sm">
+            <span className="material-symbols-outlined text-[16px]">autorenew</span> Renewals
+            {!loading && stats.expiringSoon > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-px rounded-full">{stats.expiringSoon}</span>
+            )}
+          </Link>
+        </div>
       </div>
 
       {/* KPI Grid */}

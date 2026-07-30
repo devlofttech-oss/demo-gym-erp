@@ -70,6 +70,7 @@ function StatCard({ icon, label, value, sub, color }) {
 
 function PackagesTab({ gymId }) {
   const [packages, setPackages] = useState([]);
+  const [sessionCounts, setSessionCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingPkg, setEditingPkg] = useState(null);
@@ -79,8 +80,19 @@ function PackagesTab({ gymId }) {
   const fetchPackages = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getTenantCollection(gymId, 'ptPackages');
-      setPackages(data);
+      const [pkgData, sessionData] = await Promise.all([
+        getTenantCollection(gymId, 'ptPackages'),
+        getTenantCollection(gymId, 'ptSessions'),
+      ]);
+      setPackages(pkgData);
+      // Count completed sessions per package
+      const counts = {};
+      sessionData.forEach(s => {
+        if (s.packageId && s.status === 'Completed') {
+          counts[s.packageId] = (counts[s.packageId] || 0) + 1;
+        }
+      });
+      setSessionCounts(counts);
     } catch {
       toast.error('Failed to load packages');
     } finally {
@@ -152,6 +164,16 @@ function PackagesTab({ gymId }) {
                   <span className="material-symbols-outlined text-[13px]">repeat</span>
                   {pkg.sessionsIncluded ?? '—'} sessions
                 </span>
+                {pkg.sessionsIncluded > 0 && (
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 ${
+                    (pkg.sessionsIncluded - (sessionCounts[pkg.id] || 0)) <= 0
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    <span className="material-symbols-outlined text-[13px]">event_available</span>
+                    {Math.max(0, pkg.sessionsIncluded - (sessionCounts[pkg.id] || 0))} remaining
+                  </span>
+                )}
                 <span className="px-2.5 py-1 bg-surface-container rounded-lg text-xs font-medium text-on-surface-variant flex items-center gap-1">
                   <span className="material-symbols-outlined text-[13px]">calendar_month</span>
                   {pkg.durationMonths ?? '—'} Month{pkg.durationMonths !== 1 ? 's' : ''}

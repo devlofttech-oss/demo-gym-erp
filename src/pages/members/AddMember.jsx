@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getTenantCollection, createTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
@@ -18,8 +18,11 @@ function addDays(dateStr, days) {
   return d.toISOString().split('T')[0];
 }
 
+const FITNESS_GOALS = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina', 'Flexibility', 'Rehabilitation'];
+
 export default function AddMember() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { gymId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
@@ -29,12 +32,12 @@ export default function AddMember() {
   const [plans, setPlans] = useState([]);
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
+    name: searchParams.get('name') || '',
+    phone: searchParams.get('phone') || '',
+    email: searchParams.get('email') || '',
     joinDate: today,
     planActiveFrom: today,
-    planName: '',
+    planName: searchParams.get('plan') || '',
     durationDays: 30,
     totalFees: 0,
     discountPercent: '',
@@ -42,6 +45,9 @@ export default function AddMember() {
     paidNow: '',
     paymentMode: 'Cash',
     expiryDate: addDays(today, 30),
+    emergencyContact: '',
+    fitnessGoal: '',
+    healthNotes: '',
   });
 
   const basePlanFees = Number(formData.totalFees || 0);
@@ -130,6 +136,9 @@ export default function AddMember() {
         ...(discount > 0 && { discountPercent: discount }),
         ...(nextPaymentDate && { nextPaymentDate }),
         ...(photoUrl && { photoUrl }),
+        ...(formData.emergencyContact && { emergencyContact: formData.emergencyContact }),
+        ...(formData.fitnessGoal && { fitnessGoal: formData.fitnessGoal }),
+        ...(formData.healthNotes && { healthNotes: formData.healthNotes }),
       });
 
       await createTenantDocument(gymId, 'payments', {
@@ -255,6 +264,38 @@ export default function AddMember() {
                   name="joinDate"
                   value={formData.joinDate}
                   onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Emergency Contact</label>
+                <input
+                  name="emergencyContact"
+                  value={formData.emergencyContact}
+                  onChange={handleChange}
+                  placeholder="Name & phone of emergency contact"
+                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Fitness Goal</label>
+                <select
+                  name="fitnessGoal"
+                  value={formData.fitnessGoal}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none"
+                >
+                  <option value="">Select goal...</option>
+                  {FITNESS_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Health Notes (optional)</label>
+                <input
+                  name="healthNotes"
+                  value={formData.healthNotes}
+                  onChange={handleChange}
+                  placeholder="Any health conditions, injuries, or special requirements..."
                   className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
                 />
               </div>

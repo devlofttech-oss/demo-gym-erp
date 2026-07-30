@@ -210,6 +210,22 @@ export default function PaymentsList() {
                 }).length}
               </span>
             </div>
+            {/* Mode breakdown */}
+            <div className="flex flex-col gap-1 border-l border-outline-variant/20 pl-8">
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">By Mode</span>
+              <div className="flex flex-wrap gap-3">
+                {PAYMENT_MODES.map(mode => {
+                  const modeTotal = payments.filter(p => (p.paymentMode || 'Cash') === mode).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                  if (modeTotal === 0) return null;
+                  return (
+                    <div key={mode} className="flex items-center gap-1.5">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${modeColors[mode] || 'bg-slate-100 text-slate-700'}`}>{mode}</span>
+                      <span className="text-sm font-bold text-on-surface">₹{modeTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Search */}

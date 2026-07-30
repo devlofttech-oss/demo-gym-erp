@@ -39,6 +39,7 @@ export default function LeadForm({ lead, onClose, onSaved }) {
     nextFollowUp: lead?.nextFollowUp ?? '',
     notes: lead?.notes ?? '',
     assignedTo: lead?.assignedTo ?? '',
+    lostReason: lead?.lostReason ?? '',
   });
 
   const [saving, setSaving] = useState(false);
@@ -226,6 +227,22 @@ export default function LeadForm({ lead, onClose, onSaved }) {
               />
             </div>
           </div>
+
+          {/* Lost Reason (only show when status = lost) */}
+          {form.status === 'lost' && (
+            <div>
+              <label className={labelClass}>Reason for Loss</label>
+              <select value={form.lostReason} onChange={set('lostReason')} className={fieldClass}>
+                <option value="">Select reason...</option>
+                <option value="Too expensive">Too expensive</option>
+                <option value="Joined competitor">Joined competitor</option>
+                <option value="Not interested anymore">Not interested anymore</option>
+                <option value="Location inconvenient">Location inconvenient</option>
+                <option value="No response">No response</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          )}
 
           {/* Notes */}
           <div>

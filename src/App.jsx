@@ -29,6 +29,7 @@ import WorkoutList from './pages/workouts/WorkoutList';
 import PTList from './pages/pt/PTList';
 import DietList from './pages/diet/DietList';
 import CommunicationHub from './pages/communication/CommunicationHub';
+import RenewalsList from './pages/renewals/RenewalsList';
 
 // Super Admin
 import SuperAdminLayout from './pages/super-admin/SuperAdminLayout';
@@ -102,6 +103,7 @@ export default function App() {
         <Route path="pt"                element={<RoleRoute allowedRoles={ADMIN}><PTList /></RoleRoute>} />
         <Route path="diet"              element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} />
         <Route path="communication"     element={<RoleRoute allowedRoles={ADMIN}><CommunicationHub /></RoleRoute>} />
+        <Route path="renewals"          element={<RoleRoute allowedRoles={ADMIN}><RenewalsList /></RoleRoute>} />
         <Route path="reports/monthly"   element={<RoleRoute allowedRoles={ADMIN}><MonthlyReport /></RoleRoute>} />
         <Route path="settings"          element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
 

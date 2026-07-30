@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { getTenantDocument, setTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
@@ -139,27 +138,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Membership Plans — link to dedicated page */}
-      <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.1)]">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="font-h3 text-h3 text-on-surface mb-1">Membership Plans</h3>
-            <p className="text-sm text-on-surface-variant">Create and manage your gym's service packages — gym, PT, group classes and add-ons.</p>
-          </div>
-          <Link
-            to="/plans"
-            className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-            Manage Plans
-          </Link>
-        </div>
-      </div>
-
-      {/* Version */}
-      <div className="text-center text-xs text-on-surface-variant opacity-50 pb-4">
-        Kilos v1.0 · Powered by Firebase
-      </div>
 
       {/* Edit Gym Info Modal */}
       {isEditGymInfoOpen && (

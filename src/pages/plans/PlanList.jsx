@@ -9,6 +9,7 @@ const FILTER_TABS = [
   { key: 'gym', label: 'Gym' },
   { key: 'personal-training', label: 'Personal Training' },
   { key: 'group-class', label: 'Group Class' },
+  { key: 'day-pass', label: 'Day Pass' },
   { key: 'addon', label: 'Add-ons' },
 ];
 
@@ -16,6 +17,7 @@ const TYPE_META = {
   gym:               { label: 'Gym',              bg: 'bg-violet-100',  text: 'text-violet-700',  icon: 'fitness_center' },
   'personal-training': { label: 'Personal Training', bg: 'bg-blue-100',    text: 'text-blue-700',    icon: 'sports' },
   'group-class':     { label: 'Group Class',      bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'groups' },
+  'day-pass':        { label: 'Day Pass',         bg: 'bg-orange-100',  text: 'text-orange-700',  icon: 'calendar_today' },
   addon:             { label: 'Add-on',           bg: 'bg-amber-100',   text: 'text-amber-700',   icon: 'add_circle' },
 };
 
