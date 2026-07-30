@@ -47,7 +47,7 @@ export default function Sidebar({ onExpandChange }) {
 
   const getPillClasses = (isActive) => {
     return `h-11 flex items-center transition-all duration-300 mx-1.5 ${
-      expanded ? 'w-auto justify-start px-4 rounded-full' : 'w-11 justify-center rounded-full'
+      expanded ? 'w-auto justify-start px-4 rounded-full' : 'w-12 justify-center rounded-full'
     } ${
       isActive
         ? 'bg-slate-900 text-white shadow-md dark:bg-primary-container dark:text-primary'
@@ -56,11 +56,11 @@ export default function Sidebar({ onExpandChange }) {
   };
 
   return (
-    <nav className={`hidden md:flex flex-col items-start gap-4 fixed left-4 top-4 bottom-4 z-50 transition-all duration-300 ${expanded ? 'w-56' : 'w-18'}`}>
+    <nav className={`hidden md:flex flex-col items-start gap-4 fixed left-4 top-4 bottom-4 z-50 transition-all duration-300 ${expanded ? 'w-56' : 'w-20'}`}>
 
       {/* Logo & Toggle */}
       <div className={`h-14 bg-white dark:bg-slate-900 flex items-center shadow-sm shrink-0 transition-all duration-300 overflow-hidden ${
-        expanded ? 'w-full rounded-2xl justify-between px-3' : 'w-14 rounded-full justify-center flex-col relative'
+        expanded ? 'w-full rounded-2xl justify-between px-3' : 'w-16 rounded-full justify-center flex-col relative'
       }`}>
         <button
           onClick={toggle}
@@ -90,8 +90,8 @@ export default function Sidebar({ onExpandChange }) {
       </div>
 
       {/* Nav Links */}
-      <div className={`bg-white dark:bg-slate-900 py-3 flex flex-col gap-2 shadow-sm flex-1 min-h-0 overflow-y-auto transition-all duration-300 ${
-        expanded ? 'w-full rounded-3xl items-stretch' : 'w-14 rounded-full items-center'
+      <div className={`bg-white dark:bg-slate-900 py-3 flex flex-col gap-2 shadow-sm flex-1 min-h-0 overflow-y-auto scrollbar-hide transition-all duration-300 ${
+        expanded ? 'w-full rounded-3xl items-stretch' : 'w-16 rounded-full items-center'
       }`}>
         {navItems.map(({ to, icon, label, fill }) => (
           <NavLink
@@ -113,7 +113,7 @@ export default function Sidebar({ onExpandChange }) {
 
       {/* Theme Toggle */}
       <div className={`bg-white dark:bg-slate-900 p-1.5 flex shadow-sm shrink-0 transition-all duration-300 ${
-        expanded ? 'w-full rounded-2xl flex-row items-center justify-center gap-1' : 'w-14 rounded-full flex-col items-center justify-center gap-1'
+        expanded ? 'w-full rounded-2xl flex-row items-center justify-center gap-1' : 'w-16 rounded-full flex-col items-center justify-center gap-1'
       }`}>
         <button
           onClick={setLightMode}
