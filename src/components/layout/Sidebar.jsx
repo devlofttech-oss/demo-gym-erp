@@ -46,8 +46,8 @@ export default function Sidebar({ onExpandChange }) {
   };
 
   const getPillClasses = (isActive) => {
-    return `h-11 flex items-center transition-all duration-300 mx-1.5 ${
-      expanded ? 'w-auto justify-start px-4 rounded-full' : 'w-12 justify-center rounded-full'
+    return `h-12 flex items-center transition-all duration-300 mx-2 ${
+      expanded ? 'w-auto justify-start px-4 rounded-full' : 'w-14 justify-center rounded-2xl'
     } ${
       isActive
         ? 'bg-slate-900 text-white shadow-md dark:bg-primary-container dark:text-primary'
@@ -56,11 +56,11 @@ export default function Sidebar({ onExpandChange }) {
   };
 
   return (
-    <nav className={`hidden md:flex flex-col items-start gap-4 fixed left-4 top-4 bottom-4 z-50 transition-all duration-300 ${expanded ? 'w-56' : 'w-20'}`}>
+    <nav className={`hidden md:flex flex-col items-start gap-3 fixed left-4 top-4 bottom-4 z-50 transition-all duration-300 ${expanded ? 'w-56' : 'w-[76px]'}`}>
 
       {/* Logo & Toggle */}
-      <div className={`h-14 bg-white dark:bg-slate-900 flex items-center shadow-sm shrink-0 transition-all duration-300 overflow-hidden ${
-        expanded ? 'w-full rounded-2xl justify-between px-3' : 'w-16 rounded-full justify-center flex-col relative'
+      <div className={`h-16 bg-white dark:bg-slate-900 flex items-center shadow-sm shrink-0 transition-all duration-300 overflow-hidden ${
+        expanded ? 'w-full rounded-2xl justify-between px-3' : 'w-full rounded-2xl justify-center flex-col relative'
       }`}>
         <button
           onClick={toggle}
@@ -68,7 +68,7 @@ export default function Sidebar({ onExpandChange }) {
           title={expanded ? 'Collapse menu' : 'Expand menu'}
         >
           {/* Always-visible software logo */}
-          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-primary-container/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-primary-container/10 flex items-center justify-center">
             <img src={logoImage} alt="Kilos" className="w-full h-full object-contain" />
           </div>
           {expanded && (
@@ -90,8 +90,8 @@ export default function Sidebar({ onExpandChange }) {
       </div>
 
       {/* Nav Links */}
-      <div className={`bg-white dark:bg-slate-900 py-3 flex flex-col gap-2 shadow-sm flex-1 min-h-0 overflow-y-auto scrollbar-hide transition-all duration-300 ${
-        expanded ? 'w-full rounded-3xl items-stretch' : 'w-16 rounded-full items-center'
+      <div className={`bg-white dark:bg-slate-900 py-2 flex flex-col gap-1 shadow-sm flex-1 min-h-0 overflow-y-auto scrollbar-hide transition-all duration-300 ${
+        expanded ? 'w-full rounded-3xl items-stretch' : 'w-full rounded-2xl items-center'
       }`}>
         {navItems.map(({ to, icon, label, fill }) => (
           <NavLink
@@ -101,7 +101,7 @@ export default function Sidebar({ onExpandChange }) {
             className={({ isActive }) => getPillClasses(isActive)}
           >
             <span
-              className="material-symbols-outlined text-[22px] shrink-0"
+              className="material-symbols-outlined text-[26px] shrink-0"
               style={{ fontVariationSettings: fill ? "'FILL' 1" : "'FILL' 0" }}
             >
               {icon}
@@ -113,23 +113,23 @@ export default function Sidebar({ onExpandChange }) {
 
       {/* Theme Toggle */}
       <div className={`bg-white dark:bg-slate-900 p-1.5 flex shadow-sm shrink-0 transition-all duration-300 ${
-        expanded ? 'w-full rounded-2xl flex-row items-center justify-center gap-1' : 'w-16 rounded-full flex-col items-center justify-center gap-1'
+        expanded ? 'w-full rounded-2xl flex-row items-center justify-center gap-1' : 'w-full rounded-2xl flex-col items-center justify-center gap-1'
       }`}>
         <button
           onClick={setLightMode}
-          className={`h-11 flex items-center justify-center rounded-full transition-colors ${
-            expanded ? 'flex-1' : 'w-11'
+          className={`h-11 flex items-center justify-center rounded-xl transition-colors ${
+            expanded ? 'flex-1' : 'w-12'
           } ${!isDarkMode ? 'bg-indigo-100 text-indigo-500 dark:bg-indigo-900/40 dark:text-indigo-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
         >
-          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: !isDarkMode ? "'FILL' 1" : "'FILL' 0" }}>light_mode</span>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: !isDarkMode ? "'FILL' 1" : "'FILL' 0" }}>light_mode</span>
         </button>
         <button
           onClick={setDarkMode}
-          className={`h-11 flex items-center justify-center rounded-full transition-colors ${
-            expanded ? 'flex-1' : 'w-11'
+          className={`h-11 flex items-center justify-center rounded-xl transition-colors ${
+            expanded ? 'flex-1' : 'w-12'
           } ${isDarkMode ? 'bg-indigo-100 text-indigo-500 dark:bg-indigo-900/40 dark:text-indigo-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
         >
-          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: isDarkMode ? "'FILL' 1" : "'FILL' 0" }}>dark_mode</span>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isDarkMode ? "'FILL' 1" : "'FILL' 0" }}>dark_mode</span>
         </button>
       </div>
 
