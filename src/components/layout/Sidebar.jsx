@@ -73,7 +73,7 @@ export default function Sidebar({ onExpandChange }) {
           </div>
           {expanded && (
             <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap text-sm truncate">
-              {gymData?.name || 'Kilos'}
+              Kilos
             </span>
           )}
         </button>
