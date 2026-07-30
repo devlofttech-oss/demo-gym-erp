@@ -242,20 +242,22 @@ export default function StaffList() {
       </div>
 
       {/* Role Filter Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {ROLE_FILTERS.map(r => (
-          <button key={r} onClick={() => setFilterRole(r)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
-              filterRole === r
-                ? 'bg-primary text-on-primary border-primary shadow-sm'
-                : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:bg-surface-container'
-            }`}>
-            {r}
-            <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-semibold ${filterRole === r ? 'bg-white/20 text-white' : 'bg-surface-container text-on-surface-variant'}`}>
-              {r === 'All' ? staff.length : staff.filter(s => s.role === r).length}
-            </span>
-          </button>
-        ))}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex gap-2 min-w-max md:flex-wrap md:min-w-0">
+          {ROLE_FILTERS.map(r => (
+            <button key={r} onClick={() => setFilterRole(r)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
+                filterRole === r
+                  ? 'bg-primary text-on-primary border-primary shadow-sm'
+                  : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:bg-surface-container'
+              }`}>
+              {r}
+              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-semibold ${filterRole === r ? 'bg-white/20 text-white' : 'bg-surface-container text-on-surface-variant'}`}>
+                {r === 'All' ? staff.length : staff.filter(s => s.role === r).length}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search */}
@@ -269,8 +271,67 @@ export default function StaffList() {
         </button>}
       </div>
 
-      {/* Table */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
+      {/* Mobile: loading / empty states */}
+      {loading && (
+        <div className="md:hidden flex items-center justify-center py-12 text-on-surface-variant gap-2">
+          <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+          <span className="text-sm">Loading staff...</span>
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
+        <div className="md:hidden flex flex-col items-center justify-center py-12 gap-3 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl opacity-40">badge</span>
+          <p className="font-medium">No staff members found</p>
+        </div>
+      )}
+
+      {/* Mobile card list */}
+      {!loading && filtered.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {filtered.map(s => (
+            <div key={s.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-4 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  {s.photoUrl
+                    ? <img src={s.photoUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                    : <div className="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold shrink-0">{s.name?.charAt(0) || '?'}</div>
+                  }
+                  <div>
+                    <div className="font-semibold text-on-surface">{s.name}</div>
+                    {s.email && <div className="text-xs text-on-surface-variant">{s.email}</div>}
+                  </div>
+                </div>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${roleBadgeColor[s.role] || 'bg-slate-100 text-slate-600'}`}>{s.role}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2">
+                <div className="text-on-surface-variant">Phone</div>
+                <div className="text-on-surface">{s.phone}</div>
+                <div className="text-on-surface-variant">Joined</div>
+                <div className="text-on-surface">{s.joiningDate || '—'}</div>
+                <div className="text-on-surface-variant">Salary</div>
+                <div className="text-on-surface font-medium">{s.salary ? `₹${Number(s.salary).toLocaleString('en-IN')}` : '—'}</div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <Link to={`/staff/${s.id}`}
+                  className="flex-1 flex items-center justify-center py-1.5 rounded-xl text-sm bg-primary/10 text-primary hover:bg-primary/20 font-medium transition-colors">
+                  View Profile
+                </Link>
+                <button onClick={() => setEditingStaff(s)}
+                  className="flex items-center justify-center px-3 py-1.5 rounded-xl text-sm bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                  <span className="material-symbols-outlined text-[14px]">edit</span>
+                </button>
+                <button onClick={() => setDeletingId(s.id)}
+                  className="flex items-center justify-center px-3 py-1.5 rounded-xl text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors">
+                  <span className="material-symbols-outlined text-[14px]">delete</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

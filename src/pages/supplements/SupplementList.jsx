@@ -127,7 +127,7 @@ export default function SupplementList() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { label: 'Total Products', value: supplements.length, icon: 'medication', color: 'text-primary', bg: 'bg-primary-container/30' },
           { label: 'Low Stock', value: lowStockCount, icon: 'warning', color: 'text-amber-600', bg: 'bg-amber-100/60' },
@@ -161,8 +161,60 @@ export default function SupplementList() {
         </button>}
       </div>
 
-      {/* Table */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
+      {/* Mobile: loading / empty states */}
+      {loading && (
+        <div className="md:hidden flex items-center justify-center py-12 text-on-surface-variant gap-2">
+          <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+          <span className="text-sm">Loading...</span>
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
+        <div className="md:hidden flex flex-col items-center justify-center py-12 gap-3 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl opacity-40">medication</span>
+          <p className="font-medium">No supplements added yet</p>
+        </div>
+      )}
+
+      {/* Mobile card list */}
+      {!loading && filtered.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {filtered.map(item => (
+            <div key={item.id} className="bg-surface-container-lowest rounded-2xl shadow-sm p-4 border border-outline-variant/20">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary-container/30 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-secondary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>medication</span>
+                  </div>
+                  <div className="font-semibold text-on-surface">{item.name}</div>
+                </div>
+                <StockBadge stock={item.stock} />
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-3">
+                <div className="text-on-surface-variant">Price</div>
+                <div className="text-on-surface font-medium">{item.price ? `₹${Number(item.price).toLocaleString('en-IN')}` : '—'}</div>
+                <div className="text-on-surface-variant">Stock Qty</div>
+                <div className={`font-bold ${Number(item.stock) < LOW_STOCK_THRESHOLD ? 'text-amber-600' : 'text-on-surface'}`}>
+                  {item.stock ?? '—'}
+                  {Number(item.stock) < LOW_STOCK_THRESHOLD && Number(item.stock) > 0 && <span className="text-xs font-normal ml-1">(low)</span>}
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => setEditingItem(item)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                  <span className="material-symbols-outlined text-[14px]">edit</span> Edit
+                </button>
+                <button onClick={() => setDeletingId(item.id)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors">
+                  <span className="material-symbols-outlined text-[14px]">delete</span> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

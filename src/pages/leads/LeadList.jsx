@@ -198,12 +198,13 @@ export default function LeadList() {
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="flex gap-1.5 flex-wrap">
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex gap-1.5 min-w-max md:flex-wrap md:min-w-0">
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.value}
             onClick={() => setActiveFilter(f.value)}
-            className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
               activeFilter === f.value
                 ? 'bg-primary text-on-primary'
                 : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest'
@@ -217,10 +218,98 @@ export default function LeadList() {
             )}
           </button>
         ))}
+        </div>
       </div>
 
-      {/* Leads Table */}
-      <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl overflow-hidden">
+      {/* Mobile: loading / empty states */}
+      {loading && (
+        <div className="md:hidden flex items-center justify-center gap-2 py-12 text-on-surface-variant">
+          <span className="material-symbols-outlined animate-spin text-2xl text-primary">progress_activity</span>
+          <span className="text-sm">Loading leads…</span>
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
+        <div className="md:hidden flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl opacity-30">person_search</span>
+          <p className="text-base font-medium">
+            {activeFilter === 'all' ? 'No leads yet' : `No ${activeFilter} leads`}
+          </p>
+          <p className="text-sm opacity-70">
+            {activeFilter === 'all'
+              ? 'Add your first lead to start tracking prospects'
+              : 'Try a different filter or add a new lead'}
+          </p>
+          {activeFilter === 'all' && (
+            <button onClick={openAdd}
+              className="mt-2 px-5 py-2 bg-primary text-on-primary rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">
+              Add Lead
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Mobile card list */}
+      {!loading && filtered.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {filtered.map((lead) => {
+            const isFollowUpToday =
+              lead.nextFollowUp === today &&
+              lead.status !== 'won' &&
+              lead.status !== 'lost';
+            return (
+              <div key={lead.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-4 border border-slate-100 dark:border-slate-800">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="font-semibold text-on-surface">{lead.name}</div>
+                    <div className="text-sm text-on-surface-variant">{lead.phone}</div>
+                    {lead.email && <div className="text-xs text-on-surface-variant/70">{lead.email}</div>}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[lead.status] ?? 'bg-surface-container text-on-surface-variant'}`}>
+                      {lead.status}
+                    </span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${SOURCE_STYLES[lead.source] ?? 'bg-surface-container text-on-surface-variant'}`}>
+                      {SOURCE_LABELS[lead.source] ?? lead.source}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2">
+                  <div className="text-on-surface-variant">Plan</div>
+                  <div className="text-on-surface">{lead.interestedPlan || '—'}</div>
+                  {lead.budget && (
+                    <>
+                      <div className="text-on-surface-variant">Budget</div>
+                      <div className="text-on-surface">₹{Number(lead.budget).toLocaleString('en-IN')}</div>
+                    </>
+                  )}
+                  <div className="text-on-surface-variant">Follow-up</div>
+                  <div>
+                    {lead.nextFollowUp ? (
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-lg ${isFollowUpToday ? 'bg-amber-100 text-amber-700' : 'text-on-surface'}`}>
+                        {isFollowUpToday && <span className="material-symbols-outlined text-sm">alarm</span>}
+                        {formatDate(lead.nextFollowUp)}
+                      </span>
+                    ) : <span className="text-on-surface-variant/50 text-xs">—</span>}
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => openEdit(lead)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                    <span className="material-symbols-outlined text-base">edit</span> Edit
+                  </button>
+                  <button onClick={() => handleDeleteClick(lead.id)} disabled={deleting}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors disabled:opacity-50">
+                    <span className="material-symbols-outlined text-base">delete</span> Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-surface-container-lowest border border-outline-variant/30 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-on-surface-variant">
             <span className="material-symbols-outlined animate-spin text-2xl text-primary">
@@ -250,7 +339,7 @@ export default function LeadList() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-175">
               <thead>
                 <tr className="border-b border-outline-variant/30">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
@@ -376,6 +465,7 @@ export default function LeadList() {
           </div>
         )}
       </div>
+      {/* end desktop table */}
 
       {/* Add / Edit Modal */}
       {showModal && (

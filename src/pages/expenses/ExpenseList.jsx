@@ -167,13 +167,15 @@ export default function ExpenseList() {
 
       {/* Filters + Add */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex flex-wrap gap-2">
-          {['All', ...CATEGORIES].map(cat => (
-            <button key={cat} onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterCategory === cat ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'}`}>
-              {cat}
-            </button>
-          ))}
+        <div className="overflow-x-auto pb-1 -mb-1">
+          <div className="flex gap-2 min-w-max">
+            {['All', ...CATEGORIES].map(cat => (
+              <button key={cat} onClick={() => setFilterCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${filterCategory === cat ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'}`}>
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
@@ -186,7 +188,70 @@ export default function ExpenseList() {
       </div>
 
       {/* Expense List */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.1)] overflow-hidden">
+
+      {/* Mobile card list */}
+      {!loading && filtered.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {filtered.map(exp => {
+            const meta = CAT_META[exp.category] || CAT_META.Other;
+            return (
+              <div key={exp.id} className="bg-surface-container-lowest rounded-2xl shadow-sm p-4 border border-outline-variant/20">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="font-semibold text-on-surface truncate max-w-50">{exp.description || '—'}</div>
+                    <div className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                      <span className="material-symbols-outlined text-[12px]">{meta.icon}</span>
+                      {exp.category}
+                    </div>
+                  </div>
+                  <div className="text-lg font-bold text-rose-600 whitespace-nowrap">
+                    ₹{Number(exp.amount || 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2">
+                  <div className="text-on-surface-variant">Date</div>
+                  <div className="text-on-surface">
+                    {new Date(exp.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                  <div className="text-on-surface-variant">Payment</div>
+                  <div className="text-on-surface">{exp.paymentMode || '—'}</div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => openEdit(exp)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                    <span className="material-symbols-outlined text-[14px]">edit</span> Edit
+                  </button>
+                  <button onClick={() => setDeletingId(exp.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors">
+                    <span className="material-symbols-outlined text-[14px]">delete</span> Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {/* Mobile total footer */}
+          <div className="text-sm text-on-surface-variant text-right pr-1">
+            Total ({filtered.length} records): <span className="font-bold text-rose-600">₹{filtered.reduce((s, e) => s + (Number(e.amount) || 0), 0).toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile loading/empty */}
+      {loading && (
+        <div className="md:hidden flex items-center justify-center py-12 text-on-surface-variant gap-2">
+          <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+        </div>
+      )}
+      {!loading && filtered.length === 0 && (
+        <div className="md:hidden flex flex-col items-center justify-center py-12 gap-3 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl opacity-30">receipt_long</span>
+          <p className="text-sm">No expenses found.</p>
+          <button onClick={openAdd} className="text-primary text-sm hover:underline">Add your first expense</button>
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.1)] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16 text-on-surface-variant gap-2">
             <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
@@ -260,6 +325,7 @@ export default function ExpenseList() {
           </div>
         )}
       </div>
+      {/* end desktop table */}
 
       {/* Add/Edit Modal */}
       {showModal && (
