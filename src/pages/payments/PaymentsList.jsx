@@ -229,8 +229,50 @@ export default function PaymentsList() {
             )}
           </div>
 
-          {/* Table */}
-          <div className="bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
+          {/* Mobile card list */}
+          <div className="md:hidden space-y-3">
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-on-surface-variant">
+                <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span> Loading...
+              </div>
+            ) : paginatedPayments.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-12 text-on-surface-variant">
+                <span className="material-symbols-outlined text-5xl opacity-40">receipt_long</span>
+                <p className="font-medium">No payments found</p>
+              </div>
+            ) : paginatedPayments.map(payment => (
+              <div key={payment.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                      {payment.memberName?.charAt(0) || '?'}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-on-surface">{payment.memberName || '—'}</div>
+                      <div className="text-xs text-on-surface-variant">{payment.memberPhone}</div>
+                    </div>
+                  </div>
+                  <span className="font-bold text-emerald-600 text-lg">₹{Number(payment.amount || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-3">
+                  <span className="text-on-surface-variant">Plan</span>
+                  <span className="text-on-surface truncate">{payment.planName || '—'}</span>
+                  <span className="text-on-surface-variant">Expiry</span>
+                  <span className="text-on-surface">{formatDate(payment.expiryDate)}</span>
+                  <span className="text-on-surface-variant">Date</span>
+                  <span className="text-on-surface">{formatDate(payment.date)}</span>
+                  <span className="text-on-surface-variant">Mode</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${modeColors[payment.paymentMode] || 'bg-slate-100 text-slate-600'}`}>{payment.paymentMode || 'Cash'}</span>
+                </div>
+                <button onClick={() => openEdit(payment)} className="w-full flex items-center justify-center gap-1 py-2 rounded-xl text-sm font-medium text-primary bg-primary/10">
+                  <span className="material-symbols-outlined text-[16px]">edit</span> Edit
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -334,7 +376,7 @@ export default function PaymentsList() {
                 )}
               </div>
             )}
-          </div>
+          </div>{/* end desktop table */}
         </>
       )}
 
@@ -369,8 +411,62 @@ export default function PaymentsList() {
             )}
           </div>
 
-          {/* Dues Table */}
-          <div className="bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
+          {/* Dues mobile cards */}
+          <div className="md:hidden space-y-3">
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-on-surface-variant">
+                <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span> Loading...
+              </div>
+            ) : paginatedDues.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-12 text-on-surface-variant">
+                <span className="material-symbols-outlined text-5xl opacity-40 text-emerald-500">check_circle</span>
+                <p className="font-medium text-emerald-600">No dues! All members are up to date.</p>
+              </div>
+            ) : paginatedDues.map(member => {
+              const days = daysUntilExpiry(member.expiryDate);
+              const overdueDays = days !== null ? Math.abs(days) : null;
+              return (
+                <div key={member.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-rose-100 dark:border-rose-900/30 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm shrink-0">
+                        {member.name?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-on-surface">{member.name}</div>
+                        <div className="text-sm text-on-surface-variant">{member.phone}</div>
+                      </div>
+                    </div>
+                    {overdueDays !== null && (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600">
+                        {overdueDays}d overdue
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-3">
+                    <span className="text-on-surface-variant">Last Plan</span>
+                    <span className="text-on-surface truncate">{member.planName || 'None'}</span>
+                    <span className="text-on-surface-variant">Expired On</span>
+                    <span className="text-rose-600 font-medium">{member.expiryDate ? formatDate(member.expiryDate) : '—'}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setMessageMember(member)} className="flex-1 flex items-center justify-center gap-1 bg-primary text-on-primary py-2 rounded-xl text-sm font-semibold">
+                      <span className="material-symbols-outlined text-[14px]">sms</span> SMS
+                    </button>
+                    <Link to={`/payments/new?memberId=${member.id}`} className="flex-1 flex items-center justify-center gap-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-semibold">
+                      <span className="material-symbols-outlined text-[14px]">payments</span> Renew
+                    </Link>
+                    <Link to={`/members/${member.id}`} className="px-3 flex items-center justify-center bg-primary/10 text-primary py-2 rounded-xl text-sm font-medium">
+                      View
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Dues desktop table */}
+          <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -491,7 +587,7 @@ export default function PaymentsList() {
                 )}
               </div>
             )}
-          </div>
+          </div>{/* end desktop dues table */}
         </>
       )}
 

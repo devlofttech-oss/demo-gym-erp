@@ -596,7 +596,69 @@ export default function MemberList() {
       )}
 
       {/* List Card */}
-      <div className={`bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden ${filterStatus === 'Absentees' ? 'hidden' : ''}`}>
+      <div className={filterStatus === 'Absentees' ? 'hidden' : ''}>
+
+        {/* ── Mobile card list ── */}
+        <div className="md:hidden space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-on-surface-variant">
+              <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span> Loading...
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-on-surface-variant">
+              <span className="material-symbols-outlined text-5xl opacity-40">group_off</span>
+              <p className="font-medium">No members found</p>
+              <Link to="/members/add" className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium">Add First Member</Link>
+            </div>
+          ) : paginated.map(member => {
+            const days = daysUntilExpiry(member.expiryDate);
+            const isExpiringSoon = days !== null && days >= 0 && days <= 7;
+            const isExpired = days !== null && days < 0;
+            const effectiveStatus = isExpired ? 'Expired' : 'Active';
+            return (
+              <div key={member.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold shrink-0 overflow-hidden">
+                      {member.photoUrl ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" /> : (member.name?.charAt(0) || '?')}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-on-surface">{member.name}</div>
+                      <div className="text-sm text-on-surface-variant">{member.phone}</div>
+                    </div>
+                  </div>
+                  {getStatusBadge(effectiveStatus)}
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-3">
+                  <span className="text-on-surface-variant">Plan</span>
+                  <span className="text-on-surface font-medium truncate">{member.planName || 'N/A'}</span>
+                  <span className="text-on-surface-variant">Expiry</span>
+                  <span className={`font-medium ${isExpired ? 'text-rose-600' : isExpiringSoon ? 'text-amber-600' : 'text-on-surface'}`}>
+                    {member.expiryDate || 'N/A'}
+                    {isExpiringSoon && <span className="block text-xs text-amber-500">⚠ {days}d left</span>}
+                    {isExpired && <span className="block text-xs text-rose-500">{Math.abs(days)}d ago</span>}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {isExpiringSoon && member.phone && (
+                    <button
+                      onClick={() => { setSmsMember(member); setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now!`); }}
+                      className="flex-1 flex items-center justify-center gap-1 bg-primary text-on-primary py-2 rounded-xl text-sm font-semibold"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">sms</span> Remind
+                    </button>
+                  )}
+                  <Link to={`/members/${member.id}`} className="flex-1 flex items-center justify-center bg-primary/10 text-primary py-2 rounded-xl text-sm font-medium">
+                    View Profile
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Desktop table ── */}
+        <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -734,7 +796,8 @@ export default function MemberList() {
             )}
           </div>
         )}
-      </div>
+        </div>{/* end desktop table wrapper */}
+      </div>{/* end List Card outer */}
 
       {smsMember && (
         <SendSMSModal
