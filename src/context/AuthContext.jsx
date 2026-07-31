@@ -45,7 +45,13 @@ export function AuthProvider({ children }) {
       if (user) {
         try {
           const userDoc = await getDocument('users', user.uid);
-          const userRole = userDoc?.role || 'admin';
+          if (!userDoc) {
+            // Auth account exists but Firestore user doc was deleted (gym removed)
+            setInactiveGymError(true);
+            await signOut(auth);
+            return;
+          }
+          const userRole = userDoc.role || 'admin';
 
           if (userRole === 'superadmin') {
             setRole('superadmin');

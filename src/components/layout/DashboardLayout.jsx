@@ -19,7 +19,7 @@ const ADMIN_NAV_ALL = [
   { to: '/measurements',  icon: 'monitor_weight',         label: 'Measurements',   fill: false              },
   { to: '/workouts',      icon: 'exercise',               label: 'Workouts',       fill: true               },
   { to: '/pt',            icon: 'sports_martial_arts',    label: 'Personal Trng',  fill: true               },
-  { to: '/diet',          icon: 'restaurant',             label: 'Diet & Nutrition',fill: true              },
+  // { to: '/diet',          icon: 'restaurant',             label: 'Diet & Nutrition',fill: true              }, // Diet module on hold
   { to: '/communication', icon: 'campaign',               label: 'Communication',  fill: true               },
   { to: '/expenses',      icon: 'receipt',                label: 'Expenses',       fill: true               },
   { to: '/reports/monthly',icon: 'insert_chart',          label: 'Reports',        fill: true               },
