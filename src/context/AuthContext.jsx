@@ -45,8 +45,8 @@ export function AuthProvider({ children }) {
       if (user) {
         try {
           const userDoc = await getDocument('users', user.uid);
-          if (!userDoc) {
-            // Auth account exists but Firestore user doc was deleted (gym removed)
+          if (!userDoc || userDoc.role === 'deleted') {
+            // Auth account exists but gym was removed — block access
             setInactiveGymError(true);
             await signOut(auth);
             return;

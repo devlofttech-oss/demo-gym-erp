@@ -21,10 +21,10 @@ async function deleteGymFully(gymId) {
     }
   }
 
-  // Delete users docs tied to this gym (admin + staff)
+  // Mark all gym users as deleted so their Auth credentials are blocked on next login
   const gymUsers = await getCollection('users', [{ field: 'gymId', op: '==', value: gymId }]).catch(() => []);
   for (const u of gymUsers) {
-    await deleteDocument('users', u.id).catch(() => {});
+    await updateDocument('users', u.id, { role: 'deleted', gymId: null }).catch(() => {});
   }
 
   // Delete gym doc
