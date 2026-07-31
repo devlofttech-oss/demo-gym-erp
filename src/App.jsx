@@ -27,7 +27,7 @@ import LeadList from './pages/leads/LeadList';
 import MeasurementList from './pages/measurements/MeasurementList';
 import WorkoutList from './pages/workouts/WorkoutList';
 import PTList from './pages/pt/PTList';
-import DietList from './pages/diet/DietList';
+// import DietList from './pages/diet/DietList'; // Diet module on hold
 import CommunicationHub from './pages/communication/CommunicationHub';
 import RenewalsList from './pages/renewals/RenewalsList';
 
@@ -101,7 +101,7 @@ export default function App() {
         <Route path="measurements"      element={<RoleRoute allowedRoles={ADMIN}><MeasurementList /></RoleRoute>} />
         <Route path="workouts"          element={<RoleRoute allowedRoles={ADMIN}><WorkoutList /></RoleRoute>} />
         <Route path="pt"                element={<RoleRoute allowedRoles={ADMIN}><PTList /></RoleRoute>} />
-        <Route path="diet"              element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} />
+        {/* <Route path="diet" element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} /> */} {/* Diet module on hold */}
         <Route path="communication"     element={<RoleRoute allowedRoles={ADMIN}><CommunicationHub /></RoleRoute>} />
         <Route path="renewals"          element={<RoleRoute allowedRoles={ADMIN}><RenewalsList /></RoleRoute>} />
         <Route path="reports/monthly"   element={<RoleRoute allowedRoles={ADMIN}><MonthlyReport /></RoleRoute>} />

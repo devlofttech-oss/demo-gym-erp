@@ -109,7 +109,7 @@ export default function PaymentPage() {
     if (initialMemberId && members.length > 0) {
       loadMemberDetails(initialMemberId, members);
     }
-  }, [initialMemberId, members, planCategories]);
+  }, [initialMemberId, members]);
 
   const loadMemberDetails = (memberId, memberList = members) => {
     const member = memberList.find(m => m.id === memberId);

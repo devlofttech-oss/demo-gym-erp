@@ -21,7 +21,7 @@ const ADMIN_NAV = [
   { to: '/measurements',  icon: 'monitor_weight',        label: 'Measurements', fill: false },
   { to: '/workouts',      icon: 'exercise',              label: 'Workouts',     fill: true  },
   { to: '/pt',            icon: 'sports_martial_arts',   label: 'Personal Trng',fill: true  },
-  { to: '/diet',          icon: 'restaurant',            label: 'Diet & Nutrition', fill: true },
+  // { to: '/diet', icon: 'restaurant', label: 'Diet & Nutrition', fill: true }, // Diet module on hold
   { to: '/communication', icon: 'campaign',              label: 'Communication',fill: true  },
   { to: '/expenses',      icon: 'receipt',               label: 'Expenses',     fill: true  },
   { to: '/reports/monthly',icon: 'insert_chart',         label: 'Reports',      fill: true  },
@@ -47,7 +47,7 @@ export default function Sidebar({ onExpandChange }) {
   };
 
   const getPillClasses = (isActive) => {
-    return `h-12 flex items-center transition-all duration-300 mx-2 ${
+    return `h-14 flex items-center transition-all duration-300 mx-2 shrink-0 ${
       expanded ? 'w-auto justify-start px-4 rounded-full' : 'w-14 justify-center rounded-2xl'
     } ${
       isActive
@@ -91,7 +91,7 @@ export default function Sidebar({ onExpandChange }) {
       </div>
 
       {/* Nav Links */}
-      <div className={`bg-white dark:bg-slate-900 py-2 flex flex-col gap-1 shadow-sm flex-1 min-h-0 overflow-y-auto scrollbar-hide transition-all duration-300 ${
+      <div className={`bg-white dark:bg-slate-900 py-3 flex flex-col gap-0.5 shadow-sm flex-1 min-h-0 overflow-y-auto scrollbar-hide transition-all duration-300 ${
         expanded ? 'w-full rounded-3xl items-stretch' : 'w-full rounded-2xl items-center'
       }`}>
         {navItems.map(({ to, icon, label, fill }) => (
@@ -102,12 +102,12 @@ export default function Sidebar({ onExpandChange }) {
             className={({ isActive }) => getPillClasses(isActive)}
           >
             <span
-              className="material-symbols-outlined text-[26px] shrink-0"
+              className="material-symbols-outlined text-[28px] shrink-0"
               style={{ fontVariationSettings: fill ? "'FILL' 1" : "'FILL' 0" }}
             >
               {icon}
             </span>
-            {expanded && <span className="font-medium whitespace-nowrap ml-3 text-sm">{label}</span>}
+            {expanded && <span className="font-medium whitespace-nowrap ml-3 text-[13px]">{label}</span>}
           </NavLink>
         ))}
       </div>
