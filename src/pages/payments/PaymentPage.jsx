@@ -17,6 +17,14 @@ function addDays(dateStr, days) {
   return d.toISOString().split('T')[0];
 }
 
+function addMonthsEnd(dateStr, months) {
+  const d = new Date(dateStr);
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  d.setDate(0);
+  return d.toISOString().split('T')[0];
+}
+
 export default function PaymentPage() {
   const { gymId } = useAuth();
   const navigate = useNavigate();
@@ -36,6 +44,7 @@ export default function PaymentPage() {
     memberId: initialMemberId,
     planName: '',
     durationDays: 30,
+    durationMonths: 1,
     totalFees: 0,
     paidNow: '',
     paymentMode: 'Cash',
@@ -64,13 +73,15 @@ export default function PaymentPage() {
         setPlans(active);
         const first = active[0];
         if (first && !initialMemberId) {
-          const days = first.durationMonths ? first.durationMonths * 30 : 30;
+          const months = first.durationMonths || 1;
+          const days = months * 30;
           setFormData(prev => ({
             ...prev,
             planName: first.name,
             durationDays: days,
+            durationMonths: months,
             totalFees: first.price || 0,
-            expiryDate: addDays(prev.planActiveFrom, days),
+            expiryDate: addMonthsEnd(prev.planActiveFrom, months),
           }));
         }
       } catch (error) {
@@ -84,9 +95,11 @@ export default function PaymentPage() {
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
-      expiryDate: addDays(prev.planActiveFrom, prev.durationDays),
+      expiryDate: prev.durationMonths
+        ? addMonthsEnd(prev.planActiveFrom, prev.durationMonths)
+        : addDays(prev.planActiveFrom, prev.durationDays),
     }));
-  }, [formData.planActiveFrom, formData.durationDays]);
+  }, [formData.planActiveFrom, formData.durationDays, formData.durationMonths]);
 
   // Load members
   useEffect(() => {
@@ -144,7 +157,8 @@ export default function PaymentPage() {
       || null;
 
     const planPrice    = matchedPlan ? Number(matchedPlan.price || 0) : Number(member.totalFees || 0);
-    const durationDays = matchedPlan?.durationMonths ? matchedPlan.durationMonths * 30 : 30;
+    const months       = matchedPlan?.durationMonths || 1;
+    const durationDays = months * 30;
     const planFullName = matchedPlan?.name || member.planName || '';
 
     setFormData(prev => ({
@@ -152,8 +166,9 @@ export default function PaymentPage() {
       memberId,
       planName: planFullName,
       durationDays,
+      durationMonths: months,
       planActiveFrom: today,
-      expiryDate: addDays(today, durationDays),
+      expiryDate: addMonthsEnd(today, months),
       totalFees: planPrice,
       paidNow: '',
     }));
@@ -177,13 +192,15 @@ export default function PaymentPage() {
     const planId = e.target.value;
     const plan = plans.find(p => p.id === planId);
     if (plan) {
-      const days = plan.durationMonths ? plan.durationMonths * 30 : 30;
+      const months = plan.durationMonths || 1;
+      const days = months * 30;
       setFormData(prev => ({
         ...prev,
         planName: plan.name,
         durationDays: days,
+        durationMonths: months,
         totalFees: plan.price || 0,
-        expiryDate: addDays(prev.planActiveFrom, days),
+        expiryDate: addMonthsEnd(prev.planActiveFrom, months),
         paidNow: '',
       }));
     }
@@ -225,7 +242,7 @@ export default function PaymentPage() {
         expiryDate: formData.expiryDate,
         status: 'Active',
         totalFees,
-        paidFees: (selectedMember?.paidFees || 0) + paidAmount,
+        paidFees: Number(selectedMember?.paidFees || 0) + paidAmount,
         balanceFees: newBalance,
       });
 
@@ -412,7 +429,7 @@ export default function PaymentPage() {
                     onChange={handleChange}
                     min="0"
                     placeholder="0"
-                    className="w-full px-3 py-2.5 bg-surface-container border border-primary/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm"
+                    className="w-full px-3 py-2.5 bg-surface-container border border-primary/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <span className="text-xs text-on-surface-variant">Paying now</span>
                 </div>
@@ -510,6 +527,12 @@ export default function PaymentPage() {
                 Payment Summary
               </p>
               <div className="flex flex-wrap gap-4 mt-1 text-sm">
+                {selectedMember && Number(selectedMember.paidFees || 0) > 0 && (
+                  <div>
+                    <span className="text-on-surface-variant">Already Paid:</span>{' '}
+                    <span className="font-semibold text-green-600">₹{Number(selectedMember.paidFees).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-on-surface-variant">Outstanding:</span>{' '}
                   <span className="font-semibold text-on-surface">₹{outstandingBase.toLocaleString('en-IN')}</span>

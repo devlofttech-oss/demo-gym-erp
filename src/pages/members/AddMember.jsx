@@ -18,6 +18,16 @@ function addDays(dateStr, days) {
   return d.toISOString().split('T')[0];
 }
 
+// Returns the last day of the Nth calendar month from startDate
+// e.g. Jan 1 + 12 months → Dec 31 (access through end of December)
+function addMonthsEnd(dateStr, months) {
+  const d = new Date(dateStr);
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  d.setDate(0);
+  return d.toISOString().split('T')[0];
+}
+
 const FITNESS_GOALS = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina', 'Flexibility', 'Rehabilitation'];
 
 export default function AddMember() {
@@ -39,6 +49,7 @@ export default function AddMember() {
     planActiveFrom: today,
     planName: searchParams.get('plan') || '',
     durationDays: 30,
+    durationMonths: 1,
     totalFees: 0,
     discountPercent: '',
     nextPaymentDays: '',
@@ -63,13 +74,15 @@ export default function AddMember() {
         setPlans(active);
         const first = active[0];
         if (first) {
-          const days = first.durationMonths ? first.durationMonths * 30 : 30;
+          const months = first.durationMonths || 1;
+          const days = months * 30;
           setFormData(prev => ({
             ...prev,
             planName: first.name,
             durationDays: days,
+            durationMonths: months,
             totalFees: first.price || 0,
-            expiryDate: addDays(prev.planActiveFrom, days),
+            expiryDate: addMonthsEnd(prev.planActiveFrom, months),
           }));
         }
       } catch (error) {
@@ -82,9 +95,11 @@ export default function AddMember() {
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
-      expiryDate: addDays(prev.planActiveFrom, prev.durationDays),
+      expiryDate: prev.durationMonths
+        ? addMonthsEnd(prev.planActiveFrom, prev.durationMonths)
+        : addDays(prev.planActiveFrom, prev.durationDays),
     }));
-  }, [formData.planActiveFrom, formData.durationDays]);
+  }, [formData.planActiveFrom, formData.durationDays, formData.durationMonths]);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -94,11 +109,13 @@ export default function AddMember() {
     const planId = e.target.value;
     const plan = plans.find(p => p.id === planId);
     if (plan) {
-      const days = plan.durationMonths ? plan.durationMonths * 30 : 30;
+      const months = plan.durationMonths || 1;
+      const days = months * 30;
       setFormData(prev => ({
         ...prev,
         planName: plan.name,
         durationDays: days,
+        durationMonths: months,
         totalFees: plan.price || 0,
         discountPercent: '',
         paidNow: '',

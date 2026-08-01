@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git *)",
       "PowerShell(git *)",
-      "PowerShell(cd * git *)"
+      "PowerShell(cd * git *)",
+      "mcp__playwright__browser_navigate",
+      "Bash(ls functions *)",
+      "Bash(cat firebase.json)"
     ],
     "defaultMode": "bypassPermissions"
   }

@@ -494,11 +494,10 @@ export default function MemberProfile() {
     <div className="flex flex-col gap-6">
 
       {/* ── Header Profile Card ── */}
-      <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
-        <div className="flex items-center gap-4 md:gap-6 relative z-10">
-          <div className="shrink-0 flex flex-col items-center gap-2">
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-primary-container text-primary flex items-center justify-center text-4xl md:text-5xl font-bold shadow-inner overflow-hidden">
+      <div className="bg-surface-container-lowest px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="shrink-0 flex flex-col items-center gap-1.5">
+            <div className="w-16 h-16 rounded-2xl bg-primary-container text-primary flex items-center justify-center text-2xl font-bold shadow-inner overflow-hidden">
               {member.photoUrl
                 ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-contain" />
                 : (member.name?.charAt(0) || '?')
@@ -519,56 +518,56 @@ export default function MemberProfile() {
               }}
             />
           </div>
-          <div className="flex flex-col gap-1 min-w-0">
-            <h1 className="font-h2 text-h2 text-on-surface wrap-break-word">{member.name}</h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-on-surface-variant text-sm mt-1">
-              <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">call</span> {member.phone}</span>
-              {member.joinDate && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">calendar_month</span> Joined {member.joinDate}</span>}
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <h1 className="font-bold text-lg text-on-surface truncate">{member.name}</h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-on-surface-variant text-sm">
+              <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span>{member.phone}</span>
+              {member.joinDate && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_month</span>Joined {member.joinDate}</span>}
             </div>
-            <div className="mt-2">
+            <div className="mt-1">
               {isFrozen ? (
-                <span className="inline-flex items-center gap-1 text-blue-600 font-label-caps text-label-caps bg-blue-50 px-2 py-1 rounded-md">
-                  <span className="material-symbols-outlined text-[12px]">ac_unit</span> Frozen
+                <span className="inline-flex items-center gap-1 text-blue-600 font-label-caps text-label-caps bg-blue-50 px-2 py-0.5 rounded-md text-xs">
+                  <span className="material-symbols-outlined text-[11px]">ac_unit</span> Frozen
                   {member.resumeDate && <span className="ml-1 opacity-70">until {member.resumeDate}</span>}
                 </span>
               ) : isExpired ? (
-                <span className="inline-flex items-center gap-1 text-rose-600 font-label-caps text-label-caps bg-rose-50 px-2 py-1 rounded-md">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div> Expired Member
+                <span className="inline-flex items-center gap-1 text-rose-600 font-label-caps text-label-caps bg-rose-50 px-2 py-0.5 rounded-md text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Expired Member
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-emerald-600 font-label-caps text-label-caps bg-emerald-50 px-2 py-1 rounded-md">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Active Member
+                <span className="inline-flex items-center gap-1 text-emerald-600 font-label-caps text-label-caps bg-emerald-50 px-2 py-0.5 rounded-md text-xs">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active Member
                 </span>
               )}
             </div>
           </div>
         </div>
-        <div className="flex gap-3 relative z-10 w-full md:w-auto flex-wrap">
-          <Link to={`/payments/new?memberId=${id}`} className="flex-1 md:flex-none bg-primary text-on-primary px-5 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm text-center flex items-center justify-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">payments</span>
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
+          <Link to={`/payments/new?memberId=${id}`} className="flex-1 md:flex-none bg-primary text-on-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm text-center flex items-center justify-center gap-1.5 text-sm">
+            <span className="material-symbols-outlined text-[16px]">payments</span>
             Collect Payment
           </Link>
-          <button onClick={downloadReceipt} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+          <button onClick={downloadReceipt} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+            <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
             Download Receipt
           </button>
-          <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none bg-surface-container border border-outline-variant/30 text-on-surface px-5 py-2.5 rounded-lg font-medium hover:bg-surface-container-high transition-colors shadow-sm flex items-center justify-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">edit</span>
+          <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none bg-surface-container border border-outline-variant/30 text-on-surface px-4 py-2 rounded-lg font-medium hover:bg-surface-container-high transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+            <span className="material-symbols-outlined text-[16px]">edit</span>
             Edit
           </button>
           {isFrozen ? (
-            <button onClick={handleUnfreeze} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5">
-              <span className="material-symbols-outlined text-[18px]">play_circle</span>
+            <button onClick={handleUnfreeze} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+              <span className="material-symbols-outlined text-[16px]">play_circle</span>
               Unfreeze
             </button>
           ) : (
-            <button onClick={() => { setFreezeDate(''); setShowFreezeModal(true); }} className="flex-1 md:flex-none bg-blue-50 border border-blue-200 text-blue-600 px-5 py-2.5 rounded-lg font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-1.5">
-              <span className="material-symbols-outlined text-[18px]">ac_unit</span>
+            <button onClick={() => { setFreezeDate(''); setShowFreezeModal(true); }} className="flex-1 md:flex-none bg-blue-50 border border-blue-200 text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+              <span className="material-symbols-outlined text-[16px]">ac_unit</span>
               Freeze
             </button>
           )}
-          <button onClick={() => setShowDeleteMember(true)} className="flex-1 md:flex-none bg-rose-50 border border-rose-200 text-rose-600 px-5 py-2.5 rounded-lg font-medium hover:bg-rose-100 transition-colors shadow-sm flex items-center justify-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">delete</span>
+          <button onClick={() => setShowDeleteMember(true)} className="flex-1 md:flex-none bg-rose-50 border border-rose-200 text-rose-600 px-4 py-2 rounded-lg font-medium hover:bg-rose-100 transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+            <span className="material-symbols-outlined text-[16px]">delete</span>
             Delete
           </button>
         </div>

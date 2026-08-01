@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 const ADMIN_NAV_ALL = [
   { to: '/',              icon: 'monitoring',             label: 'Dashboard',      fill: true,  end: true  },
   { to: '/members',       icon: 'group',                  label: 'Members',        fill: true               },
+  { to: '/plans',         icon: 'loyalty',                label: 'Plans',          fill: true               },
   { to: '/payments',      icon: 'account_balance_wallet', label: 'Payments',       fill: false              },
   { to: '/checkin',       icon: 'how_to_reg',             label: 'Check-in',       fill: true               },
   { to: '/attendance',    icon: 'event_available',        label: 'Attendance',     fill: true               },
@@ -14,7 +15,6 @@ const ADMIN_NAV_ALL = [
   { to: '/staff',         icon: 'badge',                  label: 'Staff',          fill: true               },
   { to: '/equipment',     icon: 'fitness_center',         label: 'Equipment',      fill: false              },
   { to: '/supplements',   icon: 'medication',             label: 'Supplements',    fill: true               },
-  { to: '/plans',         icon: 'loyalty',                label: 'Plans',          fill: true               },
   { to: '/leads',         icon: 'person_search',          label: 'Leads & CRM',    fill: true               },
   { to: '/measurements',  icon: 'monitor_weight',         label: 'Measurements',   fill: false              },
   { to: '/workouts',      icon: 'exercise',               label: 'Workouts',       fill: true               },
