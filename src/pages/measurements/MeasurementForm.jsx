@@ -98,7 +98,7 @@ export default function MeasurementForm({ measurement, memberId, memberName, onC
       <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-outline-variant/20 flex-shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-outline-variant/20 shrink-0">
           <div>
             <h2 className="font-bold text-on-surface text-lg">
               {measurement ? 'Edit Measurement' : 'Add Measurement'}

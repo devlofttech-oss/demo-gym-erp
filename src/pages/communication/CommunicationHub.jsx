@@ -297,7 +297,7 @@ function AnnouncementsTab({ gymId, userName }) {
           <EmptyState icon="campaign" message="No announcements yet. Create your first announcement above." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-175">
               <thead>
                 <tr className="bg-surface-container-low/50 border-b border-outline-variant/20">
                   {['Title', 'Message', 'Type', 'Target', 'Scheduled For', 'Created At', 'Sent By'].map((h) => (
@@ -316,10 +316,10 @@ function AnnouncementsTab({ gymId, userName }) {
                     key={a.id}
                     className="border-b border-outline-variant/10 hover:bg-surface-container/30 transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm text-on-surface font-medium whitespace-nowrap max-w-[160px] truncate">
+                    <td className="px-4 py-3 text-sm text-on-surface font-medium whitespace-nowrap max-w-40 truncate">
                       {a.title}
                     </td>
-                    <td className="px-4 py-3 text-sm text-on-surface-variant max-w-[220px]">
+                    <td className="px-4 py-3 text-sm text-on-surface-variant max-w-55">
                       {truncate(a.message, 100)}
                     </td>
                     <td className="px-4 py-3">
@@ -536,7 +536,7 @@ function FollowupsTab({ gymId }) {
           <EmptyState icon="notifications" message={`No ${statusFilter !== 'All' ? statusFilter.toLowerCase() + ' ' : ''}follow-up reminders yet.`} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-175">
               <thead>
                 <tr className="bg-surface-container-low/50 border-b border-outline-variant/20">
                   {['Member', 'Phone', 'Type', 'Due Date', 'Status', 'Notes', 'Action'].map((h) => (
@@ -577,7 +577,7 @@ function FollowupsTab({ gymId }) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-on-surface-variant max-w-[160px] truncate">
+                    <td className="px-4 py-3 text-sm text-on-surface-variant max-w-40 truncate">
                       {f.notes || <span className="text-on-surface-variant/40 italic">—</span>}
                     </td>
                     <td className="px-4 py-3">
@@ -641,7 +641,7 @@ function NotificationLogTab({ gymId }) {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-175">
               <thead>
                 <tr className="bg-surface-container-low/50 border-b border-outline-variant/20">
                   {['Date', 'Recipient', 'Channel', 'Message Summary', 'Status', 'Sent By'].map((h) => (
@@ -667,7 +667,7 @@ function NotificationLogTab({ gymId }) {
                         {l.channel || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-on-surface-variant max-w-[220px] truncate">
+                    <td className="px-4 py-3 text-sm text-on-surface-variant max-w-55 truncate">
                       {truncate(l.message || l.messageSummary, 100)}
                     </td>
                     <td className="px-4 py-3">
