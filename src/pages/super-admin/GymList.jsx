@@ -79,6 +79,7 @@ export default function GymList() {
   };
 
   const filtered = gyms.filter(g => {
+    if (g.isTrial) return false; // trial gyms live in the Trials page
     const t = searchTerm.toLowerCase();
     return !t || g.name?.toLowerCase().includes(t) || g.ownerEmail?.toLowerCase().includes(t) || g.address?.toLowerCase().includes(t);
   });

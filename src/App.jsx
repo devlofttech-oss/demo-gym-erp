@@ -37,6 +37,8 @@ import SuperAdminDashboard from './pages/super-admin/SuperAdminDashboard';
 import GymList from './pages/super-admin/GymList';
 import GymForm from './pages/super-admin/GymForm';
 import SetupSuperAdmin from './pages/super-admin/SetupSuperAdmin';
+import TrialList from './pages/super-admin/TrialList';
+import RegisterPage from './pages/RegisterPage';
 
 function RoleRedirect() {
   const { role } = useAuth();
@@ -52,6 +54,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
 
       {/* Standalone scanner kiosk */}
@@ -71,6 +74,7 @@ export default function App() {
         <Route path="gyms" element={<GymList />} />
         <Route path="gyms/new" element={<GymForm />} />
         <Route path="gyms/:id/edit" element={<GymForm />} />
+        <Route path="trials" element={<TrialList />} />
       </Route>
 
       {/* Gym ERP (admin + staff) */}
