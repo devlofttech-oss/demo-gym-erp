@@ -5,6 +5,7 @@ import { getTenantDocument, getTenantCollection, createTenantDocument, updateTen
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
+import kilosLogo from '../../assets/kilos_logo.png';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -182,8 +183,6 @@ export default function MemberProfile() {
   const downloadReceipt = () => {
     const bal = Number(member?.balanceFees || 0);
     const subLine = [gymInfo.location, gymInfo.contact].filter(Boolean).join('  &nbsp;|&nbsp;  ');
-    const initials = (gymInfo.name || 'DF')
-      .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
     const dateStr = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
 
     const html = `
@@ -194,9 +193,10 @@ export default function MemberProfile() {
         .receipt { max-width:600px; margin:0 auto; padding:0; }
 
         .header { background:#4f46e5; color:#fff; padding:24px 28px; display:flex; align-items:center; gap:16px; }
-        .logo-circle { width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.18);
-          display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;
-          color:#fff; flex-shrink:0; border:2px solid rgba(255,255,255,0.3); }
+        .logo-circle { width:52px; height:52px; border-radius:12px; background:rgba(255,255,255,0.95);
+          display:flex; align-items:center; justify-content:center; flex-shrink:0;
+          padding:4px; overflow:hidden; }
+        .logo-circle img { width:100%; height:100%; object-fit:contain; }
         .gym-name { font-size:20px; font-weight:800; letter-spacing:1px; }
         .gym-sub  { font-size:11px; color:rgba(255,255,255,0.75); margin-top:3px; }
         .receipt-label { margin-left:auto; text-align:right; }
@@ -229,7 +229,7 @@ export default function MemberProfile() {
       </style></head>
       <body><div class="receipt" id="receipt-print">
         <div class="header">
-          <div class="logo-circle">${initials}</div>
+          <div class="logo-circle"><img src="${window.location.origin}${kilosLogo}" alt="Kilos" /></div>
           <div>
             <div class="gym-name">${gymInfo.name || 'Kilos'}</div>
             ${subLine ? `<div class="gym-sub">${subLine}</div>` : ''}
