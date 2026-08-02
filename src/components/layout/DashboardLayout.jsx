@@ -35,7 +35,6 @@ const STAFF_NAV = [
 ];
 
 export default function DashboardLayout() {
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const { isImpersonating, gymData, exitGym, role } = useAuth();
   const navigate = useNavigate();
@@ -99,12 +98,8 @@ export default function DashboardLayout() {
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar onExpandChange={setSidebarExpanded} />
-        <div
-          className={`flex-1 flex flex-col overflow-hidden relative transition-all duration-300 ${
-            sidebarExpanded ? 'md:ml-60' : 'md:ml-22'
-          }`}
-        >
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden relative md:ml-24">
           <Topbar />
           <main className="flex-1 overflow-y-auto p-gutter lg:p-container-margin space-y-section-gap custom-scrollbar pb-24 md:pb-10">
             <Outlet />

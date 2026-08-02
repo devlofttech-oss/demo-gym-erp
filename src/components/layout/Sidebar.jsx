@@ -33,15 +33,15 @@ const STAFF_NAV = [
   { to: '/attendance', icon: 'event_available',  label: 'Attendance', fill: true },
 ];
 
-export default function Sidebar({ onExpandChange }) {
+export default function Sidebar() {
   const { isDarkMode, setLightMode, setDarkMode } = useDarkMode();
   const { role, gymData } = useAuth();
   const [expanded, setExpanded] = useState(false);
 
   const navItems = role === 'staff' ? STAFF_NAV : ADMIN_NAV;
 
-  const expand = () => { setExpanded(true);  onExpandChange?.(true);  };
-  const collapse = () => { setExpanded(false); onExpandChange?.(false); };
+  const expand = () => setExpanded(true);
+  const collapse = () => setExpanded(false);
 
   const getPillClasses = (isActive) => {
     return `h-14 flex items-center transition-all duration-300 mx-2 shrink-0 ${
