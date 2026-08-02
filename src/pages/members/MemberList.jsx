@@ -13,7 +13,7 @@ function paginationPages(page, total) {
 }
 import { useAuth } from '../../context/AuthContext';
 import { getTenantCollection, createTenantDocument } from '../../firebase/tenantDb';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import SendSMSModal from '../../components/messaging/SendSMSModal';
@@ -29,6 +29,7 @@ function daysUntilExpiry(expiryDate) {
 
 export default function MemberList() {
   const { gymId } = useAuth();
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -626,7 +627,7 @@ export default function MemberList() {
             const isExpired = days !== null && days < 0;
             const effectiveStatus = isExpired ? 'Expired' : 'Active';
             return (
-              <div key={member.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4">
+              <div key={member.id} onClick={() => navigate(`/members/${member.id}`)} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-4 cursor-pointer active:scale-[0.98] transition-transform">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold shrink-0 overflow-hidden">
@@ -649,19 +650,16 @@ export default function MemberList() {
                     {isExpired && <span className="block text-xs text-rose-500">{Math.abs(days)}d ago</span>}
                   </span>
                 </div>
-                <div className="flex gap-2">
-                  {isExpiringSoon && member.phone && (
+                {isExpiringSoon && member.phone && (
+                  <div className="flex gap-2 mt-1">
                     <button
-                      onClick={() => { setSmsMember(member); setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now!`); }}
+                      onClick={e => { e.stopPropagation(); setSmsMember(member); setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now!`); }}
                       className="flex-1 flex items-center justify-center gap-1 bg-primary text-on-primary py-2 rounded-xl text-sm font-semibold"
                     >
                       <span className="material-symbols-outlined text-[14px]">sms</span> Remind
                     </button>
-                  )}
-                  <Link to={`/members/${member.id}`} className="flex-1 flex items-center justify-center bg-primary/10 text-primary py-2 rounded-xl text-sm font-medium">
-                    View Profile
-                  </Link>
-                </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -709,7 +707,7 @@ export default function MemberList() {
                   const effectiveStatus = member.status === 'Frozen' ? 'Frozen' : isExpired ? 'Expired' : 'Active';
 
                   return (
-                    <tr key={member.id} className="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors">
+                    <tr key={member.id} onClick={() => navigate(`/members/${member.id}`)} className="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors cursor-pointer">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold shrink-0 overflow-hidden">
@@ -750,7 +748,8 @@ export default function MemberList() {
                         <div className="flex items-center justify-end gap-2">
                           {isExpiringSoon && member.phone && (
                             <button
-                              onClick={() => {
+                              onClick={e => {
+                                e.stopPropagation();
                                 setSmsMember(member);
                                 setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now to continue your fitness journey! Visit us or call us to renew.`);
                               }}
@@ -761,12 +760,6 @@ export default function MemberList() {
                               Remind
                             </button>
                           )}
-                          <Link
-                            to={`/members/${member.id}`}
-                            className="bg-primary/10 text-primary dark:bg-indigo-500/20 dark:text-indigo-300 hover:bg-primary/20 dark:hover:bg-indigo-500/30 px-3 py-1.5 rounded-lg font-medium text-sm transition-colors"
-                          >
-                            View Profile
-                          </Link>
                         </div>
                       </td>
                     </tr>

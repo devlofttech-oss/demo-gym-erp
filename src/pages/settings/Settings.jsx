@@ -9,6 +9,11 @@ const DEFAULT_GYM_INFO = {
   name: '',
   location: 'Bangalore, Karnataka',
   contact: '+91 94497 49003',
+  email: '',
+  website: '',
+  gstNumber: '',
+  openingHours: '6:00 AM - 10:00 PM',
+  instagram: '',
 };
 
 export default function Settings() {
@@ -121,17 +126,22 @@ export default function Settings() {
             <span className="material-symbols-outlined text-[16px]">edit</span> Edit
           </button>
         </div>
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { label: 'Gym Name', value: gymInfo.name,     icon: 'fitness_center' },
-            { label: 'Location', value: gymInfo.location, icon: 'location_on'    },
-            { label: 'Contact',  value: gymInfo.contact,  icon: 'call'           },
+            { label: 'Gym Name',      value: gymInfo.name,         icon: 'fitness_center' },
+            { label: 'Location',      value: gymInfo.location,     icon: 'location_on'    },
+            { label: 'Contact',       value: gymInfo.contact,      icon: 'call'           },
+            { label: 'Email',         value: gymInfo.email,        icon: 'mail'           },
+            { label: 'Website',       value: gymInfo.website,      icon: 'language'       },
+            { label: 'GST Number',    value: gymInfo.gstNumber,    icon: 'receipt_long'   },
+            { label: 'Opening Hours', value: gymInfo.openingHours, icon: 'schedule'       },
+            { label: 'Instagram',     value: gymInfo.instagram,    icon: 'photo_camera'   },
           ].map((item, i) => (
-            <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-surface-container border border-outline-variant/20">
-              <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-              <div>
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-surface-container border border-outline-variant/20">
+              <span className="material-symbols-outlined text-primary shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+              <div className="min-w-0">
                 <div className="text-xs text-on-surface-variant font-medium">{item.label}</div>
-                <div className="text-sm font-semibold text-on-surface">{loading ? '...' : item.value}</div>
+                <div className="text-sm font-semibold text-on-surface truncate">{loading ? '...' : (item.value || '—')}</div>
               </div>
             </div>
           ))}
@@ -142,27 +152,34 @@ export default function Settings() {
       {/* Edit Gym Info Modal */}
       {isEditGymInfoOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-2xl p-6 shadow-2xl animate-fade-in">
             <h2 className="text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">edit</span> Edit Gym Info
             </h2>
             <form onSubmit={handleSaveGymInfo} className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: 'Gym Name', key: 'name',     type: 'text' },
-                { label: 'Location', key: 'location', type: 'text' },
-                { label: 'Contact',  key: 'contact',  type: 'text' },
-              ].map(({ label, key, type }) => (
+                { label: 'Gym Name',      key: 'name',         type: 'text',  required: true  },
+                { label: 'Location',      key: 'location',     type: 'text',  required: false },
+                { label: 'Contact',       key: 'contact',      type: 'text',  required: false },
+                { label: 'Email',         key: 'email',        type: 'email', required: false },
+                { label: 'Website',       key: 'website',      type: 'url',   required: false },
+                { label: 'GST Number',    key: 'gstNumber',    type: 'text',  required: false },
+                { label: 'Opening Hours', key: 'openingHours', type: 'text',  required: false },
+                { label: 'Instagram',     key: 'instagram',    type: 'text',  required: false },
+              ].map(({ label, key, type, required }) => (
                 <div key={key} className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-on-surface-variant">{label}</label>
+                  <label className="text-sm font-medium text-on-surface-variant">{label}{required && <span className="text-error ml-1">*</span>}</label>
                   <input
-                    required
+                    required={required}
                     type={type}
-                    value={editGymInfo[key]}
+                    value={editGymInfo[key] ?? ''}
                     onChange={e => setEditGymInfo({ ...editGymInfo, [key]: e.target.value })}
                     className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary"
                   />
                 </div>
               ))}
+              </div>
               <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-outline-variant/20">
                 <button type="button" onClick={() => setIsEditGymInfoOpen(false)} className="px-4 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container">Cancel</button>
                 <button type="submit" className="px-5 py-2 bg-primary text-on-primary rounded-lg font-medium hover:bg-primary/90 shadow-sm flex items-center gap-2">
