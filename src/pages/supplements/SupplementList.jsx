@@ -165,6 +165,117 @@ function RestockModal({ item, onRestock, onClose }) {
   );
 }
 
+const fmtSaleDate = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+};
+
+function SalesView({ sales, loading }) {
+  const monthPrefix = new Date().toISOString().slice(0, 7);
+  const totalUnits = sales.reduce((s, x) => s + Number(x.quantity || 0), 0);
+  const totalRevenue = sales.reduce((s, x) => s + Number(x.total || 0), 0);
+  const monthRevenue = sales
+    .filter(s => (s.date || '').slice(0, 7) === monthPrefix)
+    .reduce((a, x) => a + Number(x.total || 0), 0);
+  const sorted = [...sales].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: 'payments', color: 'text-emerald-600', bg: 'bg-emerald-100/60' },
+          { label: 'This Month', value: `₹${monthRevenue.toLocaleString('en-IN')}`, icon: 'calendar_month', color: 'text-primary', bg: 'bg-primary-container/30' },
+          { label: 'Units Sold', value: totalUnits, icon: 'shopping_cart', color: 'text-blue-600', bg: 'bg-blue-100/60' },
+          { label: 'Transactions', value: sales.length, icon: 'receipt_long', color: 'text-amber-600', bg: 'bg-amber-100/60' },
+        ].map(({ label, value, icon, color, bg }) => (
+          <div key={label} className="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/20">
+            <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center mb-3`}>
+              <span className={`material-symbols-outlined ${color}`} style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+            </div>
+            <div className="text-2xl font-bold text-on-surface">{value}</div>
+            <div className="text-xs text-on-surface-variant mt-1">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile card list */}
+      {!loading && sorted.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {sorted.map(s => (
+            <div key={s.id} className="bg-surface-container-lowest rounded-2xl shadow-sm p-4 border border-outline-variant/20">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-semibold text-on-surface">{s.name}</div>
+                  <div className="text-xs text-on-surface-variant">{s.category || '—'}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-emerald-600">₹{Number(s.total || 0).toLocaleString('en-IN')}</div>
+                  <div className="text-xs text-on-surface-variant">{s.quantity} × ₹{Number(s.unitPrice || 0).toLocaleString('en-IN')}</div>
+                </div>
+              </div>
+              <div className="text-[11px] text-on-surface-variant mt-2">{fmtSaleDate(s.date)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!loading && sorted.length === 0 && (
+        <div className="md:hidden flex flex-col items-center justify-center py-12 gap-3 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl opacity-40">receipt_long</span>
+          <p className="font-medium">No sales recorded yet</p>
+        </div>
+      )}
+
+      {/* Desktop table */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-outline-variant/30 bg-surface-container-low/50">
+                {['Date', 'Product', 'Category', 'Qty', 'Unit Price', 'Total'].map(h => (
+                  <th key={h} className={`p-4 font-label-caps text-label-caps text-on-surface-variant uppercase ${['Qty', 'Unit Price', 'Total'].includes(h) ? 'text-right' : ''}`}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="6" className="p-8 text-center text-on-surface-variant">
+                  <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span>Loading...
+                </td></tr>
+              ) : sorted.length === 0 ? (
+                <tr><td colSpan="6" className="p-12 text-center">
+                  <div className="flex flex-col items-center gap-3 text-on-surface-variant">
+                    <span className="material-symbols-outlined text-5xl opacity-40">receipt_long</span>
+                    <p className="font-medium">No sales recorded yet</p>
+                    <p className="text-sm opacity-70">Sales appear here whenever you sell supplement stock.</p>
+                  </div>
+                </td></tr>
+              ) : sorted.map(s => (
+                <tr key={s.id} className="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors">
+                  <td className="p-4 text-sm text-on-surface-variant whitespace-nowrap">{fmtSaleDate(s.date)}</td>
+                  <td className="p-4 text-sm font-medium text-on-surface">{s.name}</td>
+                  <td className="p-4 text-sm text-on-surface-variant">{s.category || '—'}</td>
+                  <td className="p-4 text-sm font-bold text-on-surface text-right">{s.quantity}</td>
+                  <td className="p-4 text-sm text-on-surface-variant text-right">₹{Number(s.unitPrice || 0).toLocaleString('en-IN')}</td>
+                  <td className="p-4 text-sm font-semibold text-emerald-600 text-right">₹{Number(s.total || 0).toLocaleString('en-IN')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!loading && sorted.length > 0 && (
+          <div className="px-4 py-3 border-t border-outline-variant/20 text-xs text-on-surface-variant flex justify-between">
+            <span>{sorted.length} sale{sorted.length !== 1 ? 's' : ''}</span>
+            <span className="font-semibold text-on-surface">Total: ₹{totalRevenue.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SupplementList() {
   const { gymId } = useAuth();
   const [supplements, setSupplements] = useState([]);
@@ -176,6 +287,8 @@ export default function SupplementList() {
   const [restockingItem, setRestockingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
+  const [view, setView] = useState('inventory');
+  const [sales, setSales] = useState([]);
 
   const fetchSupplements = async () => {
     try {
@@ -186,7 +299,14 @@ export default function SupplementList() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchSupplements(); }, []);
+  const fetchSales = async () => {
+    try {
+      const data = await getTenantCollection(gymId, 'supplementSales');
+      setSales(data);
+    } catch { /* non-fatal */ }
+  };
+
+  useEffect(() => { fetchSupplements(); fetchSales(); }, []);
 
   const handleAdd = async (form) => {
     await createTenantDocument(gymId, 'supplements', {
@@ -220,11 +340,23 @@ export default function SupplementList() {
   };
 
   const handleSell = async (qty) => {
+    const unitPrice = Number(sellingItem.price) || 0;
     const newStock = Math.max(0, Number(sellingItem.stock) - qty);
     await updateTenantDocument(gymId, 'supplements', sellingItem.id, { stock: newStock });
-    toast.success(`Sold ${qty} unit${qty !== 1 ? 's' : ''} — stock now ${newStock}`);
+    // Record the sale so we have a history of what product and how many was sold.
+    await createTenantDocument(gymId, 'supplementSales', {
+      supplementId: sellingItem.id,
+      name: sellingItem.name,
+      category: sellingItem.category || 'Other',
+      quantity: qty,
+      unitPrice,                       // snapshot — later price edits won't alter history
+      total: qty * unitPrice,
+      date: new Date().toISOString(),
+    });
+    toast.success(`Sold ${qty} × ${sellingItem.name} — stock now ${newStock}`);
     setSellingItem(null);
     fetchSupplements();
+    fetchSales();
   };
 
   const handleRestock = async (qty) => {
@@ -263,6 +395,21 @@ export default function SupplementList() {
         </button>
       </div>
 
+      {/* View tabs */}
+      <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit">
+        {[{ k: 'inventory', label: 'Inventory', icon: 'inventory_2' }, { k: 'sales', label: 'Sales Log', icon: 'receipt_long' }].map(t => (
+          <button key={t.k} onClick={() => setView(t.k)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              view === t.k ? 'bg-surface-container-lowest text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
+            }`}>
+            <span className="material-symbols-outlined text-[16px]">{t.icon}</span>{t.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'sales' && <SalesView sales={sales} loading={loading} />}
+
+      {view === 'inventory' && (<>
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -467,6 +614,8 @@ export default function SupplementList() {
           </div>
         )}
       </div>
+
+      </>)}
 
       {showModal && <SupplementModal onSave={handleAdd} onClose={() => setShowModal(false)} />}
       {editingItem && (
