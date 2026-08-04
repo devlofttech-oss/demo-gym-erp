@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import NotificationPanel from '../ui/NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
-import { getCollection } from '../../firebase/db';
+import { getTenantCollection } from '../../firebase/tenantDb';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '../../assets/kilos_logo.png';
 
@@ -9,18 +9,18 @@ export default function Topbar() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
-  const { logout, currentUser, role, userName } = useAuth();
+  const { logout, currentUser, role, userName, gymId } = useAuth();
   const navigate = useNavigate();
   const profileRef = useRef(null);
 
   // Fetch notification count on mount (admin only)
   useEffect(() => {
-    if (role !== 'admin') return;
+    if (role !== 'admin' || !gymId) return;
     const fetchCount = async () => {
       try {
         const [members, payments] = await Promise.all([
-          getCollection('members'),
-          getCollection('payments'),
+          getTenantCollection(gymId, 'members'),
+          getTenantCollection(gymId, 'payments'),
         ]);
         const now = new Date(); now.setHours(0, 0, 0, 0);
         const in7days = new Date(now); in7days.setDate(in7days.getDate() + 7); in7days.setHours(23, 59, 59, 999);
@@ -38,7 +38,7 @@ export default function Topbar() {
       } catch { /* silent */ }
     };
     fetchCount();
-  }, []);
+  }, [role, gymId]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

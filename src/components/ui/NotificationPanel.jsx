@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { getCollection } from '../../firebase/db';
+import { getTenantCollection } from '../../firebase/tenantDb';
+import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 export default function NotificationPanel({ isOpen, onClose }) {
+  const { gymId } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const panelRef = useRef(null);
@@ -24,12 +26,12 @@ export default function NotificationPanel({ isOpen, onClose }) {
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      if (!isOpen) return;
+      if (!isOpen || !gymId) return;
       try {
         setLoading(true);
         const [members, payments] = await Promise.all([
-          getCollection('members'),
-          getCollection('payments')
+          getTenantCollection(gymId, 'members'),
+          getTenantCollection(gymId, 'payments')
         ]);
 
         const now = new Date();
@@ -102,7 +104,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
     };
 
     fetchNotifications();
-  }, [isOpen]);
+  }, [isOpen, gymId]);
 
   if (!isOpen) return null;
 

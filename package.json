@@ -20,6 +20,7 @@
     "framer-motion": "^12.38.0",
     "frappe-react-sdk": "^1.14.0",
     "html2canvas": "^1.4.1",
+    "html2canvas-pro": "^2.3.3",
     "html5-qrcode": "^2.3.8",
     "http-proxy-middleware": "^3.0.5",
     "jspdf": "^4.2.1",

@@ -1,12 +1,22 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
+      "PowerShell",
       "Bash(git *)",
       "PowerShell(git *)",
       "PowerShell(cd * git *)",
+      "Bash(node *)",
+      "PowerShell(node *)",
+      "Bash(npm *)",
+      "PowerShell(npm *)",
       "mcp__playwright__browser_navigate",
       "Bash(ls functions *)",
-      "Bash(cat firebase.json)"
+      "Bash(cat firebase.json)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"d:\\\\Devloft-work\\\\gym erp demo\\\\src\\\\assets\\\\kilos_logo.png\"\\); $b64 = [Convert]::ToBase64String\\($bytes\\); Write-Host \"Length: $\\($b64.Length\\)\"; Write-Host $b64.Substring\\(0,80\\))",
+      "Bash(xargs grep -l \"getTenantCollection\\\\|getTenantDocument\")",
+      "Bash(xargs grep -l \"getTenantCollection\")",
+      "Bash(node _migrate_test.mjs)"
     ],
     "defaultMode": "bypassPermissions"
   }

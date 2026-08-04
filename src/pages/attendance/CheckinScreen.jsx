@@ -46,6 +46,17 @@ const playBeep = (type) => {
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
+// Entry eligibility must be derived from the live expiry date (like the rest of
+// the app), NOT the stored `status` field — that field is often stale (e.g. set
+// to "Active" at creation and never refreshed), which would wrongly admit an
+// expired member. expiryDate is an ISO 'YYYY-MM-DD' string, so a lexicographic
+// compare against today is correct.
+const isMemberEligible = (m) => {
+  if (m.status === 'Frozen') return false;            // frozen = paused, no entry
+  if (m.expiryDate) return m.expiryDate >= todayStr(); // expired if past today
+  return m.status === 'Active';                        // no expiry recorded → fall back
+};
+
 export default function CheckinScreen({ isKiosk = false }) {
   const { gymId } = useAuth();
   const [members, setMembers] = useState([]);
@@ -177,7 +188,7 @@ export default function CheckinScreen({ isKiosk = false }) {
   };
 
   const processMemberCheckin = async (member) => {
-    if (member.status !== 'Active') {
+    if (!isMemberEligible(member)) {
       playBeep('warning');
       setExpiredMember(member);
       return;

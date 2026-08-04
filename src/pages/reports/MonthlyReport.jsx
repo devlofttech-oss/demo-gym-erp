@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import * as XLSX from 'xlsx';
 
 // ── Date helpers ──────────────────────────────────────────────────
@@ -164,7 +164,18 @@ export default function MonthlyReport() {
     setExporting(true);
     try {
       const el = reportRef.current;
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        // Always capture in light theme so exporting from dark mode doesn't
+        // produce light-text-on-white (invisible) output.
+        onclone: (doc) => {
+          doc.documentElement.classList.remove('dark');
+          const clone = doc.querySelector('[data-report-root]');
+          if (clone) clone.style.backgroundColor = '#ffffff';
+        },
+      });
       const imgData  = canvas.toDataURL('image/png');
       const pdf      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW    = pdf.internal.pageSize.getWidth();
@@ -375,7 +386,7 @@ export default function MonthlyReport() {
           )}
         </div>
       ) : (
-        <div ref={reportRef} className="flex flex-col gap-6 bg-surface rounded-2xl">
+        <div ref={reportRef} data-report-root className="flex flex-col gap-6 bg-surface rounded-2xl">
           {/* Month banner */}
           <div className="bg-primary/10 dark:bg-primary/20 rounded-2xl px-6 py-3 flex items-center gap-3">
             <span
