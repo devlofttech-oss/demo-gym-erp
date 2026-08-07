@@ -5,15 +5,73 @@ import { getTenantCollection } from '../../firebase/tenantDb';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '../../assets/kilos_logo.png';
 
+function BranchSwitcher({ gymBranches, activeGymId, switchBranch }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const activeBranch = gymBranches.find(b => b.id === activeGymId) || gymBranches[0];
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      >
+        <div className="flex flex-col items-center leading-tight">
+          <span className="font-bold text-slate-900 dark:text-white text-sm md:text-base tracking-tight whitespace-nowrap">
+            {activeBranch?.name || 'Branch'}
+          </span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase hidden sm:block">
+            powered by Kilos
+          </span>
+        </div>
+        <span className="material-symbols-outlined text-[18px] text-slate-500 dark:text-slate-400">
+          {open ? 'expand_less' : 'expand_more'}
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in">
+          <div className="px-4 py-2.5 border-b border-outline-variant/20 bg-surface-container/40">
+            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Switch Branch</p>
+          </div>
+          {gymBranches.map((branch) => (
+            <button
+              key={branch.id}
+              onClick={() => { switchBranch(branch.id); setOpen(false); }}
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between gap-2 ${
+                branch.id === activeGymId
+                  ? 'bg-primary/10 text-primary font-semibold'
+                  : 'text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              <span className="truncate">{branch.name}</span>
+              {branch.id === activeGymId && (
+                <span className="material-symbols-outlined text-[16px] text-primary shrink-0">check_circle</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Topbar() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
-  const { logout, currentUser, role, userName, gymId } = useAuth();
+  const { logout, currentUser, role, userName, gymId, gymData, gymIds, gymBranches, switchBranch } = useAuth();
   const navigate = useNavigate();
   const profileRef = useRef(null);
 
-  // Fetch notification count on mount (admin only)
   useEffect(() => {
     if (role !== 'admin' || !gymId) return;
     const fetchCount = async () => {
@@ -65,12 +123,12 @@ export default function Topbar() {
 
   const displayName = userName || currentUser?.email?.split('@')[0] || 'User';
   const roleLabel = role === 'admin' ? 'Admin' : role === 'staff' ? 'Staff' : role || 'User';
-  const { gymData } = useAuth();
   const gymName = gymData?.name || 'Kilos';
+  const isMultiBranch = gymIds.length > 1;
 
   return (
     <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md font-['Plus_Jakarta_Sans'] text-sm sticky top-4 z-40 mx-4 md:mx-gutter lg:mx-container-margin md:ml-0 mt-4 mb-4 border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-full flex justify-between items-center h-16 px-4 md:px-6">
-      {/* Left — logo (mobile only, desktop handled by sidebar) */}
+      {/* Left — logo (mobile only) */}
       <div className="flex items-center gap-2 md:min-w-0">
         <div className="flex md:hidden items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-lg overflow-hidden bg-primary-container/10 flex items-center justify-center">
@@ -84,10 +142,20 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Center — Gym name */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center leading-tight pointer-events-none">
-        <span className="font-bold text-slate-900 dark:text-white text-sm md:text-base tracking-tight whitespace-nowrap">{gymName}</span>
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase hidden sm:block">powered by Kilos</span>
+      {/* Center — branch switcher (multi) or gym name (single) */}
+      <div className="absolute left-1/2 -translate-x-1/2">
+        {isMultiBranch ? (
+          <BranchSwitcher
+            gymBranches={gymBranches}
+            activeGymId={gymId}
+            switchBranch={switchBranch}
+          />
+        ) : (
+          <div className="flex flex-col items-center leading-tight pointer-events-none">
+            <span className="font-bold text-slate-900 dark:text-white text-sm md:text-base tracking-tight whitespace-nowrap">{gymName}</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase hidden sm:block">powered by Kilos</span>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3 relative">
@@ -112,7 +180,6 @@ export default function Topbar() {
 
         {/* Profile + User Info */}
         <div className="relative flex items-center gap-2.5" ref={profileRef}>
-          {/* Name + Role (hidden on small screens) */}
           <div className="hidden sm:flex flex-col items-end leading-tight">
             <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">{displayName}</span>
             <span className={`text-[11px] font-medium px-1.5 py-px rounded-full ${

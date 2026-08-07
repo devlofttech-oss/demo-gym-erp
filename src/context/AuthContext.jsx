@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
-import { getDocument } from '../firebase/db';
+import { getDocument, updateDocument } from '../firebase/db';
 
 const AuthContext = createContext();
 
@@ -14,7 +14,10 @@ export function AuthProvider({ children }) {
   const [role, setRole]                   = useState(null);
   const [userName, setUserName]           = useState('');
   const [gymId, setGymId]                 = useState(null);
+  const [activeGymId, setActiveGymId]     = useState(null);
   const [gymData, setGymData]             = useState(null);
+  const [gymIds, setGymIds]               = useState([]);
+  const [gymBranches, setGymBranches]     = useState([]);
   const [isSuperAdmin, setIsSuperAdmin]   = useState(false);
   const [loading, setLoading]             = useState(true);
   const [inactiveGymError, setInactiveGymError] = useState(false);
@@ -39,6 +42,22 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Switches the active branch and reloads the page so all data re-fetches cleanly.
+  const switchBranch = (newGymId) => {
+    if (!gymIds.includes(newGymId)) return;
+    if (newGymId === activeGymId) return;
+    if (currentUser) {
+      localStorage.setItem(`activeBranch_${currentUser.uid}`, newGymId);
+    }
+    window.location.href = '/';
+  };
+
+  // Called after a new branch is created in Settings to update context without reload.
+  const addBranch = (newGymId, newGymName) => {
+    setGymIds(prev => [...prev, newGymId]);
+    setGymBranches(prev => [...prev, { id: newGymId, name: newGymName }]);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -46,7 +65,6 @@ export function AuthProvider({ children }) {
         try {
           const userDoc = await getDocument('users', user.uid);
           if (!userDoc || userDoc.role === 'deleted') {
-            // Auth account exists but gym was removed — block access
             setInactiveGymError(true);
             await signOut(auth);
             return;
@@ -57,20 +75,50 @@ export function AuthProvider({ children }) {
             setRole('superadmin');
             setIsSuperAdmin(true);
             setGymId(null);
+            setActiveGymId(null);
+            setGymIds([]);
+            setGymBranches([]);
             setGymData(null);
             setUserName(userDoc?.name || 'Super Admin');
           } else {
-            const gId = userDoc?.gymId || null;
-            setGymId(gId);
+            const primaryGymId = userDoc?.gymId || null;
+            // gymIds array: use stored array or fall back to single primary gym.
+            // This means existing gyms automatically work as a single branch.
+            const allGymIds = (userDoc?.gymIds && userDoc.gymIds.length > 0)
+              ? userDoc.gymIds
+              : (primaryGymId ? [primaryGymId] : []);
 
-            if (gId) {
-              const gym = await getDocument('gyms', gId);
-              if (!gym || gym.isActive === false) {
+            setGymId(primaryGymId);
+            setGymIds(allGymIds);
+
+            // Restore last-used branch from localStorage
+            const saved = localStorage.getItem(`activeBranch_${user.uid}`);
+            const resolvedActiveId = (saved && allGymIds.includes(saved))
+              ? saved
+              : (allGymIds[0] || null);
+
+            setActiveGymId(resolvedActiveId);
+
+            if (allGymIds.length > 0) {
+              // Fetch all branch gym docs in parallel (1 read for single-branch, N for multi)
+              const branchDocs = await Promise.all(allGymIds.map(id => getDocument('gyms', id)));
+
+              const branches = branchDocs.map((g, i) => ({
+                id: allGymIds[i],
+                name: g?.name || `Branch ${i + 1}`,
+              }));
+              setGymBranches(branches);
+
+              // Set gymData for the active branch
+              const activeIdx = allGymIds.indexOf(resolvedActiveId);
+              const activeGym = activeIdx >= 0 ? branchDocs[activeIdx] : branchDocs[0];
+
+              if (!activeGym || activeGym.isActive === false) {
                 setInactiveGymError(true);
                 await signOut(auth);
                 return;
               }
-              setGymData(gym);
+              setGymData(activeGym);
               setInactiveGymError(false);
             }
 
@@ -86,6 +134,9 @@ export function AuthProvider({ children }) {
         setRole(null);
         setUserName('');
         setGymId(null);
+        setActiveGymId(null);
+        setGymIds([]);
+        setGymBranches([]);
         setGymData(null);
         setIsSuperAdmin(false);
       }
@@ -106,12 +157,15 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       currentUser, role, userName,
-      gymId: impersonatedGymId ?? gymId,
+      gymId: impersonatedGymId ?? activeGymId,
       gymData: impersonatedGymData ?? gymData,
+      gymIds,
+      gymBranches,
       isSuperAdmin,
       inactiveGymError,
       isImpersonating,
       enterGym, exitGym, updateGymData,
+      switchBranch, addBranch,
       login, logout,
     }}>
       {!loading && children}
