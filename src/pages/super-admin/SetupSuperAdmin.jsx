@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 export default function SetupSuperAdmin() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: 'devlofttech@gmail.com', password: 'devlofttech@321', name: 'Super Admin' });
+  const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleSetup = async (e) => {
@@ -61,7 +62,13 @@ export default function SetupSuperAdmin() {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-on-surface-variant">Password</label>
-              <input type="password" required minLength={6} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={inputCls} />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} required minLength={6} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className={`${inputCls} pr-11`} />
+                <button type="button" onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors" tabIndex={-1}>
+                  <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
             </div>
             <button type="submit" disabled={saving}
               className="w-full bg-primary text-on-primary py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 mt-2">

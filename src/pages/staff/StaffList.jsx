@@ -24,6 +24,7 @@ function StaffModal({ initial, onSave, onClose, gymId }) {
   const [createLogin, setCreateLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState(initial?.email || '');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handle = (e) => {
@@ -168,9 +169,15 @@ function StaffModal({ initial, onSave, onClose, gymId }) {
                   </div>
                   <div className="col-span-2 flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-on-surface-variant">Password *</label>
-                    <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
-                      placeholder="Min. 6 characters" required={createLogin} minLength={6}
-                      className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary" />
+                    <div className="relative">
+                      <input type={showLoginPassword ? 'text' : 'password'} value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+                        placeholder="Min. 6 characters" required={createLogin} minLength={6}
+                        className="w-full px-4 py-2.5 pr-11 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary" />
+                      <button type="button" onClick={() => setShowLoginPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors" tabIndex={-1}>
+                        <span className="material-symbols-outlined text-[20px]">{showLoginPassword ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

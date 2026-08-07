@@ -52,6 +52,7 @@ export default function GymForm() {
   const [existingLogoUrl, setExistingLogoUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
+  const [showOwnerPassword, setShowOwnerPassword] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -278,8 +279,14 @@ export default function GymForm() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className={labelCls}>Password *</label>
-                <input type="password" name="ownerPassword" required minLength={6} value={form.ownerPassword}
-                  onChange={handle} placeholder="Min. 6 characters" className={inputCls} />
+                <div className="relative">
+                  <input type={showOwnerPassword ? 'text' : 'password'} name="ownerPassword" required minLength={6} value={form.ownerPassword}
+                    onChange={handle} placeholder="Min. 6 characters" className={`${inputCls} pr-11`} />
+                  <button type="button" onClick={() => setShowOwnerPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors" tabIndex={-1}>
+                    <span className="material-symbols-outlined text-[20px]">{showOwnerPassword ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
