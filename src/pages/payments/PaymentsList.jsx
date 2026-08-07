@@ -57,8 +57,9 @@ export default function PaymentsList() {
   const [saving, setSaving] = useState(false);
   const [messageMember, setMessageMember] = useState(null);
   const [page, setPage] = useState(1);
+  const [filterMonth, setFilterMonth] = useState('');
 
-  useEffect(() => { setPage(1); }, [activeTab, searchTerm]);
+  useEffect(() => { setPage(1); }, [activeTab, searchTerm, filterMonth]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -83,6 +84,11 @@ export default function PaymentsList() {
   const totalRevenue = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   const filteredPayments = payments.filter(p => {
+    if (filterMonth) {
+      const [fy, fm] = filterMonth.split('-').map(Number);
+      const d = new Date(p.date);
+      if (d.getFullYear() !== fy || d.getMonth() + 1 !== fm) return false;
+    }
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -210,6 +216,17 @@ export default function PaymentsList() {
                 }).length}
               </span>
             </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Paid This Month</span>
+              <span className="text-3xl font-bold text-emerald-600">
+                ₹{payments.filter(p => {
+                  if (!p.date) return false;
+                  const d = new Date(p.date);
+                  const now = new Date();
+                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                }).reduce((s, p) => s + (Number(p.amount) || 0), 0).toLocaleString('en-IN')}
+              </span>
+            </div>
             {/* Mode breakdown */}
             <div className="flex flex-col gap-1 border-l border-outline-variant/20 pl-8">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">By Mode</span>
@@ -228,21 +245,37 @@ export default function PaymentsList() {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-3 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 max-w-md shadow-sm">
-            <span className="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
-            <input
-              type="text"
-              placeholder="Search by member, plan, mode..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="flex-1 bg-transparent text-on-surface outline-none text-sm placeholder:text-on-surface-variant"
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="text-on-surface-variant hover:text-on-surface transition-colors">
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            )}
+          {/* Search + Month Filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 max-w-md shadow-sm flex-1">
+              <span className="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+              <input
+                type="text"
+                placeholder="Search by member, plan, mode..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="flex-1 bg-transparent text-on-surface outline-none text-sm placeholder:text-on-surface-variant"
+              />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="text-on-surface-variant hover:text-on-surface transition-colors">
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 shadow-sm">
+              <span className="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_month</span>
+              <input
+                type="month"
+                value={filterMonth}
+                onChange={e => setFilterMonth(e.target.value)}
+                className="bg-transparent text-on-surface outline-none text-sm"
+              />
+              {filterMonth && (
+                <button onClick={() => setFilterMonth('')} className="text-on-surface-variant hover:text-on-surface transition-colors ml-1">
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Mobile card list */}

@@ -163,7 +163,7 @@ export default function Settings() {
                 { label: 'Location',      key: 'location',     type: 'text',  required: false },
                 { label: 'Contact',       key: 'contact',      type: 'text',  required: false },
                 { label: 'Email',         key: 'email',        type: 'email', required: false },
-                { label: 'Website',       key: 'website',      type: 'url',   required: false },
+                { label: 'Website',       key: 'website',      type: 'text',  required: false },
                 { label: 'GST Number',    key: 'gstNumber',    type: 'text',  required: false },
                 { label: 'Opening Hours', key: 'openingHours', type: 'text',  required: false },
                 { label: 'Instagram',     key: 'instagram',    type: 'text',  required: false },

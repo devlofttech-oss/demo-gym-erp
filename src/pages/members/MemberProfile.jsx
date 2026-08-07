@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 import kilosLogo from '../../assets/kilos_logo.png';
+import SendSMSModal from '../../components/messaging/SendSMSModal';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -124,6 +125,9 @@ export default function MemberProfile() {
     planName: '', planActiveFrom: '', expiryDate: '',
     totalFees: '', paidFees: '', balanceFees: '',
   });
+
+  // ── Remind (payment due) ──
+  const [showRemindModal, setShowRemindModal] = useState(false);
 
   // ── Delete member confirm ──
   const [showDeleteMember, setShowDeleteMember] = useState(false);
@@ -493,6 +497,12 @@ export default function MemberProfile() {
   return (
     <div className="flex flex-col gap-6">
 
+      {/* ── Back ── */}
+      <Link to="/members" className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors w-fit">
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        Back to Members
+      </Link>
+
       {/* ── Header Profile Card ── */}
       <div className="bg-surface-container-lowest px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -611,6 +621,15 @@ export default function MemberProfile() {
                   </span>
                 </div>
               </div>
+              {Number(member.balanceFees) > 0 && (
+                <button
+                  onClick={() => setShowRemindModal(true)}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">notifications</span>
+                  Remind — ₹{Number(member.balanceFees).toLocaleString('en-IN')} due
+                </button>
+              )}
             </div>
           </div>
 
@@ -1045,6 +1064,16 @@ export default function MemberProfile() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Remind Modal ── */}
+      {showRemindModal && (
+        <SendSMSModal
+          phones={[member.phone]}
+          recipientLabel={member.name}
+          defaultMessage={`Hi ${member.name}! You have a pending balance of ₹${Number(member.balanceFees).toLocaleString('en-IN')} at ${gymInfo?.name || 'our gym'}. Please clear your dues at the earliest. Thank you!`}
+          onClose={() => setShowRemindModal(false)}
+        />
       )}
     </div>
   );

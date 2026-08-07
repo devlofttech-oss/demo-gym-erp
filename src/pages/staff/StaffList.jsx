@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { setDocument, deleteDocument as deleteDocumentFlat } from '../../firebase/db';
+import { setDocument, updateDocument as updateDocumentFlat, deleteDocument as deleteDocumentFlat } from '../../firebase/db';
 import { getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import { firebaseConfig } from '../../firebase/config';
 import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
 const ROLES = ['Trainer', 'Staff', 'Manager', 'Receptionist'];
@@ -52,6 +52,10 @@ function StaffModal({ initial, onSave, onClose, gymId }) {
           await deleteApp(secondaryApp);
         }
         await setDocument('users', authUid, { role: 'staff', name: form.name, email: loginEmail, gymId });
+      }
+      // When editing a staff member with existing login, update their email in Firestore
+      if (isEdit && initial?.authUid && loginEmail && loginEmail !== initial.loginEmail) {
+        await updateDocumentFlat('users', initial.authUid, { email: loginEmail, name: form.name });
       }
       await onSave({ ...form, ...(authUid && { authUid }) });
     } catch (err) {
@@ -170,6 +174,41 @@ function StaffModal({ initial, onSave, onClose, gymId }) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Credentials edit (only for staff with existing login) */}
+          {isEdit && initial?.authUid && (
+            <div className="border-t border-outline-variant/20 pt-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-on-surface mb-3">
+                <span className="material-symbols-outlined text-primary text-[18px]">manage_accounts</span>
+                Login Credentials
+              </div>
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-on-surface-variant">Login Email</label>
+                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                    placeholder="staff@email.com"
+                    className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary" />
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <p className="text-xs text-on-surface-variant">To change the password, send a reset link to the staff email.</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!loginEmail) { toast.error('Enter a login email first'); return; }
+                      try {
+                        await sendPasswordResetEmail(getAuth(), loginEmail);
+                        toast.success('Password reset email sent!');
+                      } catch { toast.error('Failed to send reset email'); }
+                    }}
+                    className="shrink-0 px-3 py-1.5 bg-surface-container border border-outline-variant/30 rounded-lg text-sm font-medium text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">mail</span>
+                    Send Reset
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -312,16 +351,16 @@ export default function StaffList() {
           {filtered.map(s => (
             <div key={s.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-4 border border-slate-100 dark:border-slate-800">
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
+                <Link to={`/staff/${s.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   {s.photoUrl
                     ? <img src={s.photoUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                     : <div className="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold shrink-0">{s.name?.charAt(0) || '?'}</div>
                   }
                   <div>
-                    <div className="font-semibold text-on-surface">{s.name}</div>
+                    <div className="font-semibold text-on-surface hover:text-primary transition-colors">{s.name}</div>
                     {s.email && <div className="text-xs text-on-surface-variant">{s.email}</div>}
                   </div>
-                </div>
+                </Link>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${roleBadgeColor[s.role] || 'bg-slate-100 text-slate-600'}`}>{s.role}</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2">
@@ -381,16 +420,16 @@ export default function StaffList() {
                 filtered.map(s => (
                   <tr key={s.id} className="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors">
                     <td className="p-4">
-                      <div className="flex items-center gap-3">
+                      <Link to={`/staff/${s.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         {s.photoUrl
                           ? <img src={s.photoUrl} alt={s.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
                           : <div className="w-10 h-10 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold shrink-0">{s.name?.charAt(0) || '?'}</div>
                         }
                         <div>
-                          <div className="font-medium text-on-surface">{s.name}</div>
+                          <div className="font-medium text-on-surface hover:text-primary transition-colors">{s.name}</div>
                           {s.email && <div className="text-xs text-on-surface-variant">{s.email}</div>}
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="p-4">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${roleBadgeColor[s.role] || 'bg-slate-100 text-slate-600'}`}>{s.role}</span>
@@ -438,7 +477,9 @@ export default function StaffList() {
             email: editingStaff.email || '', address: editingStaff.address || '',
             joiningDate: editingStaff.joiningDate || '', salary: editingStaff.salary || '', photoUrl: editingStaff.photoUrl || '',
             certifications: editingStaff.certifications || '', commissionType: editingStaff.commissionType || 'salary',
-            commissionPercent: editingStaff.commissionPercent || '' }}
+            commissionPercent: editingStaff.commissionPercent || '',
+            authUid: editingStaff.authUid || null,
+            loginEmail: editingStaff.email || '' }}
           onSave={handleEdit}
           onClose={() => setEditingStaff(null)}
         />
