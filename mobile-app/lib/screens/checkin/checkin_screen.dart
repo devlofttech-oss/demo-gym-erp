@@ -42,7 +42,13 @@ class CheckinScreen extends StatefulWidget {
 }
 
 class _CheckinScreenState extends State<CheckinScreen> {
-  final _controller = MobileScannerController(detectionSpeed: DetectionSpeed.normal);
+  // autoStart:false so the camera does NOT turn on when the screen builds (it's a
+  // bottom-nav tab, built at launch). It only starts when the user taps "Scan".
+  final _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.normal,
+    autoStart: false,
+  );
+  bool _scanning = false;
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>> _staff = [];
   bool _loading = true;
@@ -76,6 +82,22 @@ class _CheckinScreenState extends State<CheckinScreen> {
       _staff = res[1];
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _startScan() async {
+    setState(() => _scanning = true);
+    try {
+      await _controller.start();
+    } catch (_) {
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
+  Future<void> _stopScan() async {
+    try {
+      await _controller.stop();
+    } catch (_) {}
+    if (mounted) setState(() => _scanning = false);
   }
 
   void _onDetect(BarcodeCapture capture) {
@@ -274,26 +296,66 @@ class _CheckinScreenState extends State<CheckinScreen> {
           const SizedBox(width: 8),
           Text('QR Scanner', style: KText.h3.copyWith(color: c.onSurface)),
           const Spacer(),
-          const Pill('Scanning Active', fg: TW.emerald700, bg: TW.emerald100, dot: true),
+          _scanning
+              ? const Pill('Scanning Active', fg: TW.emerald700, bg: TW.emerald100, dot: true)
+              : const Pill('Camera Off', fg: TW.slate500, bg: TW.slate100, dot: true),
         ]),
         const SizedBox(height: 16),
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: AspectRatio(
             aspectRatio: 1,
-            child: Container(
-              color: Colors.black,
-              child: Stack(fit: StackFit.expand, children: [
-                MobileScanner(controller: _controller, onDetect: _onDetect),
-                Center(
-                  child: Container(
-                    width: 200, height: 200,
-                    decoration: BoxDecoration(border: Border.all(color: Colors.white70, width: 2), borderRadius: BorderRadius.circular(12)),
+            child: _scanning
+                ? Container(
+                    color: Colors.black,
+                    child: Stack(fit: StackFit.expand, children: [
+                      MobileScanner(controller: _controller, onDetect: _onDetect),
+                      Center(
+                        child: Container(
+                          width: 200, height: 200,
+                          decoration: BoxDecoration(border: Border.all(color: Colors.white70, width: 2), borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ]),
+                  )
+                : Container(
+                    color: c.surfaceContainer,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Sym(MSym.qrCodeScanner, size: 56, color: c.onSurfaceVariant.withValues(alpha: 0.5)),
+                        const SizedBox(height: 8),
+                        Text('Tap "Scan" to start the camera',
+                            style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
+                      ],
+                    ),
                   ),
-                ),
-              ]),
-            ),
           ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: _scanning
+              ? OutlinedButton.icon(
+                  onPressed: _stopScan,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: TW.rose600,
+                    side: const BorderSide(color: TW.rose600),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: const Sym(MSym.close, size: 18),
+                  label: const Text('Stop scanning'),
+                )
+              : FilledButton.icon(
+                  onPressed: _startScan,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.primary,
+                    foregroundColor: c.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: const Sym(MSym.qrCodeScanner, size: 18),
+                  label: const Text('Scan QR'),
+                ),
         ),
         const SizedBox(height: 16),
         const Divider(height: 1),
