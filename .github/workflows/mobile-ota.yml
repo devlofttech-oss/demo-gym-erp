@@ -9,9 +9,12 @@ name: Ship to phones (Shorebird OTA)
 # (a real store build) is the separate `release` flow — see CICD-SETUP.md.
 
 on:
-  push:
-    branches: [ main ]
-    paths: [ 'mobile-app/**' ]
+  # Auto-push trigger is disabled until the first baseline release exists.
+  # After the baseline is live on Play, re-enable this block so every push to
+  # main that touches mobile-app/ ships an OTA patch to phones:
+  # push:
+  #   branches: [ main ]
+  #   paths: [ 'mobile-app/**' ]
   workflow_dispatch: {}   # allow manual runs from the Actions tab
 
 concurrency:
