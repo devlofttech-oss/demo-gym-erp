@@ -1,0 +1,66 @@
+name: Ship to phones (Shorebird OTA)
+
+# Push to main that touches the mobile app  ->  the change is pushed over-the-air
+# to already-installed Android + iOS devices via Shorebird. No app-store round trip
+# for Dart-only changes; users get it on next app launch.
+#
+# NOTE: This runs patches (OTA code push). It requires a Shorebird *release* to
+# already exist for the current app version (the baseline). Cutting a new baseline
+# (a real store build) is the separate `release` flow — see CICD-SETUP.md.
+
+on:
+  # Auto-push trigger is disabled until the first baseline release exists.
+  # After the baseline is live on Play, re-enable this block so every push to
+  # main that touches mobile-app/ ships an OTA patch to phones:
+  # push:
+  #   branches: [ main ]
+  #   paths: [ 'mobile-app/**' ]
+  workflow_dispatch: {}   # allow manual runs from the Actions tab
+
+concurrency:
+  group: mobile-ota-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-patch:
+    name: OTA patch → Android phones
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Installs Flutter + the Shorebird CLI and logs in via SHOREBIRD_TOKEN.
+      - uses: shorebirdtech/setup-shorebird@v1
+
+      - name: Push OTA patch to Android
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        # Patches the latest Android release. If your CLI is older, use:
+        #   shorebird patch android
+        run: shorebird patch --platforms=android --no-confirm
+
+  ios-patch:
+    name: OTA patch → iPhones (cloud Mac)
+    runs-on: macos-latest      # the Mac you don't have to own
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shorebirdtech/setup-shorebird@v1
+
+      # iOS patches must be built on macOS and code-signed like the release.
+      # Import your Apple signing cert + provisioning profile here (Fastlane match
+      # or apple-actions/import-codesign-certs) before patching. See CICD-SETUP.md.
+      - name: Push OTA patch to iOS
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        run: shorebird patch --platforms=ios --no-confirm
