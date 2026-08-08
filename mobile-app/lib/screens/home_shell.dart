@@ -6,6 +6,7 @@ import '../providers/theme_provider.dart';
 import '../theme/app_icons.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/delete_account.dart';
 import '../widgets/update_banner.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'members/members_screen.dart';
@@ -202,6 +203,7 @@ class _ProfileMenu extends StatelessWidget {
       offset: const Offset(0, 48),
       onSelected: (v) {
         if (v == 'logout') auth.logout();
+        if (v == 'delete') showDeleteAccountDialog(context);
       },
       itemBuilder: (_) => [
         PopupMenuItem(
@@ -221,6 +223,14 @@ class _ProfileMenu extends StatelessWidget {
             Sym(MSym.logout, size: 18, color: c.error),
             const SizedBox(width: 8),
             Text('Sign Out', style: TextStyle(color: c.error)),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(children: [
+            Sym(MSym.close, size: 18, color: TW.rose600),
+            const SizedBox(width: 8),
+            const Text('Delete account', style: TextStyle(color: TW.rose600)),
           ]),
         ),
       ],

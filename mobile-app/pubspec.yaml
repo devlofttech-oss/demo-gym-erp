@@ -58,6 +58,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 # App launcher icon (Android + iOS + web) generated from the Kilos logo.
 flutter_launcher_icons:
@@ -71,6 +72,16 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/images/kilos_logo.png"
   background_color_ios: "#3B0764"
   remove_alpha_ios: true
+
+# Launch/splash screen — Kilos logo on the app background (light + dark).
+flutter_native_splash:
+  color: "#F9F9FB"
+  color_dark: "#020617"
+  image: "assets/images/kilos_logo.png"
+  android_12:
+    image: "assets/images/kilos_logo.png"
+    color: "#F9F9FB"
+    color_dark: "#020617"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
