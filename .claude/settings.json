@@ -16,7 +16,8 @@
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"d:\\\\Devloft-work\\\\gym erp demo\\\\src\\\\assets\\\\kilos_logo.png\"\\); $b64 = [Convert]::ToBase64String\\($bytes\\); Write-Host \"Length: $\\($b64.Length\\)\"; Write-Host $b64.Substring\\(0,80\\))",
       "Bash(xargs grep -l \"getTenantCollection\\\\|getTenantDocument\")",
       "Bash(xargs grep -l \"getTenantCollection\")",
-      "Bash(node _migrate_test.mjs)"
+      "Bash(node _migrate_test.mjs)",
+      "Read(//d/flutter/packages/flutter_tools/gradle/src/main/kotlin/**)"
     ],
     "defaultMode": "bypassPermissions"
   }

@@ -22,7 +22,10 @@ service cloud.firestore {
     function isAdminOf(gymId) {
       return isSignedIn() && userDocExists()
         && userDocData().role == 'admin'
-        && userDocData().gymId == gymId;
+        && (
+          userDocData().gymId == gymId ||
+          ('gymIds' in userDocData() && gymId in userDocData().gymIds)
+        );
     }
 
     function isStaffOf(gymId) {
@@ -71,12 +74,21 @@ service cloud.firestore {
 
     // ── Gym metadata (root gyms collection) ──────────────────────
     match /gyms/{gymId} {
-      // Admin/staff read their own gym doc (AuthContext loads gymData on login)
+      // Admin/staff read their own gym doc(s); superadmin reads all
       allow read: if isSignedIn() && (
         isSuperAdmin() || isAdminOf(gymId) || isStaffOf(gymId)
       );
-      // Only superadmin can create, update, or delete gym records
+
+      // Superadmin: full write
       allow write: if isSuperAdmin();
+
+      // Admin: create a new branch — ownerUid in the new doc must match their uid
+      allow create: if isSignedIn() && userDocExists()
+        && userDocData().role == 'admin'
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      // Admin: update gym docs they own (e.g. name change from Settings)
+      allow update: if isAdminOf(gymId);
     }
 
     // ── Gym tenant data ───────────────────────────────────────────
