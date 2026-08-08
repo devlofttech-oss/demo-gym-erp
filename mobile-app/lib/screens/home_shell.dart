@@ -6,6 +6,7 @@ import '../providers/theme_provider.dart';
 import '../theme/app_icons.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/update_banner.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'members/members_screen.dart';
 import 'payments/payments_screen.dart';
@@ -54,9 +55,16 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       backgroundColor: c.background,
       appBar: _TopBar(auth: auth),
-      body: IndexedStack(
-        index: _index,
-        children: items.map((e) => e.screen).toList(),
+      body: Column(
+        children: [
+          const UpdateBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: _index,
+              children: items.map((e) => e.screen).toList(),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
