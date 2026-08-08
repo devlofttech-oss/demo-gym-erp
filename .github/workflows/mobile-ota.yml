@@ -39,4 +39,4 @@ jobs:
         # `yes` auto-answers Shorebird's confirmation prompt. Patches the latest
         # Android release (the baseline). No keystore needed — a patch is a code
         # diff matched by app_id + release version, not a distributable signed build.
-        run: yes | shorebird patch android
+        run: yes | shorebird patch android --release-version=latest
