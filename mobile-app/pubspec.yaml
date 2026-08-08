@@ -82,6 +82,7 @@ flutter:
   assets:
     - assets/sounds/
     - assets/images/
+    - shorebird.yaml
 
   fonts:
     - family: PlusJakartaSans
