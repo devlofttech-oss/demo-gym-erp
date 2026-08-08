@@ -1,0 +1,7 @@
+# Shorebird config — created for real by running `shorebird init` in this folder,
+# which registers the app and fills in a real app_id. This placeholder documents
+# the shape; replace app_id with the value from `shorebird apps create`.
+app_id: REPLACE_WITH_SHOREBIRD_APP_ID
+
+# One app_id covers both Android and iOS. Add per-flavor ids here only if you
+# introduce build flavors later.

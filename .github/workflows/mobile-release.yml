@@ -1,0 +1,56 @@
+name: Cut store release (baseline)
+
+# Run this when you make a NATIVE change (new plugin/permission) or a version bump.
+# It builds a fresh signed binary, publishes it to the stores, and registers a new
+# Shorebird baseline. After this, day-to-day Dart changes go out instantly via the
+# OTA workflow (mobile-ota.yml) — no store round trip.
+#
+# Trigger: push a version tag like `v1.2.0`.
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch: {}
+
+jobs:
+  android-release:
+    name: Release → Google Play
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: shorebirdtech/setup-shorebird@v1
+
+      # Restore the upload keystore + key.properties from secrets before building.
+      # (base64-decode ${{ secrets.ANDROID_KEYSTORE_BASE64 }} -> android/app/upload.jks)
+
+      - name: Build + register Shorebird release (Android)
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        run: shorebird release android --no-confirm
+      # Then upload the AAB to Play (Fastlane `supply` or google-github-actions),
+      # e.g. build/app/outputs/bundle/release/app-release.aab
+
+  ios-release:
+    name: Release → App Store / TestFlight
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shorebirdtech/setup-shorebird@v1
+
+      # Import Apple signing cert + provisioning profile (apple-actions/import-codesign-certs).
+
+      - name: Build + register Shorebird release (iOS)
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        run: shorebird release ios --no-confirm
+      # Then upload the IPA to App Store Connect / TestFlight (Fastlane `pilot`/`deliver`).
