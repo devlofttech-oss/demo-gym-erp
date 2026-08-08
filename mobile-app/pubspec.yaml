@@ -46,14 +46,14 @@ dependencies:
   shared_preferences: ^2.5.5
   audioplayers: ^6.8.1
   shorebird_code_push: ^2.0.7
-  image_picker: ^1.1.2
-  path_provider: ^2.1.5
-  share_plus: ^10.1.4
-  printing: ^5.15.0
-  pdf: ^3.11.3
-  firebase_messaging: ^15.2.7
-  flutter_local_notifications: ^18.0.1
-  firebase_storage: ^12.4.6
+  image_picker: ^1.0.0
+  path_provider: ^2.1.0
+  share_plus: ">=10.0.1 <11.0.0"
+  printing: ^5.13.0
+  pdf: ^3.10.0
+  firebase_messaging: ^16.0.0
+  flutter_local_notifications: ^17.0.0
+  firebase_storage: ^13.4.6
 
 dev_dependencies:
   flutter_test:
