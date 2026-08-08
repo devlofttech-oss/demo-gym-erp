@@ -68,7 +68,7 @@ export default function Topbar() {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
-  const { logout, currentUser, role, userName, gymId, gymData, gymIds, gymBranches, switchBranch } = useAuth();
+  const { logout, currentUser, role, userName, gymId, gymData, gymIds, gymBranches, switchBranch, isImpersonating, impersonatedBranches, switchImpersonatedBranch } = useAuth();
   const navigate = useNavigate();
   const profileRef = useRef(null);
 
@@ -124,7 +124,12 @@ export default function Topbar() {
   const displayName = userName || currentUser?.email?.split('@')[0] || 'User';
   const roleLabel = role === 'admin' ? 'Admin' : role === 'staff' ? 'Staff' : role || 'User';
   const gymName = gymData?.name || 'Kilos';
-  const isMultiBranch = gymIds.length > 1;
+  const isMultiBranch = isImpersonating ? impersonatedBranches.length > 1 : gymIds.length > 1;
+
+  const handleImpersonatedSwitch = (newGymId) => {
+    switchImpersonatedBranch(newGymId);
+    navigate('/');
+  };
 
   return (
     <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md font-['Plus_Jakarta_Sans'] text-sm sticky top-4 z-40 mx-4 md:mx-gutter lg:mx-container-margin md:ml-0 mt-4 mb-4 border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-full flex justify-between items-center h-16 px-4 md:px-6">
@@ -146,9 +151,9 @@ export default function Topbar() {
       <div className="absolute left-1/2 -translate-x-1/2">
         {isMultiBranch ? (
           <BranchSwitcher
-            gymBranches={gymBranches}
+            gymBranches={isImpersonating ? impersonatedBranches : gymBranches}
             activeGymId={gymId}
-            switchBranch={switchBranch}
+            switchBranch={isImpersonating ? handleImpersonatedSwitch : switchBranch}
           />
         ) : (
           <div className="flex flex-col items-center leading-tight pointer-events-none">

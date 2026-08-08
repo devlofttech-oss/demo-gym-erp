@@ -21,17 +21,47 @@ export function AuthProvider({ children }) {
   const [isSuperAdmin, setIsSuperAdmin]   = useState(false);
   const [loading, setLoading]             = useState(true);
   const [inactiveGymError, setInactiveGymError] = useState(false);
-  const [impersonatedGymId, setImpersonatedGymId]     = useState(null);
-  const [impersonatedGymData, setImpersonatedGymData] = useState(null);
+  const [impersonatedGymId, setImpersonatedGymId]         = useState(null);
+  const [impersonatedGymData, setImpersonatedGymData]     = useState(null);
+  const [impersonatedBranches, setImpersonatedBranches]   = useState([]);
 
   const enterGym = (gym) => {
     setImpersonatedGymId(gym.id);
     setImpersonatedGymData(gym);
+    setImpersonatedBranches([gym]);
+    // Async: load all branches belonging to this gym's owner
+    if (gym.ownerEmail) {
+      getCollection('users', [{ field: 'email', op: '==', value: gym.ownerEmail }])
+        .then(async (ownerUsers) => {
+          if (!ownerUsers.length) return;
+          const ownerUser = ownerUsers[0];
+          const allGymIds = (ownerUser.gymIds?.length > 0)
+            ? ownerUser.gymIds
+            : (ownerUser.gymId ? [ownerUser.gymId] : []);
+          if (allGymIds.length <= 1) return;
+          const branchDocs = await Promise.all(allGymIds.map(id => getDocument('gyms', id)));
+          const branches = allGymIds.map((id, i) => {
+            const doc = branchDocs[i];
+            return doc ? { id, ...doc } : null;
+          }).filter(Boolean);
+          if (branches.length > 1) setImpersonatedBranches(branches);
+        })
+        .catch(() => {});
+    }
   };
 
   const exitGym = () => {
     setImpersonatedGymId(null);
     setImpersonatedGymData(null);
+    setImpersonatedBranches([]);
+  };
+
+  const switchImpersonatedBranch = (newGymId) => {
+    const branch = impersonatedBranches.find(b => b.id === newGymId);
+    if (branch) {
+      setImpersonatedGymId(branch.id);
+      setImpersonatedGymData(branch);
+    }
   };
 
   const updateGymData = (partial) => {
@@ -164,8 +194,9 @@ export function AuthProvider({ children }) {
       isSuperAdmin,
       inactiveGymError,
       isImpersonating,
+      impersonatedBranches,
       enterGym, exitGym, updateGymData,
-      switchBranch, addBranch,
+      switchBranch, addBranch, switchImpersonatedBranch,
       login, logout,
     }}>
       {!loading && children}

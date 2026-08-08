@@ -44,8 +44,20 @@ export default function GymList() {
   const fetchGyms = async () => {
     setLoading(true);
     try {
-      const data = await getCollection('gyms', [], { field: 'createdAt', direction: 'desc' });
-      setGyms(data);
+      const [data, users] = await Promise.all([
+        getCollection('gyms', [], { field: 'createdAt', direction: 'desc' }),
+        getCollection('users'),
+      ]);
+
+      // Any gymId that appears in a user's gymIds but is NOT their primary gymId is a branch
+      const branchIds = new Set();
+      users.forEach(user => {
+        if (user.gymIds?.length > 1 && user.gymId) {
+          user.gymIds.forEach(id => { if (id !== user.gymId) branchIds.add(id); });
+        }
+      });
+
+      setGyms(data.filter(g => !branchIds.has(g.id)));
     } catch { toast.error('Failed to load gyms'); }
     finally { setLoading(false); }
   };
