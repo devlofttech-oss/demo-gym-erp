@@ -168,10 +168,20 @@ export function AuthProvider({ children }) {
                 if (today > end) { planBlocked = true; blockReason = 'plan_expired'; }
               }
 
+              if (planBlocked) {
+                localStorage.setItem('kilos_plan_block', JSON.stringify({
+                  reason: blockReason,
+                  gymName: activeGym.name || '',
+                  endDate: activeGym.planEndDate || '',
+                  startDate: activeGym.planStartDate || '',
+                }));
+                await signOut(auth);
+                window.location.href = '/subscription-ended';
+                return;
+              }
+
               setGymData(activeGym);
               setInactiveGymError(false);
-              setIsPlanBlocked(planBlocked);
-              setGymBlockReason(planBlocked ? blockReason : null);
             }
 
             setRole(userRole);

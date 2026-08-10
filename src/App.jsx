@@ -40,6 +40,7 @@ import SetupSuperAdmin from './pages/super-admin/SetupSuperAdmin';
 import TrialList from './pages/super-admin/TrialList';
 import SubscriptionPlans from './pages/super-admin/SubscriptionPlans';
 import RegisterPage from './pages/RegisterPage';
+import SubscriptionEnded from './pages/SubscriptionEnded';
 
 function RoleRedirect() {
   const { role } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/subscription-ended" element={<SubscriptionEnded />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
 
