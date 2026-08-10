@@ -38,6 +38,7 @@ import GymList from './pages/super-admin/GymList';
 import GymForm from './pages/super-admin/GymForm';
 import SetupSuperAdmin from './pages/super-admin/SetupSuperAdmin';
 import TrialList from './pages/super-admin/TrialList';
+import SubscriptionPlans from './pages/super-admin/SubscriptionPlans';
 import RegisterPage from './pages/RegisterPage';
 
 function RoleRedirect() {
@@ -75,6 +76,7 @@ export default function App() {
         <Route path="gyms/new" element={<GymForm />} />
         <Route path="gyms/:id/edit" element={<GymForm />} />
         <Route path="trials" element={<TrialList />} />
+        <Route path="plans" element={<SubscriptionPlans />} />
       </Route>
 
       {/* Gym ERP (admin + staff) */}

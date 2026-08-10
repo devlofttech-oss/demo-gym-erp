@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const [isSuperAdmin, setIsSuperAdmin]   = useState(false);
   const [loading, setLoading]             = useState(true);
   const [inactiveGymError, setInactiveGymError] = useState(false);
+  const [gymBlockReason, setGymBlockReason] = useState(null);
   const [impersonatedGymId, setImpersonatedGymId]         = useState(null);
   const [impersonatedGymData, setImpersonatedGymData]     = useState(null);
   const [impersonatedBranches, setImpersonatedBranches]   = useState([]);
@@ -144,10 +145,36 @@ export function AuthProvider({ children }) {
               const activeGym = activeIdx >= 0 ? branchDocs[activeIdx] : branchDocs[0];
 
               if (!activeGym || activeGym.isActive === false) {
+                setGymBlockReason('inactive');
                 setInactiveGymError(true);
                 await signOut(auth);
                 return;
               }
+
+              // Enforce plan access dates
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              if (activeGym.planStartDate) {
+                const start = new Date(activeGym.planStartDate);
+                start.setHours(0, 0, 0, 0);
+                if (today < start) {
+                  setGymBlockReason('plan_not_started');
+                  setInactiveGymError(true);
+                  await signOut(auth);
+                  return;
+                }
+              }
+              if (activeGym.planEndDate) {
+                const end = new Date(activeGym.planEndDate);
+                end.setHours(23, 59, 59, 999);
+                if (today > end) {
+                  setGymBlockReason('plan_expired');
+                  setInactiveGymError(true);
+                  await signOut(auth);
+                  return;
+                }
+              }
+
               setGymData(activeGym);
               setInactiveGymError(false);
             }
@@ -177,6 +204,7 @@ export function AuthProvider({ children }) {
 
   const login = (email, password) => {
     setInactiveGymError(false);
+    setGymBlockReason(null);
     return signInWithEmailAndPassword(auth, email, password);
   };
 
@@ -193,6 +221,7 @@ export function AuthProvider({ children }) {
       gymBranches,
       isSuperAdmin,
       inactiveGymError,
+      gymBlockReason,
       isImpersonating,
       impersonatedBranches,
       enterGym, exitGym, updateGymData,

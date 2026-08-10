@@ -170,7 +170,29 @@ export default function GymList() {
                     </td>
                     <td className="p-4 text-on-surface-variant">{gym.phone || '—'}</td>
                     <td className="p-4 text-on-surface-variant">{gym.ownerEmail}</td>
-                    <td className="p-4 text-on-surface-variant">{gym.subscriptionPlan || '—'}</td>
+                    <td className="p-4">
+                      {gym.planName || gym.subscriptionPlan ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-medium text-on-surface">{gym.planName || gym.subscriptionPlan}</span>
+                          {gym.planEndDate && (() => {
+                            const today = new Date(); today.setHours(0,0,0,0);
+                            const end = new Date(gym.planEndDate); end.setHours(23,59,59,999);
+                            const start = gym.planStartDate ? new Date(gym.planStartDate) : null;
+                            const expired = today > end;
+                            const upcoming = start && today < start;
+                            return (
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${
+                                expired ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                                : upcoming ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                              }`}>
+                                {expired ? 'Expired' : upcoming ? `Starts ${gym.planStartDate}` : `Until ${gym.planEndDate}`}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      ) : <span className="text-on-surface-variant">—</span>}
+                    </td>
 
                     {/* Active / Inactive toggle */}
                     <td className="p-4">

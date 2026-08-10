@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseConfig } from '../../firebase/config';
-import { getDocument, createDocument, updateDocument, setDocument } from '../../firebase/db';
+import { getDocument, getCollection, createDocument, updateDocument, setDocument } from '../../firebase/db';
 import { setTenantDocument } from '../../firebase/tenantDb';
 import { uploadGymLogo } from '../../utils/imagekit';
 import toast from 'react-hot-toast';
@@ -39,6 +39,7 @@ const EMPTY_FORM = {
   name: '', address: '', phone: '', email: '',
   ownerEmail: '', ownerPassword: '',
   subscriptionPlan: '',
+  planId: '', planStartDate: '', planEndDate: '',
 };
 
 export default function GymForm() {
@@ -53,7 +54,14 @@ export default function GymForm() {
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
   const [showOwnerPassword, setShowOwnerPassword] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    getCollection('subscriptionPlans', [], { field: 'createdAt', direction: 'asc' })
+      .then(setAvailablePlans)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -68,6 +76,9 @@ export default function GymForm() {
           ownerEmail: gym.ownerEmail || '',
           ownerPassword: '',
           subscriptionPlan: gym.subscriptionPlan || '',
+          planId: gym.planId || '',
+          planStartDate: gym.planStartDate || '',
+          planEndDate: gym.planEndDate || '',
         });
         setExistingLogoUrl(gym.logoUrl || '');
       })
@@ -105,7 +116,11 @@ export default function GymForm() {
           address: form.address,
           phone: form.phone,
           email: form.email,
-          subscriptionPlan: form.subscriptionPlan,
+          subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || form.subscriptionPlan,
+          planId: form.planId,
+          planName: availablePlans.find(p => p.id === form.planId)?.name || '',
+          planStartDate: form.planStartDate,
+          planEndDate: form.planEndDate,
           ...(logoUrl && { logoUrl }),
         });
         toast.success('Gym updated!');
@@ -135,7 +150,11 @@ export default function GymForm() {
         ownerId: ownerUid,
         logoUrl,
         isActive: true,
-        subscriptionPlan: form.subscriptionPlan || 'Standard',
+        subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || form.subscriptionPlan || 'Standard',
+        planId: form.planId,
+        planName: availablePlans.find(p => p.id === form.planId)?.name || '',
+        planStartDate: form.planStartDate,
+        planEndDate: form.planEndDate,
       };
       const gymDoc = await createDocument('gyms', gymData);
       const newGymId = gymDoc.id;
@@ -169,6 +188,34 @@ export default function GymForm() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handlePlanChange = (e) => {
+    const planId = e.target.value;
+    const plan = availablePlans.find(p => p.id === planId);
+    setForm(prev => {
+      const newForm = { ...prev, planId };
+      if (plan?.durationDays && prev.planStartDate) {
+        const start = new Date(prev.planStartDate);
+        start.setDate(start.getDate() + plan.durationDays);
+        newForm.planEndDate = start.toISOString().split('T')[0];
+      }
+      return newForm;
+    });
+  };
+
+  const handleStartDateChange = (e) => {
+    const planStartDate = e.target.value;
+    const plan = availablePlans.find(p => p.id === form.planId);
+    setForm(prev => {
+      const newForm = { ...prev, planStartDate };
+      if (plan?.durationDays && planStartDate) {
+        const start = new Date(planStartDate);
+        start.setDate(start.getDate() + plan.durationDays);
+        newForm.planEndDate = start.toISOString().split('T')[0];
+      }
+      return newForm;
+    });
   };
 
   if (loadingEdit) {
@@ -256,6 +303,33 @@ export default function GymForm() {
             <div className="flex flex-col gap-1.5">
               <label className={labelCls}>Subscription Plan</label>
               <input name="subscriptionPlan" value={form.subscriptionPlan} onChange={handle} placeholder="e.g. Standard, Premium" className={inputCls} />
+            </div>
+          </div>
+        </div>
+
+        {/* Subscription Plan */}
+        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+          <div>
+            <h3 className="font-semibold text-on-surface">Subscription Plan</h3>
+            <p className="text-sm text-on-surface-variant mt-0.5">Assign a plan with an active period for this gym.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className={labelCls}>Plan</label>
+              <select name="planId" value={form.planId} onChange={handlePlanChange} className={inputCls}>
+                <option value="">— No plan —</option>
+                {availablePlans.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}{p.durationDays ? ` (${p.durationDays}d)` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={labelCls}>Start Date</label>
+              <input type="date" name="planStartDate" value={form.planStartDate} onChange={handleStartDateChange} className={inputCls} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={labelCls}>End Date</label>
+              <input type="date" name="planEndDate" value={form.planEndDate} onChange={handle} className={inputCls} />
             </div>
           </div>
         </div>

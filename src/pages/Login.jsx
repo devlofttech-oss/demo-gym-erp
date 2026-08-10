@@ -9,7 +9,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login, currentUser, inactiveGymError } = useAuth()
+  const { login, currentUser, inactiveGymError, gymBlockReason } = useAuth()
   const navigate = useNavigate()
 
   if (currentUser) return <Navigate to="/" replace />
@@ -40,7 +40,11 @@ export default function Login() {
         {inactiveGymError && (
           <div className="w-full p-3 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 rounded-xl text-sm font-medium text-center flex items-center gap-2 justify-center">
             <span className="material-symbols-outlined text-[16px]">block</span>
-            Your gym account is currently inactive. Please contact support.
+            {gymBlockReason === 'plan_expired'
+              ? 'Your subscription has expired. Please contact support to renew.'
+              : gymBlockReason === 'plan_not_started'
+              ? "Your subscription hasn't started yet. Please contact support."
+              : 'Your gym account is currently inactive. Please contact support.'}
           </div>
         )}
 

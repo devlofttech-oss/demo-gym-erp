@@ -7,6 +7,7 @@ import logoImage from '../../assets/kilos_logo.png';
 const NAV = [
   { to: '/super-admin',         label: 'Dashboard', icon: 'monitoring',     end: true  },
   { to: '/super-admin/gyms',    label: 'Gyms',      icon: 'fitness_center', end: false },
+  { to: '/super-admin/plans',   label: 'Plans',     icon: 'loyalty',        end: false },
   { to: '/super-admin/trials',  label: 'Trials',    icon: 'timer',          end: false },
 ];
 
