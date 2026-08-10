@@ -38,7 +38,6 @@ const DEFAULT_CATEGORIES = [
 const EMPTY_FORM = {
   name: '', address: '', phone: '', email: '',
   ownerEmail: '', ownerPassword: '',
-  subscriptionPlan: '',
   planId: '', planStartDate: '', planEndDate: '',
 };
 
@@ -75,7 +74,6 @@ export default function GymForm() {
           email: gym.email || '',
           ownerEmail: gym.ownerEmail || '',
           ownerPassword: '',
-          subscriptionPlan: gym.subscriptionPlan || '',
           planId: gym.planId || '',
           planStartDate: gym.planStartDate || '',
           planEndDate: gym.planEndDate || '',
@@ -116,7 +114,7 @@ export default function GymForm() {
           address: form.address,
           phone: form.phone,
           email: form.email,
-          subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || form.subscriptionPlan,
+          subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || '',
           planId: form.planId,
           planName: availablePlans.find(p => p.id === form.planId)?.name || '',
           planStartDate: form.planStartDate,
@@ -150,7 +148,7 @@ export default function GymForm() {
         ownerId: ownerUid,
         logoUrl,
         isActive: true,
-        subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || form.subscriptionPlan || 'Standard',
+        subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || 'Standard',
         planId: form.planId,
         planName: availablePlans.find(p => p.id === form.planId)?.name || '',
         planStartDate: form.planStartDate,
@@ -299,10 +297,6 @@ export default function GymForm() {
             <div className="flex flex-col gap-1.5">
               <label className={labelCls}>Gym Email</label>
               <input type="email" name="email" value={form.email} onChange={handle} placeholder="gym@example.com" className={inputCls} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className={labelCls}>Subscription Plan</label>
-              <input name="subscriptionPlan" value={form.subscriptionPlan} onChange={handle} placeholder="e.g. Standard, Premium" className={inputCls} />
             </div>
           </div>
         </div>
