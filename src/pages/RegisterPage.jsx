@@ -47,7 +47,7 @@ export default function RegisterPage() {
     setSaving(true);
     const password = generatePassword();
     const today    = new Date().toISOString().split('T')[0];
-    const trialEnd = addDays(14);
+    const trialEnd = addDays(7);
 
     try {
       const appName      = 'trial-reg-' + Date.now();
@@ -118,7 +118,7 @@ export default function RegisterPage() {
           </div>
           <div className="text-center">
             <h2 className="text-2xl font-bold text-slate-900">You're all set, {success.ownerName || success.gymName}!</h2>
-            <p className="text-slate-500 mt-1 text-sm">Your 14-day free trial has started. Save the credentials below.</p>
+            <p className="text-slate-500 mt-1 text-sm">Your 7-day free trial has started. Save the credentials below.</p>
           </div>
 
           <div className="w-full bg-slate-50 rounded-2xl p-5 flex flex-col gap-3 border border-slate-100">
@@ -178,7 +178,7 @@ export default function RegisterPage() {
 
           <div className="flex flex-col gap-6">
             <div>
-              <h1 className="text-3xl font-bold leading-tight">Start your free 14-day trial</h1>
+              <h1 className="text-3xl font-bold leading-tight">Start your free 7-day trial</h1>
               <p className="mt-3 text-indigo-200 text-sm">No credit card needed. Your gym account is ready in seconds.</p>
             </div>
             {[
