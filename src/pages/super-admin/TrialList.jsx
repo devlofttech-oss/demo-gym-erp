@@ -1,48 +1,56 @@
 import { useState, useEffect } from 'react';
-import { getCollection, updateDocument, deleteDocument } from '../../firebase/db';
-import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { firebaseConfig } from '../../firebase/config';
+import { getCollection, createDocument, updateDocument, deleteDocument, setDocument } from '../../firebase/db';
+import { setTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 
-const SUB_COLLECTIONS = [
-  'members', 'payments', 'attendance', 'staffAttendance',
-  'staff', 'classes', 'equipment', 'supplements', 'expenses', 'settings',
+function generatePassword() {
+  const upper  = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+  const lower  = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  let p = 'Kilos@';
+  p += upper[Math.floor(Math.random() * upper.length)];
+  p += lower[Math.floor(Math.random() * lower.length)];
+  for (let i = 0; i < 3; i++) p += digits[Math.floor(Math.random() * digits.length)];
+  return p;
+}
+
+const DEFAULT_CATEGORIES = [
+  {
+    id: 'gym', name: 'Gym',
+    plans: [
+      { id: 'gym-1', name: 'Monthly',     durationDays: 30,  amount: 0 },
+      { id: 'gym-2', name: '3 Months',    durationDays: 90,  amount: 0 },
+      { id: 'gym-3', name: '6 Months',    durationDays: 180, amount: 0 },
+      { id: 'gym-4', name: 'Annual Pack', durationDays: 365, amount: 0 },
+    ],
+  },
+  {
+    id: 'zumba', name: 'Zumba',
+    plans: [
+      { id: 'zumba-1', name: 'Monthly',  durationDays: 30, amount: 0 },
+      { id: 'zumba-2', name: '3 Months', durationDays: 90, amount: 0 },
+    ],
+  },
+  {
+    id: 'group_classes', name: 'Group Classes',
+    plans: [
+      { id: 'grp-1', name: 'Monthly',  durationDays: 30, amount: 0 },
+      { id: 'grp-2', name: '3 Months', durationDays: 90, amount: 0 },
+    ],
+  },
 ];
 
-function daysLeft(trialEndDate) {
-  if (!trialEndDate) return 0;
-  return Math.ceil((new Date(trialEndDate) - new Date()) / 86400000);
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
-
-function getStatus(gym) {
-  const d = daysLeft(gym.trialEndDate);
-  if (d <= 0) return 'expired';
-  if (d <= 3) return 'expiring';
-  return 'active';
-}
-
-function formatPhone(phone) {
-  const d = (phone || '').replace(/\D/g, '');
-  if (d.length === 10) return '91' + d;
-  if (d.startsWith('91') && d.length === 12) return d;
-  return d;
-}
-
-function waLink(gym) {
-  const loginUrl = window.location.origin + '/login';
-  const name = gym.ownerName || gym.name || 'there';
-  const msg = `Hi ${name}! 🎉\n\nYour *Kilos Gym ERP* 14-day trial is ready!\n\n*Gym:* ${gym.name}\n*Login:* ${loginUrl}\n*Email:* ${gym.ownerEmail}\n*Password:* ${gym.ownerPassword || '(contact us)'}\n\nYour trial is valid until *${gym.trialEndDate}*.\n\nFeel free to reach out anytime for help! 💪`;
-  return `https://wa.me/${formatPhone(gym.ownerPhone || gym.phone)}?text=${encodeURIComponent(msg)}`;
-}
-
-const STATUS_META = {
-  active:   { label: 'Active',          bg: 'bg-emerald-100',  text: 'text-emerald-700',  dot: 'bg-emerald-500'  },
-  expiring: { label: 'Expiring Soon',   bg: 'bg-amber-100',    text: 'text-amber-700',    dot: 'bg-amber-500'    },
-  expired:  { label: 'Expired',         bg: 'bg-rose-100',     text: 'text-rose-700',     dot: 'bg-rose-500'     },
-};
 
 function StatCard({ label, value, icon, color }) {
   return (
-    <div className={`bg-surface-container-lowest rounded-2xl p-5 flex items-center gap-4 shadow-sm border border-outline-variant/20`}>
+    <div className="bg-surface-container-lowest rounded-2xl p-5 flex items-center gap-4 shadow-sm border border-outline-variant/20">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>
         <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
       </div>
@@ -55,92 +63,180 @@ function StatCard({ label, value, icon, color }) {
 }
 
 export default function TrialList() {
-  const [trials, setTrials]           = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState('');
-  const [extendingId, setExtendingId] = useState(null);
-  const [convertingId, setConvertingId] = useState(null);
-  const [deletingId, setDeletingId]   = useState(null);
+  const [requests, setRequests]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [plans, setPlans]         = useState([]);
+
+  // Activate modal state
+  const [activating, setActivating]       = useState(null); // the request being activated
+  const [activatePlanId, setActivatePlanId]         = useState('');
+  const [activateStartDate, setActivateStartDate]   = useState('');
+  const [activateEndDate, setActivateEndDate]       = useState('');
+  const [activateSaving, setActivateSaving]         = useState(false);
+
+  // Credentials display modal
+  const [creds, setCreds] = useState(null); // { gymName, email, password, planName, endDate }
+  const [copied, setCopied] = useState('');
+
+  // Delete
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deletingId, setDeletingId]           = useState(null);
 
-  const fetchTrials = async () => {
+  useEffect(() => {
     setLoading(true);
-    try {
-      const all = await getCollection('gyms');
-      setTrials(all.filter(g => g.isTrial === true).sort((a, b) => (b.trialStartDate || '').localeCompare(a.trialStartDate || '')));
-    } catch { toast.error('Failed to load trials'); }
-    finally { setLoading(false); }
+    Promise.all([
+      getCollection('trialRequests', [{ field: 'status', op: '==', value: 'pending' }]),
+      getCollection('subscriptionPlans', [], { field: 'createdAt', direction: 'asc' }),
+    ])
+      .then(([reqs, pl]) => {
+        setRequests(reqs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+        setPlans(pl);
+      })
+      .catch(() => toast.error('Failed to load requests'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const openActivate = (req) => {
+    setActivating(req);
+    setActivatePlanId('');
+    setActivateStartDate(new Date().toISOString().split('T')[0]);
+    setActivateEndDate('');
   };
 
-  useEffect(() => { fetchTrials(); }, []);
-
-  const handleExtend = async (gym) => {
-    setExtendingId(gym.id);
-    try {
-      const base = gym.trialEndDate ? new Date(gym.trialEndDate) : new Date();
-      base.setDate(base.getDate() + 7);
-      const newEnd = base.toISOString().split('T')[0];
-      await updateDocument('gyms', gym.id, { trialEndDate: newEnd });
-      setTrials(prev => prev.map(g => g.id === gym.id ? { ...g, trialEndDate: newEnd } : g));
-      toast.success('Trial extended by 7 days!');
-    } catch { toast.error('Failed to extend trial'); }
-    finally { setExtendingId(null); }
+  const handlePlanChange = (planId) => {
+    setActivatePlanId(planId);
+    const plan = plans.find(p => p.id === planId);
+    if (plan?.durationDays && activateStartDate) {
+      const start = new Date(activateStartDate);
+      start.setDate(start.getDate() + plan.durationDays);
+      setActivateEndDate(start.toISOString().split('T')[0]);
+    }
   };
 
-  const handleConvert = async (gym) => {
-    setConvertingId(gym.id);
-    try {
-      await updateDocument('gyms', gym.id, {
-        isTrial: false,
-        subscriptionPlan: 'Standard',
-        trialEndDate: null,
-        trialStartDate: null,
-      });
-      setTrials(prev => prev.filter(g => g.id !== gym.id));
-      toast.success(`${gym.name} converted to paid!`);
-    } catch { toast.error('Failed to convert'); }
-    finally { setConvertingId(null); }
+  const handleStartChange = (date) => {
+    setActivateStartDate(date);
+    const plan = plans.find(p => p.id === activatePlanId);
+    if (plan?.durationDays && date) {
+      const start = new Date(date);
+      start.setDate(start.getDate() + plan.durationDays);
+      setActivateEndDate(start.toISOString().split('T')[0]);
+    }
   };
 
-  const handleDelete = async (gymId) => {
-    setDeletingId(gymId);
+  const handleActivate = async () => {
+    if (!activateStartDate || !activateEndDate) {
+      toast.error('Please set start and end dates'); return;
+    }
+    setActivateSaving(true);
+    const password = generatePassword();
+    const req = activating;
     try {
-      for (const coll of SUB_COLLECTIONS) {
-        const docs = await getTenantCollection(gymId, coll).catch(() => []);
-        for (const d of docs) await deleteTenantDocument(gymId, coll, d.id).catch(() => {});
+      // Create Firebase Auth user via secondary app
+      const appName = 'trial-act-' + Date.now();
+      const secondaryApp = initializeApp(firebaseConfig, appName);
+      const secondaryAuth = getAuth(secondaryApp);
+      let ownerUid;
+      try {
+        const { user } = await createUserWithEmailAndPassword(secondaryAuth, req.email, password);
+        ownerUid = user.uid;
+      } finally {
+        await deleteApp(secondaryApp);
       }
-      const gymUsers = await getCollection('users', [{ field: 'gymId', op: '==', value: gymId }]).catch(() => []);
-      for (const u of gymUsers) await updateDocument('users', u.id, { role: 'deleted', gymId: null }).catch(() => {});
-      await deleteDocument('gyms', gymId);
-      setTrials(prev => prev.filter(g => g.id !== gymId));
-      toast.success('Trial deleted');
+
+      const selectedPlan = plans.find(p => p.id === activatePlanId);
+
+      // Create gym doc
+      const gymDoc = await createDocument('gyms', {
+        name:             req.gymName,
+        address:          req.city || '',
+        phone:            req.phone || '',
+        email:            req.email,
+        ownerEmail:       req.email,
+        ownerName:        req.ownerName || '',
+        ownerPhone:       req.phone || '',
+        ownerCity:        req.city || '',
+        ownerPassword:    password,
+        ownerId:          ownerUid,
+        isActive:         true,
+        planId:           activatePlanId,
+        planName:         selectedPlan?.name || '',
+        planStartDate:    activateStartDate,
+        planEndDate:      activateEndDate,
+        subscriptionPlan: selectedPlan?.name || 'Trial',
+      });
+
+      // Create admin user doc
+      await setDocument('users', ownerUid, {
+        role:  'admin',
+        name:  req.ownerName || req.gymName + ' Admin',
+        email: req.email,
+        gymId: gymDoc.id,
+      });
+
+      // Seed default settings
+      await setTenantDocument(gymDoc.id, 'settings', 'general', {
+        gymInfo: { name: req.gymName, location: req.city || '', contact: req.phone || '' },
+        categories: DEFAULT_CATEGORIES,
+      });
+
+      // Mark request as activated
+      await updateDocument('trialRequests', req.id, { status: 'activated', gymId: gymDoc.id });
+
+      // Remove from list + show credentials
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+      setActivating(null);
+      setCreds({
+        gymName:  req.gymName,
+        email:    req.email,
+        password,
+        planName: selectedPlan?.name || '',
+        endDate:  activateEndDate,
+      });
+      toast.success(`${req.gymName} activated!`);
+    } catch (err) {
+      toast.error(
+        err.code === 'auth/email-already-in-use' ? 'This email already has an account' :
+        err.message || 'Activation failed'
+      );
+    } finally {
+      setActivateSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      await deleteDocument('trialRequests', id);
+      setRequests(prev => prev.filter(r => r.id !== id));
+      toast.success('Request deleted');
     } catch { toast.error('Failed to delete'); }
     finally { setDeletingId(null); setDeleteConfirmId(null); }
   };
 
-  const filtered = trials.filter(g => {
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(''), 2000);
+  };
+
+  const filtered = requests.filter(r => {
     const t = search.toLowerCase();
-    return !t || g.name?.toLowerCase().includes(t) || g.ownerEmail?.toLowerCase().includes(t) || g.ownerPhone?.toLowerCase().includes(t) || g.ownerCity?.toLowerCase().includes(t);
+    return !t || r.gymName?.toLowerCase().includes(t) || r.email?.toLowerCase().includes(t) || r.phone?.includes(t) || r.city?.toLowerCase().includes(t);
   });
 
-  const active   = trials.filter(g => getStatus(g) === 'active').length;
-  const expiring = trials.filter(g => getStatus(g) === 'expiring').length;
-  const expired  = trials.filter(g => getStatus(g) === 'expired').length;
+  const inp = 'w-full px-3 py-2 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary text-sm';
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl">
       {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-h1 text-h1 text-on-surface">Trial Gyms</h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant">Gyms on 14-day free trials from self-registration.</p>
+          <h1 className="font-h1 text-h1 text-on-surface">Trial Requests</h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant">Pending sign-ups from the registration form. Activate to create gym accounts.</p>
         </div>
-        <a
-          href="/register"
-          target="_blank"
-          rel="noreferrer"
-          className="bg-primary text-on-primary px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 text-sm"
-        >
+        <a href="/register" target="_blank" rel="noreferrer"
+          className="bg-primary text-on-primary px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 text-sm">
           <span className="material-symbols-outlined text-[18px]">open_in_new</span>
           Registration Link
         </a>
@@ -148,21 +244,17 @@ export default function TrialList() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard label="Active Trials"    value={active}   icon="timer"         color="bg-emerald-100 text-emerald-600" />
-        <StatCard label="Expiring (≤3 days)" value={expiring} icon="alarm"       color="bg-amber-100 text-amber-600"    />
-        <StatCard label="Expired"          value={expired}  icon="timer_off"     color="bg-rose-100 text-rose-600"      />
+        <StatCard label="Pending Requests" value={requests.length} icon="pending_actions" color="bg-indigo-100 text-indigo-600" />
+        <StatCard label="Plans Available"  value={plans.length}    icon="loyalty"         color="bg-violet-100 text-violet-600" />
+        <StatCard label="Today's Date"     value={new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short' })} icon="calendar_today" color="bg-slate-100 text-slate-600" />
       </div>
 
       {/* Search */}
       <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 max-w-sm shadow-sm">
         <span className="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
-        <input
-          type="text"
-          placeholder="Search by name, email, phone, city…"
-          value={search}
+        <input type="text" placeholder="Search by name, email, phone, city…" value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 bg-transparent text-on-surface outline-none text-sm placeholder:text-on-surface-variant"
-        />
+          className="flex-1 bg-transparent text-on-surface outline-none text-sm placeholder:text-on-surface-variant" />
         {search && (
           <button onClick={() => setSearch('')} className="text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined text-[16px]">close</span>
@@ -173,143 +265,165 @@ export default function TrialList() {
       {/* Table */}
       <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse min-w-175">
+          <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Gym', 'Owner', 'WhatsApp', 'City', 'Trial Period', 'Days Left', 'Status', 'Actions'].map(h => (
+                {['Gym Name', 'Owner', 'Phone', 'City', 'Email', 'Received', 'Actions'].map(h => (
                   <th key={h} className="p-4 font-semibold text-xs uppercase tracking-wide text-on-surface-variant">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="p-10 text-center text-on-surface-variant">
+                <tr><td colSpan={7} className="p-10 text-center text-on-surface-variant">
                   <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
                 </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="p-12 text-center">
+                <tr><td colSpan={7} className="p-12 text-center">
                   <div className="flex flex-col items-center gap-3 text-on-surface-variant">
-                    <span className="material-symbols-outlined text-5xl opacity-30">timer</span>
-                    <p className="font-medium">{search ? 'No trials match your search' : 'No trial gyms yet'}</p>
+                    <span className="material-symbols-outlined text-5xl opacity-30">inbox</span>
+                    <p className="font-medium">{search ? 'No requests match your search' : 'No pending requests'}</p>
                     {!search && (
-                      <a href="/register" target="_blank" className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
-                        View Registration Page
+                      <a href="/register" target="_blank" className="text-primary text-sm font-medium hover:underline">
+                        Share registration link
                       </a>
                     )}
                   </div>
                 </td></tr>
-              ) : filtered.map(gym => {
-                const status = getStatus(gym);
-                const meta   = STATUS_META[status];
-                const days   = daysLeft(gym.trialEndDate);
-                const isExtending  = extendingId === gym.id;
-                const isConverting = convertingId === gym.id;
-                const isDeleting   = deletingId === gym.id;
-
-                return (
-                  <tr key={gym.id} className="border-b border-outline-variant/10 hover:bg-surface-container/30 transition-colors">
-                    {/* Gym */}
-                    <td className="p-4">
-                      <div className="font-semibold text-on-surface">{gym.name}</div>
-                      <div className="text-xs text-on-surface-variant">{gym.ownerEmail}</div>
-                    </td>
-
-                    {/* Owner */}
-                    <td className="p-4 text-on-surface-variant text-sm">{gym.ownerName || '—'}</td>
-
-                    {/* WhatsApp */}
-                    <td className="p-4 text-on-surface-variant text-sm">{gym.ownerPhone || gym.phone || '—'}</td>
-
-                    {/* City */}
-                    <td className="p-4 text-on-surface-variant text-sm">{gym.ownerCity || gym.address || '—'}</td>
-
-                    {/* Trial Period */}
-                    <td className="p-4 text-xs text-on-surface-variant">
-                      <div>{gym.trialStartDate || '—'}</div>
-                      <div className="text-on-surface-variant/60">to {gym.trialEndDate || '—'}</div>
-                    </td>
-
-                    {/* Days Left */}
-                    <td className="p-4">
-                      <span className={`font-bold text-sm ${days <= 0 ? 'text-rose-600' : days <= 3 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                        {days <= 0 ? 'Expired' : `${days}d`}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
-                        {meta.label}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Send Creds via WhatsApp */}
-                        <a
-                          href={waLink(gym)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">whatsapp</span>
-                          Send Creds
-                        </a>
-
-                        {/* Extend +7 */}
-                        <button
-                          onClick={() => handleExtend(gym)}
-                          disabled={isExtending}
-                          className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
-                        >
-                          {isExtending
-                            ? <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>
-                            : <span className="material-symbols-outlined text-[14px]">add_circle</span>
-                          }
-                          +7 days
-                        </button>
-
-                        {/* Convert to Paid */}
-                        <button
-                          onClick={() => handleConvert(gym)}
-                          disabled={isConverting}
-                          className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-400 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
-                        >
-                          {isConverting
-                            ? <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>
-                            : <span className="material-symbols-outlined text-[14px]">verified</span>
-                          }
-                          Convert
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => setDeleteConfirmId(gym.id)}
-                          disabled={isDeleting}
-                          className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              ) : filtered.map(req => (
+                <tr key={req.id} className="border-b border-outline-variant/10 hover:bg-surface-container/30 transition-colors">
+                  <td className="p-4 font-semibold text-on-surface">{req.gymName}</td>
+                  <td className="p-4 text-on-surface-variant">{req.ownerName || '—'}</td>
+                  <td className="p-4 text-on-surface-variant">{req.phone || '—'}</td>
+                  <td className="p-4 text-on-surface-variant">{req.city || '—'}</td>
+                  <td className="p-4 text-on-surface-variant">{req.email}</td>
+                  <td className="p-4 text-xs text-on-surface-variant">
+                    {req.createdAt ? fmtDate(new Date(req.createdAt.seconds * 1000).toISOString().split('T')[0]) : '—'}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => openActivate(req)}
+                        className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                        <span className="material-symbols-outlined text-[14px]">bolt</span>
+                        Activate
+                      </button>
+                      <button onClick={() => setDeleteConfirmId(req.id)}
+                        className="inline-flex items-center gap-1 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                        <span className="material-symbols-outlined text-[14px]">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
         {!loading && filtered.length > 0 && (
           <div className="px-4 py-3 border-t border-outline-variant/20 text-xs text-on-surface-variant">
-            {filtered.length} of {trials.length} trial{trials.length !== 1 ? 's' : ''}
+            {filtered.length} pending request{filtered.length !== 1 ? 's' : ''}
           </div>
         )}
       </div>
 
-      {/* Delete confirm modal */}
+      {/* ── Activate Modal ── */}
+      {activating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-5">
+            <div>
+              <h3 className="font-bold text-on-surface text-lg">Activate — {activating.gymName}</h3>
+              <p className="text-sm text-on-surface-variant mt-0.5">Assign a plan and set the access dates. Credentials will be generated automatically.</p>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-on-surface-variant">Plan</label>
+                <select value={activatePlanId} onChange={e => handlePlanChange(e.target.value)} className={inp}>
+                  <option value="">— Select a plan —</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}{p.durationDays ? ` (${p.durationDays} days)` : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-on-surface-variant">Start Date *</label>
+                  <input type="date" value={activateStartDate} onChange={e => handleStartChange(e.target.value)} className={inp} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-on-surface-variant">End Date *</label>
+                  <input type="date" value={activateEndDate} onChange={e => setActivateEndDate(e.target.value)} className={inp} />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl text-xs text-primary flex items-start gap-2">
+              <span className="material-symbols-outlined text-[15px] mt-0.5">info</span>
+              A password will be auto-generated and shown to you after activation. Share it with the gym owner.
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setActivating(null)} disabled={activateSaving}
+                className="px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container text-sm font-medium">
+                Cancel
+              </button>
+              <button onClick={handleActivate} disabled={activateSaving || !activateStartDate || !activateEndDate}
+                className="px-5 py-2 bg-primary text-on-primary rounded-lg font-semibold text-sm hover:bg-primary/90 flex items-center gap-2 disabled:opacity-60">
+                {activateSaving && <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>}
+                {activateSaving ? 'Activating…' : 'Activate & Create Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Credentials Modal ── */}
+      {creds && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-5">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-emerald-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-on-surface">{creds.gymName} is live!</h3>
+                <p className="text-xs text-on-surface-variant">Share these credentials with the gym owner.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 bg-surface-container rounded-xl p-4">
+              {[
+                { label: 'Login URL', value: window.location.origin + '/login', key: 'url'  },
+                { label: 'Email',    value: creds.email,                         key: 'email'},
+                { label: 'Password', value: creds.password,                      key: 'pass' },
+              ].map(({ label, value, key }) => (
+                <div key={key} className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-0.5">{label}</div>
+                    <div className="text-sm font-semibold text-on-surface truncate">{value}</div>
+                  </div>
+                  <button onClick={() => copy(value, key)}
+                    className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors border ${copied === key ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:text-primary hover:border-primary/30'}`}>
+                    <span className="material-symbols-outlined text-[15px]">{copied === key ? 'check' : 'content_copy'}</span>
+                  </button>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-outline-variant/20 text-xs text-on-surface-variant flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">loyalty</span>
+                {creds.planName || 'Trial'} · valid until <span className="font-semibold text-on-surface">{fmtDate(creds.endDate)}</span>
+              </div>
+            </div>
+
+            <button onClick={() => setCreds(null)}
+              className="w-full py-2.5 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors">
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirm ── */}
       {deleteConfirmId && (() => {
-        const gym = trials.find(g => g.id === deleteConfirmId);
+        const req = requests.find(r => r.id === deleteConfirmId);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
@@ -318,27 +432,18 @@ export default function TrialList() {
                   <span className="material-symbols-outlined text-rose-600 text-[22px]">warning</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-on-surface">Delete "{gym?.name}"?</h3>
-                  <p className="text-sm text-on-surface-variant mt-1">
-                    This permanently removes the trial gym and all its data. Cannot be undone.
-                  </p>
+                  <h3 className="font-bold text-on-surface">Delete request from "{req?.gymName}"?</h3>
+                  <p className="text-sm text-on-surface-variant mt-1">This removes the pending request. The person will need to sign up again.</p>
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setDeleteConfirmId(null)}
-                  className="px-4 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container text-sm"
-                >
+                <button onClick={() => setDeleteConfirmId(null)}
+                  className="px-4 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container text-sm">
                   Cancel
                 </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirmId)}
-                  disabled={deletingId === deleteConfirmId}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium text-sm shadow-sm flex items-center gap-2 disabled:opacity-70"
-                >
-                  {deletingId === deleteConfirmId && (
-                    <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
-                  )}
+                <button onClick={() => handleDelete(deleteConfirmId)} disabled={deletingId === deleteConfirmId}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium text-sm shadow-sm flex items-center gap-2 disabled:opacity-70">
+                  {deletingId === deleteConfirmId && <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>}
                   Delete
                 </button>
               </div>

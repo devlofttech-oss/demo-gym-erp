@@ -91,6 +91,20 @@ service cloud.firestore {
       allow update: if isAdminOf(gymId);
     }
 
+    // ── Subscription plan templates (superadmin CRUD, admins read) ─
+    match /subscriptionPlans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Trial sign-up requests ────────────────────────────────────
+    match /trialRequests/{reqId} {
+      // Public registration form — anyone can submit
+      allow create: if true;
+      // Superadmin manages the queue
+      allow read, update, delete: if isSuperAdmin();
+    }
+
     // ── Gym tenant data ───────────────────────────────────────────
     match /gyms/{gymId}/{collection}/{docId} {
       // Superadmin and gym admin: full access

@@ -1,162 +1,70 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { firebaseConfig } from '../firebase/config';
-import { createDocument, setDocument } from '../firebase/db';
-import { setTenantDocument } from '../firebase/tenantDb';
+import { createDocument } from '../firebase/db';
 import logoImage from '../assets/kilos_logo.png';
-
-function generatePassword() {
-  const upper = 'ABCDEFGHJKMNPQRSTUVWXYZ';
-  const lower = 'abcdefghjkmnpqrstuvwxyz';
-  const digits = '23456789';
-  let p = 'Kilos@';
-  p += upper[Math.floor(Math.random() * upper.length)];
-  p += lower[Math.floor(Math.random() * lower.length)];
-  for (let i = 0; i < 3; i++) p += digits[Math.floor(Math.random() * digits.length)];
-  return p;
-}
-
-function addDays(days) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
 
 const EMPTY = { gymName: '', ownerName: '', phone: '', city: '', email: '' };
 
 export default function RegisterPage() {
-  const [form, setForm]     = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState('');
-  const [success, setSuccess] = useState(null);
-  const [copied, setCopied]   = useState('');
+  const [form, setForm]       = useState(EMPTY);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const handle = (e) => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
-
-  const copy = (text, key) => {
-    navigator.clipboard.writeText(text);
-    setCopied(key);
-    setTimeout(() => setCopied(''), 2000);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSaving(true);
-    const password = generatePassword();
-    const today    = new Date().toISOString().split('T')[0];
-    const trialEnd = addDays(7);
-
     try {
-      const appName      = 'trial-reg-' + Date.now();
-      const secondaryApp = initializeApp(firebaseConfig, appName);
-      const secondaryAuth = getAuth(secondaryApp);
-      let ownerUid;
-      try {
-        const { user } = await createUserWithEmailAndPassword(secondaryAuth, form.email.trim(), password);
-        ownerUid = user.uid;
-      } finally {
-        await deleteApp(secondaryApp);
-      }
-
-      const gymDoc = await createDocument('gyms', {
-        name:          form.gymName.trim(),
-        address:       form.city.trim(),
-        phone:         form.phone.trim(),
-        email:         form.email.trim(),
-        ownerEmail:    form.email.trim(),
-        ownerName:     form.ownerName.trim(),
-        ownerPhone:    form.phone.trim(),
-        ownerCity:     form.city.trim(),
-        ownerPassword: password,
-        ownerId:       ownerUid,
-        isActive:      true,
-        isTrial:       true,
-        trialStartDate: today,
-        trialEndDate:   trialEnd,
-        subscriptionPlan: 'Trial',
+      await createDocument('trialRequests', {
+        gymName:   form.gymName.trim(),
+        ownerName: form.ownerName.trim(),
+        phone:     form.phone.trim(),
+        city:      form.city.trim(),
+        email:     form.email.trim(),
+        status:    'pending',
       });
-      const gymId = gymDoc.id;
-
-      await setDocument('users', ownerUid, {
-        role:  'admin',
-        name:  form.ownerName.trim() || form.gymName.trim() + ' Admin',
-        email: form.email.trim(),
-        gymId,
-      });
-
-      await setTenantDocument(gymId, 'settings', 'general', {
-        gymInfo: {
-          name:     form.gymName.trim(),
-          location: form.city.trim(),
-          contact:  form.phone.trim(),
-        },
-      });
-
-      setSuccess({ gymName: form.gymName.trim(), ownerName: form.ownerName.trim(), email: form.email.trim(), password, trialEnd });
-    } catch (err) {
-      setError(
-        err.code === 'auth/email-already-in-use' ? 'This email already has an account.' :
-        err.code === 'auth/invalid-email'        ? 'Invalid email address.' :
-        'Something went wrong. Please try again.'
-      );
+      setSubmitted(true);
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
   /* ── Success screen ── */
-  if (success) {
-    const loginUrl = window.location.origin + '/login';
+  if (submitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center gap-6">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-emerald-600 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 flex flex-col items-center gap-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center">
+            <span className="material-symbols-outlined text-indigo-600 text-[44px]" style={{ fontVariationSettings: "'FILL' 1" }}>mark_email_read</span>
           </div>
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-900">You're all set, {success.ownerName || success.gymName}!</h2>
-            <p className="text-slate-500 mt-1 text-sm">Your 7-day free trial has started. Save the credentials below.</p>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Request Received!</h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Thanks, <span className="font-semibold text-slate-700">{form.ownerName || form.gymName}</span>! We've received your request and our team will
+              review it and <span className="font-semibold text-slate-700">get back to you shortly</span> with your login credentials.
+            </p>
           </div>
-
-          <div className="w-full bg-slate-50 rounded-2xl p-5 flex flex-col gap-3 border border-slate-100">
-            {[
-              { label: 'Login URL', value: loginUrl,        key: 'url' },
-              { label: 'Email',     value: success.email,   key: 'email' },
-              { label: 'Password',  value: success.password, key: 'pass' },
-            ].map(({ label, value, key }) => (
-              <div key={key} className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-slate-400 mb-0.5">{label}</div>
-                  <div className="text-sm font-semibold text-slate-800 truncate">{value}</div>
-                </div>
-                <button
-                  onClick={() => copy(value, key)}
-                  className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${copied === key ? 'bg-emerald-100 text-emerald-600' : 'bg-white border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'}`}
-                >
-                  <span className="material-symbols-outlined text-[16px]">{copied === key ? 'check' : 'content_copy'}</span>
-                </button>
-              </div>
-            ))}
-            <div className="pt-2 border-t border-slate-200 text-xs text-slate-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">timer</span>
-              Trial valid until <span className="font-semibold text-slate-600">{success.trialEnd}</span>
-            </div>
+          <div className="w-full bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-left">
+            <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-2">What happens next?</p>
+            <ul className="flex flex-col gap-2">
+              {[
+                'Our team reviews your request',
+                'We set up your gym account',
+                'You receive login credentials',
+              ].map((step, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ul>
           </div>
-
-          <Link
-            to="/login"
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-center hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[20px]">login</span>
-            Go to Login
-          </Link>
-
-          <p className="text-xs text-slate-400 text-center">
-            Need help? Contact us — we'll get you set up in no time.
-          </p>
+          <p className="text-xs text-slate-400">Kilos by Devloft Technologies</p>
         </div>
       </div>
     );
@@ -167,7 +75,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl flex rounded-3xl shadow-2xl overflow-hidden bg-white">
 
-        {/* Left panel — branding */}
+        {/* Left panel */}
         <div className="hidden md:flex flex-col justify-between w-2/5 bg-indigo-700 p-10 text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/20 flex items-center justify-center shrink-0">
@@ -175,17 +83,16 @@ export default function RegisterPage() {
             </div>
             <span className="font-bold text-xl">Kilos</span>
           </div>
-
           <div className="flex flex-col gap-6">
             <div>
               <h1 className="text-3xl font-bold leading-tight">Start your free 7-day trial</h1>
-              <p className="mt-3 text-indigo-200 text-sm">No credit card needed. Your gym account is ready in seconds.</p>
+              <p className="mt-3 text-indigo-200 text-sm">Fill in your details — our team will set up your account and send you the credentials.</p>
             </div>
             {[
-              { icon: 'group',               text: 'Member management & renewals' },
-              { icon: 'account_balance_wallet', text: 'Payment tracking & receipts' },
-              { icon: 'how_to_reg',          text: 'QR check-in for members' },
-              { icon: 'insert_chart',        text: 'Reports & lead tracking' },
+              { icon: 'group',                  text: 'Member management & renewals' },
+              { icon: 'account_balance_wallet', text: 'Payment tracking & receipts'  },
+              { icon: 'how_to_reg',             text: 'QR check-in for members'      },
+              { icon: 'insert_chart',           text: 'Reports & lead tracking'      },
             ].map(({ icon, text }) => (
               <div key={icon} className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
@@ -195,13 +102,11 @@ export default function RegisterPage() {
               </div>
             ))}
           </div>
-
           <p className="text-xs text-indigo-300">Powered by Kilos · Built by Devloft Technologies</p>
         </div>
 
-        {/* Right panel — form */}
+        {/* Right panel */}
         <div className="flex-1 p-8 md:p-10 flex flex-col justify-center">
-          {/* Mobile logo */}
           <div className="md:hidden flex items-center gap-2 mb-6">
             <div className="w-8 h-8 rounded-lg overflow-hidden bg-indigo-100 flex items-center justify-center">
               <img src={logoImage} alt="Kilos" className="w-full h-full object-contain" />
@@ -210,15 +115,15 @@ export default function RegisterPage() {
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 mb-1">Create your gym account</h2>
-          <p className="text-slate-500 text-sm mb-7">Fill in your details — login credentials will be shown instantly.</p>
+          <p className="text-slate-500 text-sm mb-7">Fill in your details and we'll get back to you with login credentials.</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {[
-              { label: 'Gym Name',       name: 'gymName',   placeholder: 'e.g. Iron Fitness Gym',    required: true  },
-              { label: 'Owner Name',     name: 'ownerName', placeholder: 'e.g. Rahul Sharma',        required: true  },
-              { label: 'WhatsApp Number', name: 'phone',   placeholder: 'e.g. 9876543210',          required: true  },
-              { label: 'City',           name: 'city',      placeholder: 'e.g. Bangalore, Karnataka', required: false },
-              { label: 'Email Address',  name: 'email',     placeholder: 'owner@gymname.com',        required: true, type: 'email' },
+              { label: 'Gym Name',        name: 'gymName',   placeholder: 'e.g. Iron Fitness Gym',     required: true              },
+              { label: 'Owner Name',      name: 'ownerName', placeholder: 'e.g. Rahul Sharma',         required: true              },
+              { label: 'WhatsApp Number', name: 'phone',     placeholder: 'e.g. 9876543210',           required: true              },
+              { label: 'City',            name: 'city',      placeholder: 'e.g. Bangalore, Karnataka', required: false             },
+              { label: 'Email Address',   name: 'email',     placeholder: 'owner@gymname.com',         required: true, type:'email' },
             ].map(({ label, name, placeholder, required, type }) => (
               <div key={name} className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-700">
@@ -249,9 +154,9 @@ export default function RegisterPage() {
               className="mt-2 bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {saving ? (
-                <><span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> Creating your account…</>
+                <><span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> Submitting…</>
               ) : (
-                <><span className="material-symbols-outlined text-[20px]">rocket_launch</span> Start Free Trial</>
+                <><span className="material-symbols-outlined text-[20px]">rocket_launch</span> Request Free Trial</>
               )}
             </button>
           </form>
