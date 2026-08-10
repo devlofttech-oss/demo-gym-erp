@@ -36,7 +36,7 @@ const STAFF_NAV = [
 
 export default function DashboardLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
-  const { isImpersonating, gymData, exitGym, role } = useAuth();
+  const { isImpersonating, gymData, exitGym, role, isPlanBlocked, gymBlockReason, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const drawerRef = useRef(null);
@@ -79,6 +79,64 @@ export default function DashboardLayout() {
   const isMoreActive = drawerItems.some(n =>
     n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)
   );
+
+  if (isPlanBlocked) {
+    const isExpired = gymBlockReason === 'plan_expired';
+    return (
+      <div className="min-h-screen bg-background text-on-background flex items-center justify-center p-6 font-['Plus_Jakarta_Sans']">
+        <div className="max-w-md w-full flex flex-col items-center gap-6 text-center">
+          <div className="w-24 h-24 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+            <span className="material-symbols-outlined text-rose-500 dark:text-rose-400 text-5xl">
+              {isExpired ? 'lock_clock' : 'schedule'}
+            </span>
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-extrabold text-on-surface tracking-tight mb-2">
+              {isExpired ? 'Subscription Ended' : 'Subscription Not Active Yet'}
+            </h1>
+            <p className="text-on-surface-variant text-sm leading-relaxed">
+              {isExpired
+                ? 'Your Kilos subscription has ended. All your data is safe — renew your plan to regain full access.'
+                : "Your subscription hasn't started yet. You'll get access on the plan start date."}
+            </p>
+            {isExpired && gymData?.planEndDate && (
+              <p className="mt-2 text-sm font-semibold text-rose-500 dark:text-rose-400">
+                Expired on{' '}
+                {new Date(gymData.planEndDate).toLocaleDateString('en-IN', {
+                  day: 'numeric', month: 'long', year: 'numeric',
+                })}
+              </p>
+            )}
+            {!isExpired && gymData?.planStartDate && (
+              <p className="mt-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
+                Starts on{' '}
+                {new Date(gymData.planStartDate).toLocaleDateString('en-IN', {
+                  day: 'numeric', month: 'long', year: 'numeric',
+                })}
+              </p>
+            )}
+          </div>
+
+          <div className="w-full bg-surface-container border border-outline-variant/20 rounded-2xl p-4 text-left">
+            <p className="text-sm font-semibold text-on-surface mb-1">Need to renew?</p>
+            <p className="text-sm text-on-surface-variant">
+              Contact <span className="font-medium text-primary">Kilos by Devloft Technologies</span> to
+              activate or extend your plan and restore access immediately.
+            </p>
+          </div>
+
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold transition-colors shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background text-on-background antialiased flex flex-col h-screen overflow-hidden">

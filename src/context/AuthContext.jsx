@@ -22,6 +22,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading]             = useState(true);
   const [inactiveGymError, setInactiveGymError] = useState(false);
   const [gymBlockReason, setGymBlockReason] = useState(null);
+  const [isPlanBlocked, setIsPlanBlocked] = useState(false);
   const [impersonatedGymId, setImpersonatedGymId]         = useState(null);
   const [impersonatedGymData, setImpersonatedGymData]     = useState(null);
   const [impersonatedBranches, setImpersonatedBranches]   = useState([]);
@@ -151,32 +152,26 @@ export function AuthProvider({ children }) {
                 return;
               }
 
-              // Enforce plan access dates
+              // Enforce plan access dates — keep logged in but block dashboard
               const today = new Date();
               today.setHours(0, 0, 0, 0);
+              let planBlocked = false;
+              let blockReason = null;
               if (activeGym.planStartDate) {
                 const start = new Date(activeGym.planStartDate);
                 start.setHours(0, 0, 0, 0);
-                if (today < start) {
-                  setGymBlockReason('plan_not_started');
-                  setInactiveGymError(true);
-                  await signOut(auth);
-                  return;
-                }
+                if (today < start) { planBlocked = true; blockReason = 'plan_not_started'; }
               }
-              if (activeGym.planEndDate) {
+              if (!planBlocked && activeGym.planEndDate) {
                 const end = new Date(activeGym.planEndDate);
                 end.setHours(23, 59, 59, 999);
-                if (today > end) {
-                  setGymBlockReason('plan_expired');
-                  setInactiveGymError(true);
-                  await signOut(auth);
-                  return;
-                }
+                if (today > end) { planBlocked = true; blockReason = 'plan_expired'; }
               }
 
               setGymData(activeGym);
               setInactiveGymError(false);
+              setIsPlanBlocked(planBlocked);
+              setGymBlockReason(planBlocked ? blockReason : null);
             }
 
             setRole(userRole);
@@ -196,6 +191,8 @@ export function AuthProvider({ children }) {
         setGymBranches([]);
         setGymData(null);
         setIsSuperAdmin(false);
+        setIsPlanBlocked(false);
+        setGymBlockReason(null);
       }
       setLoading(false);
     });
@@ -222,6 +219,7 @@ export function AuthProvider({ children }) {
       isSuperAdmin,
       inactiveGymError,
       gymBlockReason,
+      isPlanBlocked,
       isImpersonating,
       impersonatedBranches,
       enterGym, exitGym, updateGymData,
