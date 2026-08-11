@@ -62,6 +62,7 @@ export default function PaymentsList() {
   useEffect(() => { setPage(1); }, [activeTab, searchTerm, filterMonth]);
 
   const fetchData = useCallback(async () => {
+    if (!gymId) return;
     try {
       setLoading(true);
       const [payData, memData] = await Promise.all([
@@ -77,7 +78,7 @@ export default function PaymentsList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [gymId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -98,10 +99,12 @@ export default function PaymentsList() {
     );
   });
 
-  // Dues: expired or no plan members
+  // Dues: plan expired OR has outstanding balance
   const duesMembers = members.filter(m => {
     const days = daysUntilExpiry(m.expiryDate);
-    return m.status === 'Expired' || (days !== null && days < 0) || !m.planName;
+    const planExpired = days !== null && days < 0;
+    const hasBalance  = Number(m.balanceFees || 0) > 0;
+    return planExpired || hasBalance;
   });
 
   const filteredDues = duesMembers.filter(m => {
@@ -524,6 +527,7 @@ export default function PaymentsList() {
                     <th className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">Phone</th>
                     <th className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">Last Plan</th>
                     <th className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">Expired On</th>
+                    <th className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">Balance Due</th>
                     <th className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">Overdue</th>
                     <th className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase text-right">Actions</th>
                   </tr>
@@ -531,14 +535,14 @@ export default function PaymentsList() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="6" className="p-8 text-center text-on-surface-variant">
+                      <td colSpan="7" className="p-8 text-center text-on-surface-variant">
                         <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span>
                         Loading dues...
                       </td>
                     </tr>
                   ) : filteredDues.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="p-12 text-center">
+                      <td colSpan="7" className="p-12 text-center">
                         <div className="flex flex-col items-center gap-3 text-on-surface-variant">
                           <span className="material-symbols-outlined text-5xl opacity-40">check_circle</span>
                           <p className="font-medium text-emerald-600">No dues! All members are up to date.</p>
@@ -565,6 +569,13 @@ export default function PaymentsList() {
                             <span className="text-sm font-medium text-rose-600 dark:text-rose-400">
                               {member.expiryDate ? formatDate(member.expiryDate) : '—'}
                             </span>
+                          </td>
+                          <td className="p-4">
+                            {Number(member.balanceFees || 0) > 0 ? (
+                              <span className="text-sm font-bold text-amber-600">₹{Number(member.balanceFees).toLocaleString('en-IN')}</span>
+                            ) : (
+                              <span className="text-xs text-on-surface-variant/50">—</span>
+                            )}
                           </td>
                           <td className="p-4">
                             {overdueDays !== null ? (
