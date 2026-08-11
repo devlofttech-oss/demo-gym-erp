@@ -19,8 +19,9 @@ import SendSMSModal from '../../components/messaging/SendSMSModal';
 
 const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque'];
 const TABS = [
-  { id: 'payments', label: 'All Payments', icon: 'receipt_long' },
-  { id: 'dues', label: 'Dues & Expired', icon: 'warning' },
+  { id: 'payments', label: 'All Payments',  icon: 'receipt_long' },
+  { id: 'expired',  label: 'Expired',       icon: 'event_busy'   },
+  { id: 'dues',     label: 'Balance Due',   icon: 'payments'     },
 ];
 
 function getSMSDefaultMessage(member) {
@@ -99,15 +100,24 @@ export default function PaymentsList() {
     );
   });
 
-  // Dues: plan expired OR has outstanding balance
-  const duesMembers = members.filter(m => {
+  // Expired: plan end date passed
+  const expiredMembers = members.filter(m => {
     const days = daysUntilExpiry(m.expiryDate);
-    const planExpired = days !== null && days < 0;
-    const hasBalance  = Number(m.balanceFees || 0) > 0;
-    return planExpired || hasBalance;
+    return days !== null && days < 0;
   });
 
-  const filteredDues = duesMembers.filter(m => {
+  // Balance due: has outstanding payment (may or may not be expired)
+  const balanceDueMembers = members.filter(m => Number(m.balanceFees || 0) > 0);
+
+  // Combined for badge on any dues tab
+  const duesMembers = members.filter(m => {
+    const days = daysUntilExpiry(m.expiryDate);
+    return (days !== null && days < 0) || Number(m.balanceFees || 0) > 0;
+  });
+
+  const activeDuesSource = activeTab === 'expired' ? expiredMembers : balanceDueMembers;
+
+  const filteredDues = activeDuesSource.filter(m => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return m.name?.toLowerCase().includes(term) || m.phone?.includes(term);
@@ -186,9 +196,14 @@ export default function PaymentsList() {
           >
             <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
             {tab.label}
-            {tab.id === 'dues' && duesMembers.length > 0 && (
+            {tab.id === 'expired' && expiredMembers.length > 0 && (
               <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
-                {duesMembers.length}
+                {expiredMembers.length}
+              </span>
+            )}
+            {tab.id === 'dues' && balanceDueMembers.length > 0 && (
+              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
+                {balanceDueMembers.length}
               </span>
             )}
           </button>
@@ -432,16 +447,22 @@ export default function PaymentsList() {
         </>
       )}
 
-      {/* ─── DUES TAB ─── */}
-      {activeTab === 'dues' && (
+      {/* ─── EXPIRED / DUES TABS ─── */}
+      {(activeTab === 'expired' || activeTab === 'dues') && (
         <>
           {/* Alert Banner */}
-          {!loading && duesMembers.length > 0 && (
-            <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700/40 rounded-2xl p-4 flex items-start gap-3">
-              <span className="material-symbols-outlined text-rose-500 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+          {!loading && filteredDues.length > 0 && (
+            <div className={`border rounded-2xl p-4 flex items-start gap-3 ${activeTab === 'expired' ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-700/40' : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/40'}`}>
+              <span className={`material-symbols-outlined mt-0.5 ${activeTab === 'expired' ? 'text-rose-500' : 'text-amber-500'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                {activeTab === 'expired' ? 'event_busy' : 'payments'}
+              </span>
               <div>
-                <p className="font-semibold text-rose-700 dark:text-rose-300">{duesMembers.length} member{duesMembers.length > 1 ? 's' : ''} with expired or missing memberships</p>
-                <p className="text-sm text-rose-600 dark:text-rose-400 mt-0.5">Send SMS reminders or renew their plans directly.</p>
+                <p className={`font-semibold ${activeTab === 'expired' ? 'text-rose-700 dark:text-rose-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                  {filteredDues.length} member{filteredDues.length > 1 ? 's' : ''} {activeTab === 'expired' ? 'with expired plans' : 'with pending balance'}
+                </p>
+                <p className={`text-sm mt-0.5 ${activeTab === 'expired' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                  Send SMS reminders or {activeTab === 'expired' ? 'renew their plans' : 'collect pending payments'} directly.
+                </p>
               </div>
             </div>
           )}
@@ -472,7 +493,7 @@ export default function PaymentsList() {
             ) : paginatedDues.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-12 text-on-surface-variant">
                 <span className="material-symbols-outlined text-5xl opacity-40 text-emerald-500">check_circle</span>
-                <p className="font-medium text-emerald-600">No dues! All members are up to date.</p>
+                <p className="font-medium text-emerald-600">{activeTab === 'expired' ? 'No expired members!' : 'No pending balances!'}</p>
               </div>
             ) : paginatedDues.map(member => {
               const days = daysUntilExpiry(member.expiryDate);
@@ -545,7 +566,7 @@ export default function PaymentsList() {
                       <td colSpan="7" className="p-12 text-center">
                         <div className="flex flex-col items-center gap-3 text-on-surface-variant">
                           <span className="material-symbols-outlined text-5xl opacity-40">check_circle</span>
-                          <p className="font-medium text-emerald-600">No dues! All members are up to date.</p>
+                          <p className="font-medium text-emerald-600">{activeTab === 'expired' ? 'No expired members!' : 'No pending balances!'}</p>
                         </div>
                       </td>
                     </tr>

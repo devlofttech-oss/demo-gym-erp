@@ -18,7 +18,7 @@ const ADMIN_NAV = [
   { to: '/equipment',     icon: 'fitness_center',        label: 'Equipment',    fill: false },
   { to: '/supplements',   icon: 'medication',            label: 'Supplements',  fill: true  },
   { to: '/leads',         icon: 'person_search',         label: 'Leads & CRM',  fill: true  },
-  { to: '/measurements',  icon: 'monitor_weight',        label: 'Measurements', fill: false },
+
   { to: '/workouts',      icon: 'exercise',              label: 'Workouts',     fill: true  },
   { to: '/pt',            icon: 'sports_martial_arts',   label: 'Personal Trng',fill: true  },
   // { to: '/diet', icon: 'restaurant', label: 'Diet & Nutrition', fill: true }, // Diet module on hold

@@ -46,6 +46,7 @@ export default function AddMember() {
     phone: searchParams.get('phone') || '',
     email: searchParams.get('email') || '',
     joinDate: today,
+    birthday: '',
     planActiveFrom: today,
     planName: searchParams.get('plan') || '',
     durationDays: 30,
@@ -143,6 +144,7 @@ export default function AddMember() {
         phone: formData.phone,
         email: formData.email,
         joinDate: formData.joinDate,
+        ...(formData.birthday && { birthday: formData.birthday }),
         planName: formData.planName,
         planActiveFrom: formData.planActiveFrom,
         expiryDate: formData.expiryDate,
@@ -280,6 +282,16 @@ export default function AddMember() {
                   type="date"
                   name="joinDate"
                   value={formData.joinDate}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Date of Birth</label>
+                <input
+                  type="date"
+                  name="birthday"
+                  value={formData.birthday}
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
                 />

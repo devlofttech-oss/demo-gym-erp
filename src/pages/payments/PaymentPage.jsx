@@ -416,10 +416,10 @@ export default function PaymentPage() {
                   <span className="text-xs text-on-surface-variant">Plan price</span>
                 </div>
 
-                {/* Paid Fees */}
+                {/* Paying Now */}
                 <div className="flex flex-col gap-1.5">
                   <label className="font-medium text-sm text-on-surface">
-                    Paid Fees (₹) <span className="text-error">*</span>
+                    Paying Now (₹) <span className="text-error">*</span>
                   </label>
                   <input
                     required

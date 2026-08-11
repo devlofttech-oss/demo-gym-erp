@@ -30,11 +30,12 @@ const playBeep = (type) => {
       makeBeep(800, 'sine', ctx.currentTime, 0.15);
       makeBeep(1100, 'sine', ctx.currentTime + 0.2, 0.2);
     } else if (type === 'warning') {
-      // Big alarm buzzer — harsh sawtooth, high volume, 4 pulses
-      makeBeep(200, 'sawtooth', ctx.currentTime,       0.35, 0.9);
-      makeBeep(200, 'sawtooth', ctx.currentTime + 0.45, 0.35, 0.9);
-      makeBeep(200, 'sawtooth', ctx.currentTime + 0.9,  0.35, 0.9);
-      makeBeep(200, 'sawtooth', ctx.currentTime + 1.35, 0.35, 0.9);
+      // Loud alarm — sawtooth + low square layer, 6 pulses, max volume
+      const t = ctx.currentTime;
+      for (let i = 0; i < 6; i++) {
+        makeBeep(280, 'sawtooth', t + i * 0.6, 0.5, 1.0);
+        makeBeep(140, 'square',   t + i * 0.6, 0.5, 0.8);
+      }
     } else {
       makeBeep(150, 'sawtooth', ctx.currentTime, 1.0);
       makeBeep(150, 'sawtooth', ctx.currentTime + 1.2, 1.0);

@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getTenantDocument, getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 import kilosLogo from '../../assets/kilos_logo.png';
 import SendSMSModal from '../../components/messaging/SendSMSModal';
+import MeasurementForm from '../measurements/MeasurementForm';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -121,7 +122,7 @@ export default function MemberProfile() {
   // ── Edit member state ──
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    name: '', phone: '', email: '', joinDate: '',
+    name: '', phone: '', email: '', joinDate: '', birthday: '',
     planName: '', planActiveFrom: '', expiryDate: '',
     totalFees: '', paidFees: '', balanceFees: '',
   });
@@ -147,8 +148,9 @@ export default function MemberProfile() {
 
   // ── Measurements ──
   const [measurements, setMeasurements] = useState([]);
-  const [newMeasure, setNewMeasure] = useState({ date: new Date().toISOString().split('T')[0], weight: '', notes: '' });
-  const [addingMeasure, setAddingMeasure] = useState(false);
+  const [showMeasurementForm, setShowMeasurementForm] = useState(false);
+  const [editingMeasurement, setEditingMeasurement] = useState(null);
+  const [photoLightbox, setPhotoLightbox] = useState(false);
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -302,6 +304,7 @@ export default function MemberProfile() {
           phone: profileData?.phone || '',
           email: profileData?.email || '',
           joinDate: profileData?.joinDate || '',
+          birthday: profileData?.birthday || '',
           planName: profileData?.planName || '',
           planActiveFrom: profileData?.planActiveFrom || '',
           expiryDate: profileData?.expiryDate || '',
@@ -361,6 +364,7 @@ export default function MemberProfile() {
         phone: editForm.phone,
         email: editForm.email,
         joinDate: editForm.joinDate,
+        birthday: editForm.birthday || null,
         planName: editForm.planName,
         planActiveFrom: editForm.planActiveFrom,
         expiryDate: editForm.expiryDate,
@@ -446,17 +450,15 @@ export default function MemberProfile() {
 
   // ── Measurement handlers ─────────────────────────────────────────────────
 
-  const handleAddMeasure = async () => {
-    if (!newMeasure.weight) { toast.error('Enter weight'); return; }
-    setAddingMeasure(true);
-    try {
-      const payload = { memberId: id, date: newMeasure.date, weight: Number(newMeasure.weight), notes: newMeasure.notes, createdAt: new Date().toISOString() };
-      const docRef = await createTenantDocument(gymId, 'measurements', payload);
-      setMeasurements(prev => [{ id: docRef?.id || String(Date.now()), ...payload }, ...prev]);
-      setNewMeasure(p => ({ ...p, weight: '', notes: '' }));
-      toast.success('Measurement saved');
-    } catch { toast.error('Failed to save measurement'); }
-    finally { setAddingMeasure(false); }
+  const refreshMeasurements = async () => {
+    const data = await getTenantCollection(gymId, 'measurements', [{ field: 'memberId', op: '==', value: id }]);
+    setMeasurements(data.sort((a, b) => new Date(a.date) - new Date(b.date)));
+  };
+
+  const handleMeasurementSaved = () => {
+    setShowMeasurementForm(false);
+    setEditingMeasurement(null);
+    refreshMeasurements();
   };
 
   const handleDeleteMeasure = async (measureId) => {
@@ -494,6 +496,28 @@ export default function MemberProfile() {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const minFreezeDate = tomorrow.toISOString().split('T')[0];
 
+  // measurements sorted oldest→newest for stats
+  const measureStats = useMemo(() => {
+    if (measurements.length === 0) return null;
+    const first = measurements[0];
+    const latest = measurements[measurements.length - 1];
+    const weightChange = latest.weight != null && first.weight != null
+      ? (latest.weight - first.weight).toFixed(1) : null;
+    return { latestWeight: latest.weight, weightChange, latestBodyFat: latest.bodyFat, latestBmi: latest.bmi };
+  }, [measurements]);
+
+  const weightChangeColor = measureStats?.weightChange != null
+    ? parseFloat(measureStats.weightChange) < 0 ? 'text-emerald-600'
+      : parseFloat(measureStats.weightChange) > 0 ? 'text-rose-500'
+      : 'text-on-surface-variant'
+    : 'text-on-surface-variant';
+
+  function fmtDate(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  function fmtVal(val) { return val !== null && val !== undefined && val !== '' ? val : '—'; }
+
   return (
     <div className="flex flex-col gap-6">
 
@@ -507,7 +531,10 @@ export default function MemberProfile() {
       <div className="bg-surface-container-lowest px-5 py-4 rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="shrink-0 flex flex-col items-center gap-1.5">
-            <div className="w-16 h-16 rounded-2xl bg-primary-container text-primary flex items-center justify-center text-2xl font-bold shadow-inner overflow-hidden">
+            <div
+              onClick={() => member.photoUrl && setPhotoLightbox(true)}
+              className={`w-16 h-16 rounded-2xl bg-primary-container text-primary flex items-center justify-center text-2xl font-bold shadow-inner overflow-hidden ${member.photoUrl ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+            >
               {member.photoUrl
                 ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-contain" />
                 : (member.name?.charAt(0) || '?')
@@ -533,6 +560,7 @@ export default function MemberProfile() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-on-surface-variant text-sm">
               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span>{member.phone}</span>
               {member.joinDate && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_month</span>Joined {member.joinDate}</span>}
+              {member.birthday && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cake</span>{member.birthday}</span>}
             </div>
             <div className="mt-1">
               {isFrozen ? (
@@ -738,45 +766,83 @@ export default function MemberProfile() {
 
           {/* ── Measurements ── */}
           <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)]">
-            <div className="flex items-center gap-2 mb-5">
-              <span className="material-symbols-outlined text-primary">monitor_weight</span>
-              <h3 className="font-h3 text-h3 text-on-surface">Progress / Weight Log</h3>
-              {member.fitnessGoal && <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{member.fitnessGoal}</span>}
-            </div>
-            {/* Add entry row */}
-            <div className="flex gap-2 mb-4 flex-wrap">
-              <input type="date" value={newMeasure.date} onChange={e => setNewMeasure(p => ({ ...p, date: e.target.value }))}
-                className="px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface text-sm outline-none focus:border-primary" />
-              <input type="number" min="1" max="300" step="0.1" value={newMeasure.weight} onChange={e => setNewMeasure(p => ({ ...p, weight: e.target.value }))}
-                placeholder="Weight (kg)"
-                className="w-32 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface text-sm outline-none focus:border-primary" />
-              <input type="text" value={newMeasure.notes} onChange={e => setNewMeasure(p => ({ ...p, notes: e.target.value }))}
-                placeholder="Note (optional)"
-                className="flex-1 min-w-28 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface text-sm outline-none focus:border-primary" />
-              <button onClick={handleAddMeasure} disabled={addingMeasure}
-                className="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center gap-1 shrink-0">
-                <span className="material-symbols-outlined text-[16px]">add</span> Log
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">monitor_weight</span>
+                <h3 className="font-h3 text-h3 text-on-surface">Body Measurements</h3>
+                {member.fitnessGoal && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{member.fitnessGoal}</span>}
+              </div>
+              <button onClick={() => { setEditingMeasurement(null); setShowMeasurementForm(true); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                Add
               </button>
             </div>
-            {measurements.length === 0 ? (
-              <p className="text-sm text-on-surface-variant text-center py-4">No measurements logged yet.</p>
-            ) : (
-              <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1">
-                {measurements.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant/30">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-bold">
-                      {Number(m.weight).toFixed(1)}
-                    </div>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-sm font-semibold text-on-surface">{m.weight} kg</span>
-                      <span className="text-xs text-on-surface-variant">{m.date}{m.notes && ` — ${m.notes}`}</span>
-                    </div>
-                    <button onClick={() => handleDeleteMeasure(m.id)}
-                      className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[14px]">delete</span>
-                    </button>
+
+            {/* Stats */}
+            {measureStats && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                {[
+                  { label: 'Weight', value: measureStats.latestWeight != null ? `${measureStats.latestWeight} kg` : '—', color: 'text-on-surface' },
+                  { label: 'Change', value: measureStats.weightChange != null ? `${parseFloat(measureStats.weightChange) > 0 ? '+' : ''}${measureStats.weightChange} kg` : '—', color: weightChangeColor },
+                  { label: 'Body Fat', value: measureStats.latestBodyFat != null ? `${measureStats.latestBodyFat}%` : '—', color: 'text-on-surface' },
+                  { label: 'BMI', value: measureStats.latestBmi != null ? measureStats.latestBmi : '—', color: 'text-on-surface' },
+                ].map(s => (
+                  <div key={s.label} className="bg-surface-container rounded-xl p-3 flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">{s.label}</span>
+                    <span className={`text-lg font-bold ${s.color}`}>{s.value}</span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Table */}
+            {measurements.length === 0 ? (
+              <div className="flex flex-col items-center py-8 gap-2 text-on-surface-variant">
+                <span className="material-symbols-outlined text-4xl opacity-40">monitor_weight</span>
+                <p className="text-sm">No measurements recorded yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-outline-variant/20">
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="bg-surface-container-low/60 border-b border-outline-variant/20">
+                      {['Date','Weight','Body Fat','Chest','Waist','Hips','Arms','Thighs','BMI',''].map(h => (
+                        <th key={h} className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...measurements].reverse().map((m, idx) => (
+                      <tr key={m.id} className="border-b border-outline-variant/10 hover:bg-surface-container/30 transition-colors">
+                        <td className="px-3 py-2 font-medium text-on-surface whitespace-nowrap">
+                          {fmtDate(m.date)}
+                          {idx === 0 && <span className="ml-1.5 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Latest</span>}
+                        </td>
+                        <td className="px-3 py-2 font-semibold text-on-surface">{fmtVal(m.weight)}{m.weight ? ' kg' : ''}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.bodyFat)}{m.bodyFat ? '%' : ''}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.chest)}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.waist)}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.hips)}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.arms)}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.thighs)}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{fmtVal(m.bmi)}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditingMeasurement(m); setShowMeasurementForm(true); }}
+                              className="w-7 h-7 rounded-lg hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+                              <span className="material-symbols-outlined text-[14px]">edit</span>
+                            </button>
+                            <button onClick={() => handleDeleteMeasure(m.id)}
+                              className="w-7 h-7 rounded-lg hover:bg-rose-50 flex items-center justify-center text-on-surface-variant hover:text-rose-500 transition-colors">
+                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -872,6 +938,11 @@ export default function MemberProfile() {
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-on-surface">Date of Joining</label>
                       <input type="date" value={editForm.joinDate} onChange={e => setEditForm(p => ({ ...p, joinDate: e.target.value }))}
+                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-on-surface">Date of Birth</label>
+                      <input type="date" value={editForm.birthday} onChange={e => setEditForm(p => ({ ...p, birthday: e.target.value }))}
                         className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
                     </div>
                   </div>
@@ -1064,6 +1135,38 @@ export default function MemberProfile() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Photo Lightbox ── */}
+      {photoLightbox && member.photoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm cursor-pointer"
+          onClick={() => setPhotoLightbox(false)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <img src={member.photoUrl} alt={member.name}
+              className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain"
+              onClick={e => e.stopPropagation()} />
+            <button
+              onClick={() => setPhotoLightbox(false)}
+              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-slate-900/70 flex items-center justify-center text-white hover:bg-slate-900 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <div className="text-center mt-3 text-white text-sm font-medium">{member.name}</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Measurement Form Modal ── */}
+      {showMeasurementForm && (
+        <MeasurementForm
+          measurement={editingMeasurement}
+          memberId={id}
+          memberName={member.name}
+          onClose={() => { setShowMeasurementForm(false); setEditingMeasurement(null); }}
+          onSaved={handleMeasurementSaved}
+        />
       )}
 
       {/* ── Remind Modal ── */}
