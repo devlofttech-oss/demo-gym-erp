@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getTenantCollection, createTenantDocument } from '../../firebase/tenantDb';
+import { getTenantDocument, getTenantCollection, createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 
@@ -18,13 +18,11 @@ function addDays(dateStr, days) {
   return d.toISOString().split('T')[0];
 }
 
-// Returns the last day of the Nth calendar month from startDate
-// e.g. Jan 1 + 12 months → Dec 31 (access through end of December)
-function addMonthsEnd(dateStr, months) {
+function addMonths(dateStr, months) {
   const d = new Date(dateStr);
-  d.setDate(1);
+  const day = d.getDate();
   d.setMonth(d.getMonth() + months);
-  d.setDate(0);
+  if (d.getDate() !== day) d.setDate(0);
   return d.toISOString().split('T')[0];
 }
 
@@ -33,9 +31,13 @@ const FITNESS_GOALS = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina
 export default function AddMember() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: editId } = useParams();
+  const isEdit = !!editId;
   const { gymId } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [loadingMember, setLoadingMember] = useState(isEdit);
   const [photoUrl, setPhotoUrl] = useState('');
+  const [existingCredit, setExistingCredit] = useState(0); // paidFees already on account
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -56,50 +58,86 @@ export default function AddMember() {
     nextPaymentDays: '',
     paidNow: '',
     paymentMode: 'Cash',
-    expiryDate: addDays(today, 30),
+    expiryDate: addMonths(today, 1),
     emergencyContact: '',
     fitnessGoal: '',
     healthNotes: '',
   });
 
-  const basePlanFees = Number(formData.totalFees || 0);
-  const discountPct = Math.min(100, Math.max(0, Number(formData.discountPercent || 0)));
+  const basePlanFees   = Number(formData.totalFees || 0);
+  const discountPct    = Math.min(100, Math.max(0, Number(formData.discountPercent || 0)));
   const discountedTotal = Math.round(basePlanFees * (1 - discountPct / 100));
-  const balanceFees = Math.max(0, discountedTotal - Number(formData.paidNow || 0));
+  const paidNowNum     = Number(formData.paidNow || 0);
+  const netPaid        = existingCredit + paidNowNum;
+  const balanceFees    = Math.max(0, discountedTotal - netPaid);
+  const discountSavings = basePlanFees - discountedTotal;
 
+  // Load plans
   useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const data = await getTenantCollection(gymId, 'plans');
+    if (!gymId) return;
+    getTenantCollection(gymId, 'plans')
+      .then(data => {
         const active = data.filter(p => p.isActive !== false);
         setPlans(active);
-        const first = active[0];
-        if (first) {
+        // Only auto-select first plan when adding (not editing — member already has one)
+        if (!isEdit && active.length > 0) {
+          const first = active[0];
           const months = first.durationMonths || 1;
-          const days = months * 30;
           setFormData(prev => ({
             ...prev,
-            planName: first.name,
-            durationDays: days,
+            planName: prev.planName || first.name,
             durationMonths: months,
+            durationDays: months * 30,
             totalFees: first.price || 0,
-            expiryDate: addMonthsEnd(prev.planActiveFrom, months),
+            expiryDate: addMonths(prev.planActiveFrom, months),
           }));
         }
-      } catch (error) {
-        console.error('Failed to load plans', error);
-      }
-    };
-    fetchPlans();
-  }, []);
+      })
+      .catch(console.error);
+  }, [gymId, isEdit]);
 
+  // Load existing member when editing
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      expiryDate: prev.durationMonths
-        ? addMonthsEnd(prev.planActiveFrom, prev.durationMonths)
-        : addDays(prev.planActiveFrom, prev.durationDays),
-    }));
+    if (!isEdit || !gymId) return;
+    setLoadingMember(true);
+    getTenantDocument(gymId, 'members', editId)
+      .then(member => {
+        if (!member) { toast.error('Member not found'); return; }
+        setPhotoUrl(member.photoUrl || '');
+        setExistingCredit(Number(member.paidFees || 0));
+        setFormData(prev => ({
+          ...prev,
+          name:             member.name || '',
+          phone:            member.phone || '',
+          email:            member.email || '',
+          joinDate:         member.joinDate || today,
+          birthday:         member.birthday || '',
+          planActiveFrom:   member.planActiveFrom || today,
+          planName:         member.planName || '',
+          expiryDate:       member.expiryDate || today,
+          emergencyContact: member.emergencyContact || '',
+          fitnessGoal:      member.fitnessGoal || '',
+          healthNotes:      member.healthNotes || '',
+          // Don't pre-fill fees — admin will pick new plan or keep existing
+        }));
+      })
+      .catch(console.error)
+      .finally(() => setLoadingMember(false));
+  }, [isEdit, editId, gymId]);
+
+  // Recalculate expiry when start date or plan duration changes
+  useEffect(() => {
+    if (formData.durationMonths) {
+      setFormData(prev => ({
+        ...prev,
+        expiryDate: addMonths(prev.planActiveFrom, prev.durationMonths),
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        expiryDate: addDays(prev.planActiveFrom, prev.durationDays),
+      }));
+    }
   }, [formData.planActiveFrom, formData.durationDays, formData.durationMonths]);
 
   const handleChange = (e) => {
@@ -107,31 +145,29 @@ export default function AddMember() {
   };
 
   const handlePlanChange = (e) => {
-    const planId = e.target.value;
-    const plan = plans.find(p => p.id === planId);
-    if (plan) {
-      const months = plan.durationMonths || 1;
-      const days = months * 30;
-      setFormData(prev => ({
-        ...prev,
-        planName: plan.name,
-        durationDays: days,
-        durationMonths: months,
-        totalFees: plan.price || 0,
-        discountPercent: '',
-        paidNow: '',
-      }));
-    }
+    const plan = plans.find(p => p.id === e.target.value);
+    if (!plan) return;
+    const months = plan.durationMonths || 1;
+    setFormData(prev => ({
+      ...prev,
+      planName:      plan.name,
+      durationDays:  months * 30,
+      durationMonths: months,
+      totalFees:     plan.price || 0,
+      discountPercent: '',
+      paidNow:       '',
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.phone) { toast.error('Phone number is required'); return; }
 
-    const discount   = Math.min(100, Math.max(0, Number(formData.discountPercent || 0)));
-    const totalFees  = Math.round(Number(formData.totalFees || 0) * (1 - discount / 100));
-    const paidAmount = Number(formData.paidNow   || 0);
-    const balance    = Math.max(0, totalFees - paidAmount);
+    const discount      = Math.min(100, Math.max(0, Number(formData.discountPercent || 0)));
+    const totalFees     = Math.round(Number(formData.totalFees || 0) * (1 - discount / 100));
+    const paidNow       = Number(formData.paidNow || 0);
+    const newPaidFees   = isEdit ? existingCredit + paidNow : paidNow;
+    const balance       = Math.max(0, totalFees - newPaidFees);
     const nextPaymentDate = formData.nextPaymentDays
       ? addDays(formData.joinDate, Number(formData.nextPaymentDays))
       : null;
@@ -139,48 +175,76 @@ export default function AddMember() {
     try {
       setLoading(true);
 
-      const memberDoc = await createTenantDocument(gymId, 'members', {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        joinDate: formData.joinDate,
+      const memberData = {
+        name:             formData.name,
+        phone:            formData.phone,
+        email:            formData.email,
+        joinDate:         formData.joinDate,
         ...(formData.birthday && { birthday: formData.birthday }),
-        planName: formData.planName,
-        planActiveFrom: formData.planActiveFrom,
-        expiryDate: formData.expiryDate,
-        status: 'Active',
+        planName:         formData.planName,
+        planActiveFrom:   formData.planActiveFrom,
+        expiryDate:       formData.expiryDate,
+        status:           'Active',
         totalFees,
-        paidFees: paidAmount,
-        balanceFees: balance,
+        paidFees:         newPaidFees,
+        balanceFees:      balance,
         ...(discount > 0 && { discountPercent: discount }),
         ...(nextPaymentDate && { nextPaymentDate }),
         ...(photoUrl && { photoUrl }),
         ...(formData.emergencyContact && { emergencyContact: formData.emergencyContact }),
         ...(formData.fitnessGoal && { fitnessGoal: formData.fitnessGoal }),
         ...(formData.healthNotes && { healthNotes: formData.healthNotes }),
-      });
+      };
 
-      await createTenantDocument(gymId, 'payments', {
-        memberId: memberDoc.id,
-        memberName: formData.name,
-        memberPhone: formData.phone,
-        planName: formData.planName,
-        planActiveFrom: formData.planActiveFrom,
-        expiryDate: formData.expiryDate,
-        totalFees,
-        paidAmount,
-        balanceFees: balance,
-        amount: paidAmount,
-        paymentMode: formData.paymentMode,
-        date: new Date().toISOString(),
-        status: 'Paid',
-      });
+      let memberId = editId;
 
-      toast.success('Member added & payment recorded!');
-      navigate(`/members/${memberDoc.id}`);
+      if (isEdit) {
+        await updateTenantDocument(gymId, 'members', editId, memberData);
+        // Only record a payment if something was actually paid today
+        if (paidNow > 0) {
+          await createTenantDocument(gymId, 'payments', {
+            memberId: editId,
+            memberName:    formData.name,
+            memberPhone:   formData.phone,
+            planName:      formData.planName,
+            planActiveFrom: formData.planActiveFrom,
+            expiryDate:    formData.expiryDate,
+            totalFees,
+            paidAmount:    paidNow,
+            amount:        paidNow,
+            balanceFees:   balance,
+            paymentMode:   formData.paymentMode,
+            date:          new Date().toISOString(),
+            status:        'Paid',
+            ...(existingCredit > 0 && { creditApplied: existingCredit }),
+          });
+        }
+        toast.success('Member updated!');
+      } else {
+        const memberDoc = await createTenantDocument(gymId, 'members', memberData);
+        memberId = memberDoc.id;
+        await createTenantDocument(gymId, 'payments', {
+          memberId:      memberDoc.id,
+          memberName:    formData.name,
+          memberPhone:   formData.phone,
+          planName:      formData.planName,
+          planActiveFrom: formData.planActiveFrom,
+          expiryDate:    formData.expiryDate,
+          totalFees,
+          paidAmount:    paidNow,
+          amount:        paidNow,
+          balanceFees:   balance,
+          paymentMode:   formData.paymentMode,
+          date:          new Date().toISOString(),
+          status:        'Paid',
+        });
+        toast.success('Member added & payment recorded!');
+      }
+
+      navigate(`/members/${memberId}`);
     } catch (error) {
       console.error(error);
-      toast.error('Failed to add member');
+      toast.error(isEdit ? 'Failed to update member' : 'Failed to add member');
     } finally {
       setLoading(false);
     }
@@ -189,26 +253,38 @@ export default function AddMember() {
   const daysUntilExpiry = Math.round(
     (new Date(formData.expiryDate) - new Date(formData.planActiveFrom)) / (1000 * 60 * 60 * 24)
   );
-
-  const paidNowNum   = Number(formData.paidNow   || 0);
-  const discountSavings = basePlanFees - discountedTotal;
   const nextPaymentDate = formData.nextPaymentDays
     ? addDays(formData.joinDate, Number(formData.nextPaymentDays))
     : null;
+
+  if (loadingMember) {
+    return (
+      <div className="flex items-center justify-center py-24 text-on-surface-variant">
+        <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span>
+        Loading member...
+      </div>
+    );
+  }
+
+  const inp = 'w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none';
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          to="/members"
+          to={isEdit ? `/members/${editId}` : '/members'}
           className="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center transition-colors text-on-surface"
         >
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>
         </Link>
         <div className="flex flex-col">
-          <h1 className="font-h2 text-h2 text-on-surface">Add New Member</h1>
-          <p className="text-sm text-on-surface-variant">Register a new member and record their first payment</p>
+          <h1 className="font-h2 text-h2 text-on-surface">
+            {isEdit ? 'Edit Member' : 'Add New Member'}
+          </h1>
+          <p className="text-sm text-on-surface-variant">
+            {isEdit ? 'Update member details and assign a new plan' : 'Register a new member and record their first payment'}
+          </p>
         </div>
       </div>
 
@@ -244,89 +320,44 @@ export default function AddMember() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Full Name <span className="text-error">*</span></label>
-                <input
-                  required
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="e.g. Rahul Sharma"
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input required name="name" value={formData.name} onChange={handleChange}
+                  placeholder="e.g. Rahul Sharma" className={inp} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Phone Number <span className="text-error">*</span></label>
-                <input
-                  required
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="e.g. 9876543210"
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input required type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                  placeholder="e.g. 9876543210" className={inp} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Email (optional)</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="e.g. rahul@email.com"
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input type="email" name="email" value={formData.email} onChange={handleChange}
+                  placeholder="e.g. rahul@email.com" className={inp} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Date of Joining</label>
-                <input
-                  type="date"
-                  name="joinDate"
-                  value={formData.joinDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input type="date" name="joinDate" value={formData.joinDate} onChange={handleChange} className={inp} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Date of Birth</label>
-                <input
-                  type="date"
-                  name="birthday"
-                  value={formData.birthday}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input type="date" name="birthday" value={formData.birthday} onChange={handleChange} className={inp} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Emergency Contact</label>
-                <input
-                  name="emergencyContact"
-                  value={formData.emergencyContact}
-                  onChange={handleChange}
-                  placeholder="Name & phone of emergency contact"
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input name="emergencyContact" value={formData.emergencyContact} onChange={handleChange}
+                  placeholder="Name & phone of emergency contact" className={inp} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Fitness Goal</label>
-                <select
-                  name="fitnessGoal"
-                  value={formData.fitnessGoal}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none"
-                >
+                <select name="fitnessGoal" value={formData.fitnessGoal} onChange={handleChange}
+                  className={inp + ' appearance-none'}>
                   <option value="">Select goal...</option>
                   {FITNESS_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div className="md:col-span-2 flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Health Notes (optional)</label>
-                <input
-                  name="healthNotes"
-                  value={formData.healthNotes}
-                  onChange={handleChange}
-                  placeholder="Any health conditions, injuries, or special requirements..."
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                />
+                <input name="healthNotes" value={formData.healthNotes} onChange={handleChange}
+                  placeholder="Any health conditions, injuries, or special requirements..." className={inp} />
               </div>
             </div>
           </div>
@@ -350,12 +381,14 @@ export default function AddMember() {
                   )}
                 </label>
                 <select
-                  name="planName"
                   value={plans.find(p => p.name === formData.planName)?.id || ''}
                   onChange={handlePlanChange}
-                  className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none"
+                  className={inp + ' appearance-none'}
                 >
-                  {plans.length === 0 && <option value="">No plans — go to Settings &gt; Plans</option>}
+                  {plans.length === 0 && <option value="">No plans — go to Settings › Plans</option>}
+                  {isEdit && formData.planName && !plans.find(p => p.name === formData.planName) && (
+                    <option value="" disabled>{formData.planName} (current)</option>
+                  )}
                   {Object.entries(TYPE_LABELS).map(([type, label]) => {
                     const group = plans.filter(p => p.type === type);
                     if (!group.length) return null;
@@ -373,35 +406,41 @@ export default function AddMember() {
                 </select>
               </div>
 
+              {/* Plan carry-forward banner (edit mode only) */}
+              {isEdit && existingCredit > 0 && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40 rounded-xl p-4 flex items-start gap-3">
+                  <span className="material-symbols-outlined text-emerald-600 text-[20px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+                  <div className="flex flex-col gap-1 text-sm">
+                    <p className="font-semibold text-emerald-700 dark:text-emerald-300">Carry-forward credit</p>
+                    <p className="text-emerald-700 dark:text-emerald-400">
+                      ₹{existingCredit.toLocaleString('en-IN')} already paid on previous plan will be credited to the new plan.
+                    </p>
+                    {discountedTotal > 0 && (
+                      <p className="text-emerald-700 dark:text-emerald-400">
+                        Net to collect today:{' '}
+                        <strong>₹{Math.max(0, discountedTotal - existingCredit).toLocaleString('en-IN')}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Discount */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="font-medium text-sm text-on-surface">Discount (%)</label>
-                  <input
-                    type="number"
-                    name="discountPercent"
-                    value={formData.discountPercent}
-                    onChange={handleChange}
-                    min="0"
-                    max="100"
-                    placeholder="0"
-                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm"
-                  />
+                  <input type="number" name="discountPercent" value={formData.discountPercent} onChange={handleChange}
+                    min="0" max="100" placeholder="0"
+                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm" />
                   <span className="text-xs text-on-surface-variant">
                     {discountPct > 0 ? `Save ₹${discountSavings.toLocaleString('en-IN')}` : 'Optional discount'}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-medium text-sm text-on-surface">Next Payment (days)</label>
-                  <input
-                    type="number"
-                    name="nextPaymentDays"
-                    value={formData.nextPaymentDays}
-                    onChange={handleChange}
-                    min="1"
-                    placeholder="e.g. 30"
-                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm"
-                  />
+                  <input type="number" name="nextPaymentDays" value={formData.nextPaymentDays} onChange={handleChange}
+                    min="1" placeholder="e.g. 30"
+                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm" />
                   <span className="text-xs text-on-surface-variant">
                     {nextPaymentDate ? `Due by: ${nextPaymentDate}` : 'Grace period (optional)'}
                   </span>
@@ -410,9 +449,9 @@ export default function AddMember() {
 
               {/* Fees row */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Total Fees — read-only */}
+                {/* Total Fees */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-medium text-sm text-on-surface">Total Fees (₹)</label>
+                  <label className="font-medium text-sm text-on-surface">New Plan Total (₹)</label>
                   <div className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/20 rounded-lg text-on-surface-variant text-sm font-semibold select-none">
                     {discountPct > 0 ? (
                       <span>
@@ -428,27 +467,29 @@ export default function AddMember() {
                   </span>
                 </div>
 
-                {/* Paid Fees — editable */}
+                {/* Paying Now */}
                 <div className="flex flex-col gap-1.5">
                   <label className="font-medium text-sm text-on-surface">
-                    Paid Fees (₹) <span className="text-error">*</span>
+                    Paying Now (₹) {!isEdit && <span className="text-error">*</span>}
                   </label>
                   <input
-                    required
+                    required={!isEdit}
                     type="number"
                     name="paidNow"
                     value={formData.paidNow}
                     onChange={handleChange}
                     min="0"
-                    placeholder="0"
+                    placeholder={isEdit ? '0' : '0'}
                     className="w-full px-3 py-2.5 bg-surface-container border border-primary/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm"
                   />
-                  <span className="text-xs text-on-surface-variant">Paying now</span>
+                  <span className="text-xs text-on-surface-variant">
+                    {isEdit && existingCredit > 0 ? `+ ₹${existingCredit.toLocaleString('en-IN')} credit` : 'Cash collected today'}
+                  </span>
                 </div>
 
-                {/* Balance Fees — auto */}
+                {/* Balance */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-medium text-sm text-on-surface">Balance Fees (₹)</label>
+                  <label className="font-medium text-sm text-on-surface">Balance (₹)</label>
                   <div className={`w-full px-3 py-2.5 rounded-lg border text-sm font-semibold ${
                     balanceFees > 0
                       ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400'
@@ -464,32 +505,16 @@ export default function AddMember() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-2">
                   <label className="font-medium text-sm text-on-surface">Plan Active From</label>
-                  <input
-                    type="date"
-                    name="planActiveFrom"
-                    value={formData.planActiveFrom}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                  />
+                  <input type="date" name="planActiveFrom" value={formData.planActiveFrom} onChange={handleChange} className={inp} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="font-medium text-sm text-on-surface">Expiry Date</label>
-                  <input
-                    type="date"
-                    name="expiryDate"
-                    value={formData.expiryDate}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none"
-                  />
+                  <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} className={inp} />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="font-medium text-sm text-on-surface">Payment Mode</label>
-                  <select
-                    name="paymentMode"
-                    value={formData.paymentMode}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none"
-                  >
+                  <select name="paymentMode" value={formData.paymentMode} onChange={handleChange}
+                    className={inp + ' appearance-none'}>
                     <option value="Cash">Cash</option>
                     <option value="Card">Card</option>
                     <option value="UPI">UPI</option>
@@ -508,16 +533,17 @@ export default function AddMember() {
               <p className="text-sm font-semibold text-on-surface">Payment Summary</p>
               <div className="flex flex-wrap gap-4 mt-1 text-sm">
                 <div>
-                  <span className="text-on-surface-variant">Total:</span>{' '}
+                  <span className="text-on-surface-variant">Plan total:</span>{' '}
                   <span className="font-semibold text-on-surface">₹{discountedTotal.toLocaleString('en-IN')}</span>
-                  {discountPct > 0 && (
-                    <span className="ml-1.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded-full font-medium">
-                      -{discountPct}%
-                    </span>
-                  )}
                 </div>
+                {isEdit && existingCredit > 0 && (
+                  <div>
+                    <span className="text-on-surface-variant">Credit:</span>{' '}
+                    <span className="font-semibold text-emerald-600">₹{existingCredit.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div>
-                  <span className="text-on-surface-variant">Paying:</span>{' '}
+                  <span className="text-on-surface-variant">Collecting:</span>{' '}
                   <span className="font-semibold text-primary">₹{paidNowNum.toLocaleString('en-IN')}</span>
                 </div>
                 <div>
@@ -535,24 +561,18 @@ export default function AddMember() {
           </div>
 
           <div className="border-t border-outline-variant/30 pt-6 flex justify-end gap-3">
-            <Link to="/members" className="px-5 py-2.5 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container transition-colors">
+            <Link to={isEdit ? `/members/${editId}` : '/members'}
+              className="px-5 py-2.5 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container transition-colors">
               Cancel
             </Link>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 flex items-center gap-2"
-            >
+            <button type="submit" disabled={loading}
+              className="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 flex items-center gap-2">
               {loading ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                  Saving...
-                </>
+                <><span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Saving...</>
+              ) : isEdit ? (
+                <><span className="material-symbols-outlined text-[18px]">save</span> Save Changes</>
               ) : (
-                <>
-                  <span className="material-symbols-outlined text-[18px]">person_add</span>
-                  Add Member & Record Payment
-                </>
+                <><span className="material-symbols-outlined text-[18px]">person_add</span> Add Member & Record Payment</>
               )}
             </button>
           </div>

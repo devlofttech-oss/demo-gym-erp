@@ -90,9 +90,10 @@ export default function App() {
         <Route index element={<RoleRedirect />} />
 
         {/* Admin-only */}
-        <Route path="members"           element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
-        <Route path="members/add"       element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
-        <Route path="members/:id"       element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />
+        <Route path="members"            element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
+        <Route path="members/add"        element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
+        <Route path="members/:id"        element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />
+        <Route path="members/:id/edit"   element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
         <Route path="payments"          element={<RoleRoute allowedRoles={ADMIN}><PaymentsList /></RoleRoute>} />
         <Route path="payments/new"      element={<RoleRoute allowedRoles={ADMIN}><PaymentPage /></RoleRoute>} />
         <Route path="classes"           element={<RoleRoute allowedRoles={ADMIN}><ClassList /></RoleRoute>} />

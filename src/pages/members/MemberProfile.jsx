@@ -485,18 +485,7 @@ export default function MemberProfile() {
 
   // ────────────────────────────────────────────────────────────────────────
 
-  if (loading) return <div className="p-8 text-center text-on-surface-variant font-medium">Loading profile...</div>;
-  if (!member) return <div className="p-8 text-center text-error font-medium">Member not found.</div>;
-
-  const expiryDays = member.expiryDate
-    ? Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
-    : null;
-  const isExpired = expiryDays !== null && expiryDays < 0;
-  const isFrozen = member.status === 'Frozen';
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const minFreezeDate = tomorrow.toISOString().split('T')[0];
-
-  // measurements sorted oldest→newest for stats
+  // measurements sorted oldest→newest for stats (must be before early returns — Rules of Hooks)
   const measureStats = useMemo(() => {
     if (measurements.length === 0) return null;
     const first = measurements[0];
@@ -517,6 +506,17 @@ export default function MemberProfile() {
     return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
   function fmtVal(val) { return val !== null && val !== undefined && val !== '' ? val : '—'; }
+
+  if (loading) return <div className="p-8 text-center text-on-surface-variant font-medium">Loading profile...</div>;
+  if (!member) return <div className="p-8 text-center text-error font-medium">Member not found.</div>;
+
+  const expiryDays = member.expiryDate
+    ? Math.ceil((new Date(member.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isExpired = expiryDays !== null && expiryDays < 0;
+  const isFrozen = member.status === 'Frozen';
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const minFreezeDate = tomorrow.toISOString().split('T')[0];
 
   return (
     <div className="flex flex-col gap-6">
