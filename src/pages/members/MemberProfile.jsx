@@ -119,13 +119,6 @@ export default function MemberProfile() {
   const [showQR, setShowQR] = useState(false);
   const qrRef = useRef(null);
 
-  // ── Edit member state ──
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: '', phone: '', email: '', joinDate: '', birthday: '',
-    planName: '', planActiveFrom: '', expiryDate: '',
-    totalFees: '', paidFees: '', balanceFees: '',
-  });
 
   // ── Remind (payment due) ──
   const [showRemindModal, setShowRemindModal] = useState(false);
@@ -299,20 +292,6 @@ export default function MemberProfile() {
         ]);
         setMember(profileData);
         if (settingsDoc?.gymInfo) setGymInfo(settingsDoc.gymInfo);
-        setEditForm({
-          name: profileData?.name || '',
-          phone: profileData?.phone || '',
-          email: profileData?.email || '',
-          joinDate: profileData?.joinDate || '',
-          birthday: profileData?.birthday || '',
-          planName: profileData?.planName || '',
-          planActiveFrom: profileData?.planActiveFrom || '',
-          expiryDate: profileData?.expiryDate || '',
-          totalFees: profileData?.totalFees ?? '',
-          paidFees: profileData?.paidFees ?? '',
-          balanceFees: profileData?.balanceFees ?? '',
-        });
-
         const paymentsData = await getTenantCollection(gymId, 'payments', [{ field: 'memberId', op: '==', value: id }]);
         setPayments(paymentsData.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 
@@ -355,32 +334,6 @@ export default function MemberProfile() {
   };
 
   // ── Member handlers ──────────────────────────────────────────────────────
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      const updates = {
-        name: editForm.name,
-        phone: editForm.phone,
-        email: editForm.email,
-        joinDate: editForm.joinDate,
-        birthday: editForm.birthday || null,
-        planName: editForm.planName,
-        planActiveFrom: editForm.planActiveFrom,
-        expiryDate: editForm.expiryDate,
-        totalFees: Number(editForm.totalFees) || 0,
-        paidFees: Number(editForm.paidFees) || 0,
-        balanceFees: Number(editForm.balanceFees) || 0,
-      };
-      await updateTenantDocument(gymId, 'members', id, updates);
-      setMember(prev => ({ ...prev, ...updates }));
-      setIsEditing(false);
-      toast.success('Member updated!');
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to update member.');
-    }
-  };
 
   const handleDeleteMember = async () => {
     try {
@@ -589,10 +542,10 @@ export default function MemberProfile() {
             <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
             Download Receipt
           </button>
-          <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none bg-surface-container border border-outline-variant/30 text-on-surface px-4 py-2 rounded-lg font-medium hover:bg-surface-container-high transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+          <Link to={`/members/${id}/edit`} className="flex-1 md:flex-none bg-surface-container border border-outline-variant/30 text-on-surface px-4 py-2 rounded-lg font-medium hover:bg-surface-container-high transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
             <span className="material-symbols-outlined text-[16px]">edit</span>
             Edit
-          </button>
+          </Link>
           {isFrozen ? (
             <button onClick={handleUnfreeze} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
               <span className="material-symbols-outlined text-[16px]">play_circle</span>
@@ -903,109 +856,6 @@ export default function MemberProfile() {
           </div>
         </div>
       </div>
-
-      {/* ── Edit Member Modal ── */}
-      {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-outline-variant/20">
-              <h2 className="text-xl font-bold text-on-surface">Edit Member</h2>
-              <button onClick={() => setIsEditing(false)} className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant">
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            </div>
-            <form onSubmit={handleUpdate} className="flex flex-col overflow-y-auto">
-              <div className="p-6 flex flex-col gap-5">
-                {/* Personal */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-3">Personal Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Full Name <span className="text-error">*</span></label>
-                      <input required value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Phone <span className="text-error">*</span></label>
-                      <input required value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Email</label>
-                      <input type="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Date of Joining</label>
-                      <input type="date" value={editForm.joinDate} onChange={e => setEditForm(p => ({ ...p, joinDate: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Date of Birth</label>
-                      <input type="date" value={editForm.birthday} onChange={e => setEditForm(p => ({ ...p, birthday: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-outline-variant/20" />
-
-                {/* Plan */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-3">Plan Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2 flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Plan Name</label>
-                      <input value={editForm.planName} onChange={e => setEditForm(p => ({ ...p, planName: e.target.value }))}
-                        placeholder="e.g. Gym - Annual pack"
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Plan Active From</label>
-                      <input type="date" value={editForm.planActiveFrom} onChange={e => setEditForm(p => ({ ...p, planActiveFrom: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Expiry Date</label>
-                      <input type="date" value={editForm.expiryDate} onChange={e => setEditForm(p => ({ ...p, expiryDate: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-outline-variant/20" />
-
-                {/* Fees */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-3">Fees</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Total Fees (₹)</label>
-                      <input type="number" min="0" value={editForm.totalFees} onChange={e => setEditForm(p => ({ ...p, totalFees: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Paid Fees (₹)</label>
-                      <input type="number" min="0" value={editForm.paidFees} onChange={e => setEditForm(p => ({ ...p, paidFees: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-on-surface">Balance (₹)</label>
-                      <input type="number" min="0" value={editForm.balanceFees} onChange={e => setEditForm(p => ({ ...p, balanceFees: e.target.value }))}
-                        className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 p-6 border-t border-outline-variant/20">
-                <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container transition-colors text-sm">Cancel</button>
-                <button type="submit" className="px-5 py-2.5 bg-primary text-on-primary rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm text-sm">Save Changes</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ── Edit Payment Modal ── */}
       {editingPayment && (
