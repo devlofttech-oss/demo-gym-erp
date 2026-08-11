@@ -17,11 +17,12 @@ function addDays(dateStr, days) {
   return d.toISOString().split('T')[0];
 }
 
-function addMonthsEnd(dateStr, months) {
+function addMonths(dateStr, months) {
   const d = new Date(dateStr);
-  d.setDate(1);
+  const day = d.getDate();
   d.setMonth(d.getMonth() + months);
-  d.setDate(0);
+  // If the target month is shorter (e.g. Jan 31 + 1 month → Feb 28), clamp to last day
+  if (d.getDate() !== day) d.setDate(0);
   return d.toISOString().split('T')[0];
 }
 
@@ -81,7 +82,7 @@ export default function PaymentPage() {
             durationDays: days,
             durationMonths: months,
             totalFees: first.price || 0,
-            expiryDate: addMonthsEnd(prev.planActiveFrom, months),
+            expiryDate: addMonths(prev.planActiveFrom, months),
           }));
         }
       } catch (error) {
@@ -96,7 +97,7 @@ export default function PaymentPage() {
     setFormData(prev => ({
       ...prev,
       expiryDate: prev.durationMonths
-        ? addMonthsEnd(prev.planActiveFrom, prev.durationMonths)
+        ? addMonths(prev.planActiveFrom, prev.durationMonths)
         : addDays(prev.planActiveFrom, prev.durationDays),
     }));
   }, [formData.planActiveFrom, formData.durationDays, formData.durationMonths]);
@@ -168,7 +169,7 @@ export default function PaymentPage() {
       durationDays,
       durationMonths: months,
       planActiveFrom: today,
-      expiryDate: addMonthsEnd(today, months),
+      expiryDate: addMonths(today, months),
       totalFees: planPrice,
       paidNow: '',
     }));
@@ -200,7 +201,7 @@ export default function PaymentPage() {
         durationDays: days,
         durationMonths: months,
         totalFees: plan.price || 0,
-        expiryDate: addMonthsEnd(prev.planActiveFrom, months),
+        expiryDate: addMonths(prev.planActiveFrom, months),
         paidNow: '',
       }));
     }
