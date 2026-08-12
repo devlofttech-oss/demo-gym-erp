@@ -110,12 +110,13 @@ service cloud.firestore {
       // Superadmin and gym admin: full access
       allow read, write: if isSuperAdmin() || isAdminOf(gymId);
 
-      // Staff: read members, staff, and attendance collections (for check-in lookup)
-      allow read: if isStaffOf(gymId) && collection in ['members', 'staff', 'attendance', 'staffAttendance'];
+      // Staff: read members/staff/attendance (check-in lookup) + measurements
+      allow read: if isStaffOf(gymId) && collection in ['members', 'staff', 'attendance', 'staffAttendance', 'measurements'];
 
-      // Staff: write member + staff attendance; update members (lastCheckin timestamp)
-      allow create: if isStaffOf(gymId) && collection in ['attendance', 'staffAttendance'];
-      allow update: if isStaffOf(gymId) && collection in ['attendance', 'staffAttendance', 'members'];
+      // Staff: write member + staff attendance; manage measurements; update members (lastCheckin)
+      allow create: if isStaffOf(gymId) && collection in ['attendance', 'staffAttendance', 'measurements'];
+      allow update: if isStaffOf(gymId) && collection in ['attendance', 'staffAttendance', 'members', 'measurements'];
+      allow delete: if isStaffOf(gymId) && collection == 'measurements';
     }
   }
 }

@@ -107,7 +107,7 @@ export default function App() {
         <Route path="expenses"          element={<RoleRoute allowedRoles={ADMIN}><ExpenseList /></RoleRoute>} />
         <Route path="plans"             element={<RoleRoute allowedRoles={ADMIN}><PlanList /></RoleRoute>} />
         <Route path="leads"             element={<RoleRoute allowedRoles={ADMIN}><LeadList /></RoleRoute>} />
-        <Route path="measurements"      element={<RoleRoute allowedRoles={ADMIN}><MeasurementList /></RoleRoute>} />
+        <Route path="measurements"      element={<RoleRoute allowedRoles={ALL}><MeasurementList /></RoleRoute>} />
         <Route path="workouts"          element={<RoleRoute allowedRoles={ADMIN}><WorkoutList /></RoleRoute>} />
         <Route path="pt"                element={<RoleRoute allowedRoles={ADMIN}><PTList /></RoleRoute>} />
         {/* <Route path="diet" element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} /> */} {/* Diet module on hold */}

@@ -29,8 +29,9 @@ const ADMIN_NAV = [
 ];
 
 const STAFF_NAV = [
-  { to: '/checkin',    icon: 'how_to_reg',      label: 'Check-in',   fill: true },
-  { to: '/attendance', icon: 'event_available',  label: 'Attendance', fill: true },
+  { to: '/checkin',      icon: 'how_to_reg',      label: 'Check-in',     fill: true },
+  { to: '/attendance',   icon: 'event_available',  label: 'Attendance',   fill: true },
+  { to: '/measurements', icon: 'monitor_weight',   label: 'Measurements', fill: true },
 ];
 
 export default function Sidebar() {
