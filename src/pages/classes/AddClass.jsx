@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getTenantCollection, createTenantDocument, updateTenantDocument, getTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
+import TimePicker12 from '../../components/ui/TimePicker12';
 import toast from 'react-hot-toast';
 
 const CLASS_TYPES = ['Zumba', 'Yoga', 'Dance', 'HIIT', 'Kids Dance', 'Gym', 'Other'];
@@ -181,16 +182,14 @@ export default function AddClass() {
             ) : (
               <div className="flex flex-col gap-3">
                 {form.schedule.map((slot, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 bg-surface-container rounded-xl border border-outline-variant/20">
+                  <div key={i} className="flex items-center flex-wrap gap-3 p-3 bg-surface-container rounded-xl border border-outline-variant/20">
                     <select value={slot.day} onChange={e => updateSlot(i, 'day', e.target.value)}
                       className="flex-1 px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary text-sm appearance-none">
                       {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
-                    <input type="time" value={slot.startTime} onChange={e => updateSlot(i, 'startTime', e.target.value)}
-                      className="px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary text-sm" />
+                    <TimePicker12 value={slot.startTime} onChange={v => updateSlot(i, 'startTime', v)} />
                     <span className="text-on-surface-variant text-sm">to</span>
-                    <input type="time" value={slot.endTime} onChange={e => updateSlot(i, 'endTime', e.target.value)}
-                      className="px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary text-sm" />
+                    <TimePicker12 value={slot.endTime} onChange={v => updateSlot(i, 'endTime', v)} />
                     <button type="button" onClick={() => removeSlot(i)}
                       className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors">
                       <span className="material-symbols-outlined text-[16px]">close</span>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { uploadToCloudinary } from '../../utils/cloudinary';
+import { uploadMemberPhoto } from '../../utils/imagekit';
 import toast from 'react-hot-toast';
 
 export default function PhotoUpload({ onUpload, onDelete, hasPhoto = false, compact = false }) {
@@ -12,10 +12,10 @@ export default function PhotoUpload({ onUpload, onDelete, hasPhoto = false, comp
     if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
     setUploading(true);
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadMemberPhoto(file);
       onUpload(url);
-    } catch {
-      toast.error('Photo upload failed');
+    } catch (err) {
+      toast.error(err?.message ? `Photo upload failed: ${err.message}` : 'Photo upload failed');
     } finally {
       setUploading(false);
       e.target.value = '';

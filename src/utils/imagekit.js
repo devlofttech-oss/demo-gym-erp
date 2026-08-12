@@ -8,21 +8,22 @@ async function compressImage(file) {
   });
 }
 
-export async function uploadGymLogo(file) {
+export async function uploadToImageKit(file, { folder = '/gym-erp/uploads', prefix = 'upload' } = {}) {
   const compressed = await compressImage(file);
+  const fileName = `${prefix}-${Date.now()}.jpg`;
 
   const authRes = await fetch('/api/imagekit-auth');
   if (!authRes.ok) throw new Error('Failed to get upload token');
   const { token, expire, signature } = await authRes.json();
 
   const formData = new FormData();
-  formData.append('file', compressed, `gym-logo-${Date.now()}.jpg`);
-  formData.append('fileName', `gym-logo-${Date.now()}.jpg`);
+  formData.append('file', compressed, fileName);
+  formData.append('fileName', fileName);
   formData.append('publicKey', import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY);
   formData.append('signature', signature);
   formData.append('expire', String(expire));
   formData.append('token', token);
-  formData.append('folder', '/gym-erp/logos');
+  formData.append('folder', folder);
 
   const res = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
     method: 'POST',
@@ -36,4 +37,12 @@ export async function uploadGymLogo(file) {
 
   const data = await res.json();
   return data.url;
+}
+
+export function uploadGymLogo(file) {
+  return uploadToImageKit(file, { folder: '/gym-erp/logos', prefix: 'gym-logo' });
+}
+
+export function uploadMemberPhoto(file) {
+  return uploadToImageKit(file, { folder: '/gym-erp/members', prefix: 'member' });
 }

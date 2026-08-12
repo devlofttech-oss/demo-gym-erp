@@ -17,8 +17,16 @@
       "Bash(xargs grep -l \"getTenantCollection\\\\|getTenantDocument\")",
       "Bash(xargs grep -l \"getTenantCollection\")",
       "Bash(node _migrate_test.mjs)",
-      "Read(//d/flutter/packages/flutter_tools/gradle/src/main/kotlin/**)"
+      "Read(//d/flutter/packages/flutter_tools/gradle/src/main/kotlin/**)",
+      "Read(//d/Devloft-work/kilos-website/app/**)"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": [
+      "d:\\Devloft-work\\kilos-website\\src\\components",
+      "d:\\Devloft-work\\kilos-website\\src\\views",
+      "d:\\Devloft-work\\kilos-website\\app\\privacy",
+      "d:\\Devloft-work\\kilos-website\\app\\terms",
+      "d:\\Devloft-work\\kilos-website\\app\\delete-account"
+    ]
   }
 }

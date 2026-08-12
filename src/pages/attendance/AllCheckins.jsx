@@ -91,6 +91,35 @@ export default function AllCheckins() {
     return matchDate && (!term || a.memberName?.toLowerCase().includes(term));
   });
 
+  const downloadCSV = () => {
+    if (filtered.length === 0) { toast.error('No records to download'); return; }
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [...filtered].sort((a, b) => {
+      const da = a.checkInTime || a.timestamp || a.date || 0;
+      const db = b.checkInTime || b.timestamp || b.date || 0;
+      return new Date(da) - new Date(db);
+    }).map(a => {
+      const d = getRecordDate(a);
+      return [
+        a.memberName || 'Unknown',
+        d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        formatTime(a.checkInTime || a.timestamp),
+        a.checkOutTime ? formatTime(a.checkOutTime) : 'Active',
+        a.duration ? formatDuration(a.duration) : '',
+      ].map(esc).join(',');
+    });
+    const header = ['Member', 'Date', 'Check-in', 'Check-out', 'Duration'].map(esc).join(',');
+    const csv = [header, ...rows].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const label = dateFilter === 'custom' ? customDate : dateFilter;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance-${label}-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const totalToday = records.filter(a => getRecordDate(a) === today).length;
   const totalMonth = records.filter(a => { const d = getRecordDate(a); return d && d >= monthStart; }).length;
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -98,9 +127,16 @@ export default function AllCheckins() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-h1 text-h1 text-on-surface">Attendance Log</h1>
-        <p className="font-body-lg text-body-lg text-on-surface-variant">All member check-ins sorted by date.</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-h1 text-h1 text-on-surface">Attendance Log</h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant">All member check-ins sorted by date.</p>
+        </div>
+        <button onClick={downloadCSV} disabled={loading || filtered.length === 0}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors shadow-sm shrink-0 disabled:opacity-50">
+          <span className="material-symbols-outlined text-[18px]">download</span>
+          Download Sheet
+        </button>
       </div>
 
       {/* KPIs */}
