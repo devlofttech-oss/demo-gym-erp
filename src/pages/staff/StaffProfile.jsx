@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTenantDocument, getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +30,7 @@ export default function StaffProfile() {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const qrRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -68,6 +69,40 @@ export default function StaffProfile() {
     await updateTenantDocument(gymId, 'staff', id, { photoUrl: null });
     toast.success('Photo removed!');
     fetchData();
+  };
+
+  const downloadQR = () => {
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) { toast.error('QR not ready'); return; }
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const qrSize = 200;
+    const padding = 24;
+    const textHeight = 52;
+    const canvas = document.createElement('canvas');
+    canvas.width = qrSize + padding * 2;
+    canvas.height = qrSize + padding * 2 + textHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      ctx.fillStyle = '#1e1b4b';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(member?.name || '', canvas.width / 2, qrSize + padding + 22);
+      ctx.fillStyle = '#7c3aed';
+      ctx.font = '11px sans-serif';
+      ctx.fillText((member?.role || 'STAFF').toUpperCase(), canvas.width / 2, qrSize + padding + 42);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.download = `${member?.name || 'staff'}-qr.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+    img.src = url;
   };
 
   if (loading) return (
@@ -248,11 +283,16 @@ export default function StaffProfile() {
           <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-sm p-6 shadow-2xl flex flex-col items-center gap-4">
             <h2 className="font-bold text-on-surface text-lg">Staff QR Code</h2>
             <p className="text-sm text-on-surface-variant text-center">Use this QR for attendance check-in/out</p>
-            <div className="p-4 bg-white rounded-2xl shadow-sm">
-              <QRCodeSVG value={member.qrId || member.id} size={180} />
+            <div ref={qrRef} className="p-4 bg-white rounded-2xl shadow-sm">
+              <QRCodeSVG value={member.qrId || member.id} size={180} fgColor="#1e1b4b" bgColor="#ffffff" level="H" />
             </div>
             <p className="text-xs text-on-surface-variant font-mono">{member.name}</p>
-            <button onClick={() => setShowQR(false)} className="w-full py-2.5 rounded-xl bg-surface-container text-on-surface font-medium hover:bg-surface-container-high transition-colors">Close</button>
+            <div className="flex gap-2 w-full">
+              <button onClick={downloadQR} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-on-primary font-medium hover:bg-primary/90 transition-colors shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">download</span> Download
+              </button>
+              <button onClick={() => setShowQR(false)} className="flex-1 py-2.5 rounded-xl bg-surface-container text-on-surface font-medium hover:bg-surface-container-high transition-colors">Close</button>
+            </div>
           </div>
         </div>
       )}
