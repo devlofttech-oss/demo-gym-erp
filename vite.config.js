@@ -40,16 +40,15 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/fast2sms/, ''),
         },
-        '/api': {
+        // Proxy /api/* to Frappe EXCEPT /api/imagekit-auth — that path is served
+        // by the imagekit-auth dev middleware above. A regex key with a negative
+        // lookahead reliably excludes it (proxy 'bypass' isn't honored by all
+        // Vite versions). Otherwise Frappe returns an HTML 404 and the client's
+        // res.json() throws "Unexpected token '<'".
+        '^/api/(?!imagekit-auth)': {
           target: erpUrl,
           changeOrigin: true,
           secure: true,
-          // Don't proxy the local ImageKit auth endpoint to Frappe — let the
-          // imagekit-auth dev middleware handle it (otherwise Frappe returns an
-          // HTML 404 and the client's res.json() blows up).
-          bypass: (req) => {
-            if (req.url?.startsWith('/api/imagekit-auth')) return req.url;
-          },
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
               if (apiKey && apiSecret) {
