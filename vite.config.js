@@ -44,6 +44,12 @@ export default defineConfig(({ mode }) => {
           target: erpUrl,
           changeOrigin: true,
           secure: true,
+          // Don't proxy the local ImageKit auth endpoint to Frappe — let the
+          // imagekit-auth dev middleware handle it (otherwise Frappe returns an
+          // HTML 404 and the client's res.json() blows up).
+          bypass: (req) => {
+            if (req.url?.startsWith('/api/imagekit-auth')) return req.url;
+          },
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
               if (apiKey && apiSecret) {
