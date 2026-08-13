@@ -30,8 +30,9 @@ const ADMIN_NAV_ALL = [
 const ADMIN_PINNED = ['/', '/members', '/checkin', '/payments'];
 
 const STAFF_NAV = [
-  { to: '/checkin',    icon: 'how_to_reg',     label: 'Check-in',   fill: true, end: false },
-  { to: '/attendance', icon: 'event_available', label: 'Attendance', fill: true, end: false },
+  { to: '/checkin',      icon: 'how_to_reg',     label: 'Check-in',     fill: true, end: false },
+  { to: '/attendance',   icon: 'event_available', label: 'Attendance',   fill: true, end: false },
+  { to: '/measurements', icon: 'monitor_weight',  label: 'Measure',      fill: true, end: false },
 ];
 
 export default function DashboardLayout() {
