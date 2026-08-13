@@ -2,14 +2,26 @@ import { useRef, useState } from 'react';
 import { uploadMemberPhoto } from '../../utils/imagekit';
 import toast from 'react-hot-toast';
 
-export default function PhotoUpload({ onUpload, onDelete, hasPhoto = false, compact = false }) {
+// `onUpload`     — immediate mode: uploads to ImageKit now and returns the URL.
+// `onSelectFile` — deferred mode: hands the raw File to the parent WITHOUT uploading,
+//                  so the parent can upload only on save (avoids orphaned uploads when
+//                  a create form is abandoned). Takes precedence over onUpload.
+export default function PhotoUpload({ onUpload, onSelectFile, onDelete, hasPhoto = false, compact = false, label }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); e.target.value = ''; return; }
+
+    // Deferred mode — don't upload yet, just pass the file up for preview + save-time upload.
+    if (onSelectFile) {
+      onSelectFile(file);
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     try {
       const url = await uploadMemberPhoto(file);
@@ -21,6 +33,8 @@ export default function PhotoUpload({ onUpload, onDelete, hasPhoto = false, comp
       e.target.value = '';
     }
   };
+
+  const idleLabel = label || (compact ? 'Upload' : 'Upload Photo');
 
   const uploadBtn = (
     <button
@@ -34,7 +48,7 @@ export default function PhotoUpload({ onUpload, onDelete, hasPhoto = false, comp
     >
       {uploading
         ? <><span className="material-symbols-outlined animate-spin text-[13px]">progress_activity</span> {compact ? 'Uploading…' : 'Uploading...'}</>
-        : <><span className="material-symbols-outlined text-[13px]">upload</span> {compact ? 'Upload' : 'Upload Photo'}</>
+        : <><span className="material-symbols-outlined text-[13px]">upload</span> {idleLabel}</>
       }
     </button>
   );

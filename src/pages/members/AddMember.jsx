@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getTenantDocument, getTenantCollection, createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
+import { uploadMemberPhoto } from '../../utils/imagekit';
 
 const TYPE_LABELS = {
   'gym': 'Gym',
@@ -36,8 +37,24 @@ export default function AddMember() {
   const { gymId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [loadingMember, setLoadingMember] = useState(isEdit);
-  const [photoUrl, setPhotoUrl] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');        // existing photo (edit mode) or after save
+  const [photoFile, setPhotoFile] = useState(null);    // newly picked file, uploaded only on save
+  const [photoPreview, setPhotoPreview] = useState(''); // local object URL for instant preview
   const [existingCredit, setExistingCredit] = useState(0); // paidFees already on account
+
+  // Deferred photo handling — the file is NOT uploaded to ImageKit until the member is
+  // actually saved, so abandoning the form never leaves an orphaned image.
+  const handleSelectPhoto = (file) => {
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview('');
+    setPhotoUrl('');
+  };
+  // Revoke the object URL when it changes or the form unmounts.
+  useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -175,6 +192,19 @@ export default function AddMember() {
     try {
       setLoading(true);
 
+      // Upload the photo now (only if one was picked) — deferred so an abandoned
+      // form never creates an orphaned ImageKit file.
+      let finalPhotoUrl = photoUrl;
+      if (photoFile) {
+        try {
+          finalPhotoUrl = await uploadMemberPhoto(photoFile);
+        } catch (err) {
+          toast.error(err?.message ? `Photo upload failed: ${err.message}` : 'Photo upload failed');
+          setLoading(false);
+          return;
+        }
+      }
+
       const memberData = {
         name:             formData.name,
         phone:            formData.phone,
@@ -190,7 +220,7 @@ export default function AddMember() {
         balanceFees:      balance,
         ...(discount > 0 && { discountPercent: discount }),
         ...(nextPaymentDate && { nextPaymentDate }),
-        ...(photoUrl && { photoUrl }),
+        ...(finalPhotoUrl && { photoUrl: finalPhotoUrl }),
         ...(formData.emergencyContact && { emergencyContact: formData.emergencyContact }),
         ...(formData.fitnessGoal && { fitnessGoal: formData.fitnessGoal }),
         ...(formData.healthNotes && { healthNotes: formData.healthNotes }),
@@ -301,19 +331,19 @@ export default function AddMember() {
             {/* Photo */}
             <div className="flex items-center gap-4 mb-5">
               <div className="w-20 h-20 rounded-full bg-primary-container text-primary flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden border-2 border-outline-variant/20">
-                {photoUrl
-                  ? <img src={photoUrl} alt="preview" className="w-full h-full object-cover" />
+                {(photoPreview || photoUrl)
+                  ? <img src={photoPreview || photoUrl} alt="preview" className="w-full h-full object-cover" />
                   : (formData.name ? formData.name.charAt(0).toUpperCase() : <span className="material-symbols-outlined text-[28px] opacity-50">person</span>)
                 }
               </div>
               <div className="flex flex-col gap-1">
-                <PhotoUpload onUpload={(url) => setPhotoUrl(url)} />
-                {photoUrl && (
-                  <button type="button" onClick={() => setPhotoUrl('')} className="text-xs text-rose-500 hover:text-rose-600 text-left transition-colors">
+                <PhotoUpload onSelectFile={handleSelectPhoto} label="Choose Photo" />
+                {(photoPreview || photoUrl) && (
+                  <button type="button" onClick={removePhoto} className="text-xs text-rose-500 hover:text-rose-600 text-left transition-colors">
                     Remove photo
                   </button>
                 )}
-                <p className="text-xs text-on-surface-variant">Optional — JPG, PNG up to 5 MB</p>
+                <p className="text-xs text-on-surface-variant">Optional — uploaded when you save. JPG, PNG up to 5 MB</p>
               </div>
             </div>
 
