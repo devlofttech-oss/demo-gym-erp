@@ -8,6 +8,7 @@ import PhotoUpload from '../../components/ui/PhotoUpload';
 import kilosLogo from '../../assets/kilos_logo.png';
 import SendSMSModal from '../../components/messaging/SendSMSModal';
 import MeasurementForm from '../measurements/MeasurementForm';
+import { qrSvgToPngBlob, shareQrOnWhatsApp } from '../../utils/memberQr';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -177,6 +178,18 @@ export default function MemberProfile() {
       a.click();
     };
     img.src = url;
+  };
+
+  const shareQR = async () => {
+    try {
+      const blob = await qrSvgToPngBlob(qrRef.current?.querySelector('svg'), {
+        name: member?.name, caption: gymInfo?.name,
+      });
+      const result = await shareQrOnWhatsApp(blob, {
+        name: member?.name, phone: member?.phone, gymName: gymInfo?.name,
+      });
+      if (result === 'fallback') toast('QR downloaded — attach it in the WhatsApp chat', { icon: '📎', duration: 4000 });
+    } catch { toast.error('Could not share QR'); }
   };
 
   const downloadReceipt = () => {
@@ -658,9 +671,14 @@ export default function MemberProfile() {
                   <p className="text-sm font-semibold text-on-surface">{member.name}</p>
                   <p className="text-xs text-on-surface-variant mt-0.5">Scan at gym entrance to check in</p>
                 </div>
-                <button onClick={downloadQR} className="w-full flex items-center justify-center gap-2 bg-primary text-on-primary px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm shadow-sm">
-                  <span className="material-symbols-outlined text-[18px]">download</span> Download QR
-                </button>
+                <div className="flex flex-col gap-2 w-full">
+                  <button onClick={shareQR} className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white px-4 py-2.5 rounded-lg font-medium hover:brightness-95 transition-all text-sm shadow-sm">
+                    <span className="material-symbols-outlined text-[18px]">share</span> Share on WhatsApp
+                  </button>
+                  <button onClick={downloadQR} className="w-full flex items-center justify-center gap-2 bg-primary/10 text-primary px-4 py-2.5 rounded-lg font-medium hover:bg-primary/20 transition-colors text-sm">
+                    <span className="material-symbols-outlined text-[18px]">download</span> Download QR
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="text-xs text-on-surface-variant">Click "Show QR" to view and print this member's entry QR code.</p>

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getTenantDocument, getTenantCollection, createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
+import MemberQRModal from '../../components/ui/MemberQRModal';
 import { uploadMemberPhoto } from '../../utils/imagekit';
 
 const TYPE_LABELS = {
@@ -34,8 +35,9 @@ export default function AddMember() {
   const [searchParams] = useSearchParams();
   const { id: editId } = useParams();
   const isEdit = !!editId;
-  const { gymId } = useAuth();
+  const { gymId, gymData } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [createdMember, setCreatedMember] = useState(null); // triggers the QR share modal
   const [loadingMember, setLoadingMember] = useState(isEdit);
   const [photoUrl, setPhotoUrl] = useState('');        // existing photo (edit mode) or after save
   const [photoFile, setPhotoFile] = useState(null);    // newly picked file, uploaded only on save
@@ -271,7 +273,12 @@ export default function AddMember() {
         toast.success('Member added & payment recorded!');
       }
 
-      navigate(`/members/${memberId}`);
+      if (isEdit) {
+        navigate(`/members/${memberId}`);
+      } else {
+        // Show the QR share modal; navigation happens when it's dismissed.
+        setCreatedMember({ id: memberId, name: formData.name, phone: formData.phone });
+      }
     } catch (error) {
       console.error(error);
       toast.error(isEdit ? 'Failed to update member' : 'Failed to add member');
@@ -300,6 +307,13 @@ export default function AddMember() {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
+      {createdMember && (
+        <MemberQRModal
+          member={createdMember}
+          gymName={gymData?.name}
+          onClose={() => navigate(`/members/${createdMember.id}`)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
