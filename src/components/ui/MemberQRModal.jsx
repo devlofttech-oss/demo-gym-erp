@@ -19,10 +19,10 @@ export default function MemberQRModal({ member, gymName, onClose }) {
 
   const handleShare = async () => {
     try {
-      const result = await shareQrOnWhatsApp(await getBlob(), {
+      const { hint } = await shareQrOnWhatsApp(await getBlob(), {
         name: member.name, phone: member.phone, gymName,
       });
-      if (result === 'fallback') toast('QR downloaded — attach it in the WhatsApp chat', { icon: '📎', duration: 4000 });
+      if (hint) toast(hint, { icon: '📎', duration: 5000 });
     } catch { toast.error('Could not share QR'); }
   };
 

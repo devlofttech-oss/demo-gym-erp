@@ -185,10 +185,10 @@ export default function MemberProfile() {
       const blob = await qrSvgToPngBlob(qrRef.current?.querySelector('svg'), {
         name: member?.name, caption: gymInfo?.name,
       });
-      const result = await shareQrOnWhatsApp(blob, {
+      const { hint } = await shareQrOnWhatsApp(blob, {
         name: member?.name, phone: member?.phone, gymName: gymInfo?.name,
       });
-      if (result === 'fallback') toast('QR downloaded — attach it in the WhatsApp chat', { icon: '📎', duration: 4000 });
+      if (hint) toast(hint, { icon: '📎', duration: 5000 });
     } catch { toast.error('Could not share QR'); }
   };
 
