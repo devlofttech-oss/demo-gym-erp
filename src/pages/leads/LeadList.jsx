@@ -55,6 +55,22 @@ function thisMonthISO() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// createdAt comes back from Firestore as a Timestamp (not a string), so coerce
+// safely before comparing/sorting. Handles Timestamp, ISO string, Date, epoch ms.
+function toMs(val) {
+  if (!val) return 0;
+  const d = val?.toDate ? val.toDate() : new Date(val);
+  return isNaN(d) ? 0 : d.getTime();
+}
+
+function inMonth(val, monthStr) {
+  if (!val) return false;
+  if (typeof val === 'string') return val.startsWith(monthStr);
+  const d = val?.toDate ? val.toDate() : new Date(val);
+  if (isNaN(d)) return false;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === monthStr;
+}
+
 export default function LeadList() {
   const { gymId } = useAuth();
   const navigate = useNavigate();
@@ -71,11 +87,7 @@ export default function LeadList() {
     setLoading(true);
     try {
       const data = await getTenantCollection(gymId, 'leads');
-      data.sort((a, b) => {
-        const ta = a.createdAt ?? '';
-        const tb = b.createdAt ?? '';
-        return tb.localeCompare(ta);
-      });
+      data.sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
       setLeads(data);
     } catch (err) {
       console.error(err);
@@ -99,7 +111,7 @@ export default function LeadList() {
   const today = todayISO();
   const monthPrefix = thisMonthISO();
   const totalCount = leads.length;
-  const thisMonthCount = leads.filter((l) => (l.createdAt ?? '').startsWith(monthPrefix)).length;
+  const thisMonthCount = leads.filter((l) => inMonth(l.createdAt, monthPrefix)).length;
   const wonCount = leads.filter((l) => l.status === 'won').length;
   const followUpTodayCount = leads.filter(
     (l) => l.nextFollowUp === today && l.status !== 'won' && l.status !== 'lost'

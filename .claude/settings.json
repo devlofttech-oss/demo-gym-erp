@@ -3,6 +3,7 @@
     "allow": [
       "Bash",
       "PowerShell",
+      "PowerShell(*)",
       "Bash(git *)",
       "PowerShell(git *)",
       "PowerShell(cd * git *)",
@@ -18,7 +19,9 @@
       "Bash(xargs grep -l \"getTenantCollection\")",
       "Bash(node _migrate_test.mjs)",
       "Read(//d/flutter/packages/flutter_tools/gradle/src/main/kotlin/**)",
-      "Read(//d/Devloft-work/kilos-website/app/**)"
+      "Read(//d/Devloft-work/kilos-website/app/**)",
+      "Read(//d/Devloft-work-Kilos-ERP/src/pages/staff/**)",
+      "mcp__playwright__browser_close"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [

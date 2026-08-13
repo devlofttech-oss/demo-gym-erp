@@ -23,6 +23,21 @@ function formatDate(dateStr) {
   }
 }
 
+// True if a date-ish value falls in the given "YYYY-MM" month. Handles ISO
+// strings, Firestore Timestamps ({toDate()} / {seconds}), Dates and epoch ms —
+// createdAt comes back from Firestore as a Timestamp, not a string.
+function inMonth(value, monthStr) {
+  if (!value) return false;
+  if (typeof value === 'string') return value.startsWith(monthStr);
+  let d = null;
+  if (typeof value.toDate === 'function') d = value.toDate();
+  else if (value instanceof Date) d = value;
+  else if (typeof value.seconds === 'number') d = new Date(value.seconds * 1000);
+  else if (typeof value === 'number') d = new Date(value);
+  if (!d || isNaN(d)) return false;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === monthStr;
+}
+
 function formatTime(timeStr) {
   if (!timeStr) return '—';
   try {
@@ -465,11 +480,11 @@ export default function PTList() {
     // Unique members who have at least one session
     const activeClients = new Set(sessions.map((s) => s.memberName).filter(Boolean)).size;
 
-    const sessionsThisMonth = sessions.filter((s) => s.date && s.date.startsWith(monthStr)).length;
+    const sessionsThisMonth = sessions.filter((s) => inMonth(s.date, monthStr)).length;
 
     // Revenue = sum of package prices for packages created this month
     const revenueThisMonth = packages
-      .filter((p) => p.createdAt && p.createdAt.startsWith(monthStr))
+      .filter((p) => inMonth(p.createdAt, monthStr))
       .reduce((sum, p) => sum + (Number(p.price) || 0), 0);
 
     return { totalPackages, activeClients, sessionsThisMonth, revenueThisMonth };
