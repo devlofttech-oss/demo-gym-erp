@@ -377,10 +377,19 @@ export default function CheckinScreen({ isKiosk = false }) {
           <div className="rounded-xl overflow-hidden border-2 border-outline-variant/30 mb-6 bg-black flex-1 relative">
             <div id="reader" className="w-full h-full min-h-75"></div>
             <style>{`
+              /* Keep everything html5-qrcode injects inside the container (mobile overflow fix) */
+              #reader { width: 100% !important; border: none !important; padding: 0 !important; }
+              #reader * { max-width: 100% !important; box-sizing: border-box; }
+              #reader video { width: 100% !important; height: auto !important; display: block; }
+              #reader img { max-width: 100%; height: auto; }
               #reader__scan_region { background: #000; }
+              #reader__scan_region video { object-fit: cover; }
+              #reader__dashboard { padding: 10px !important; }
+              #reader__dashboard_section_csr { display: flex; flex-direction: column; align-items: stretch; gap: 4px; word-break: break-word; }
               #reader__dashboard_section_csr span { color: #fff; margin-bottom: 8px; display: block; }
-              #reader button { background: #7c3aed; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin: 4px; font-weight: 500; }
-              #reader select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 8px; }
+              #reader__dashboard_section_swaplink { word-break: break-word; }
+              #reader button { background: #7c3aed; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin: 4px 0; font-weight: 500; max-width: 100%; }
+              #reader select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 8px; width: 100%; max-width: 100%; }
             `}</style>
           </div>
 
@@ -390,14 +399,14 @@ export default function CheckinScreen({ isKiosk = false }) {
                 <label className="font-medium text-sm text-on-surface">Manual Fallback (Members)</label>
                 <div className="flex gap-2">
                   <select value={selectedMemberId} onChange={e => setSelectedMemberId(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-surface-container border border-outline-variant/30 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none font-medium">
+                    className="flex-1 min-w-0 px-4 py-3 bg-surface-container border border-outline-variant/30 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none appearance-none font-medium">
                     <option value="">-- Select Member --</option>
                     {loading ? <option disabled>Loading...</option> : members.map(m => (
                       <option key={m.id} value={m.id}>{m.name} ({m.phone})</option>
                     ))}
                   </select>
                   <button type="submit" disabled={checkingIn || loading || !selectedMemberId}
-                    className="bg-primary text-on-primary px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center">
+                    className="bg-primary text-on-primary px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 flex items-center justify-center shrink-0 whitespace-nowrap">
                     Check In
                   </button>
                 </div>
@@ -435,21 +444,21 @@ export default function CheckinScreen({ isKiosk = false }) {
                 const iconColor = isWarning ? 'bg-amber-100 text-amber-700' : isGrace ? 'bg-blue-100 text-blue-600' : isOut ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600';
                 const icon = isWarning ? 'warning' : isGrace ? 'schedule' : isOut ? 'logout' : 'login';
                 return (
-                  <div key={index} className={`flex items-center justify-between p-4 rounded-xl border shadow-sm ${bgClass}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconColor}`}>
+                  <div key={index} className={`flex items-center justify-between gap-2 p-4 rounded-xl border shadow-sm ${bgClass}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconColor}`}>
                         <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-on-surface">{record.memberName}</span>
-                        <span className="text-xs text-on-surface-variant">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-on-surface truncate">{record.memberName}</span>
+                        <span className="text-xs text-on-surface-variant truncate">
                           {isStaff ? `${record.role} · ` : ''}{isOut ? `Check-out${record.duration ? ` · ${record.duration} min` : ''}` : 'Check-in'}
                           {isWarning ? ` · Balance: ₹${record.balanceFees}` : ''}
                           {isGrace ? ` · Pay by ${record.nextPaymentDate}` : ''}
                         </span>
                       </div>
                     </div>
-                    <span className="font-bold text-on-surface text-sm">
+                    <span className="font-bold text-on-surface text-sm shrink-0">
                       {new Date(record.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
