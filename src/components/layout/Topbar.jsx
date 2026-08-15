@@ -71,6 +71,7 @@ export default function Topbar() {
   const { logout, currentUser, role, userName, gymId, gymData, gymIds, gymBranches, switchBranch, isImpersonating, impersonatedBranches, switchImpersonatedBranch } = useAuth();
   const navigate = useNavigate();
   const profileRef = useRef(null);
+  const notifBtnRef = useRef(null);
 
   useEffect(() => {
     if (role !== 'admin' || !gymId) return;
@@ -168,6 +169,7 @@ export default function Topbar() {
         {role === 'admin' && (
           <>
             <button
+              ref={notifBtnRef}
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className={`relative p-2 transition-colors rounded-full ${isNotifOpen ? 'bg-primary-container text-primary' : 'text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             >
@@ -178,7 +180,7 @@ export default function Topbar() {
                 </span>
               )}
             </button>
-            <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+            <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} triggerRef={notifBtnRef} />
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
           </>
         )}

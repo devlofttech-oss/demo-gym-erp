@@ -62,26 +62,9 @@ export default function DashboardLayout() {
   const { isImpersonating, gymData, exitGym, role } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const drawerRef = useRef(null);
 
   // Close More drawer on route change
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
-
-  // Close drawer on outside tap
-  useEffect(() => {
-    if (!moreOpen) return;
-    const handler = (e) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
-    };
-  }, [moreOpen]);
 
   const handleExit = () => {
     exitGym();
@@ -98,7 +81,6 @@ export default function DashboardLayout() {
     ? ADMIN_NAV_ALL.filter(n => !ADMIN_PINNED.includes(n.to))
     : [];
 
-  // Check if current route is in drawer items (to highlight More button)
   const isMoreActive = drawerItems.some(n =>
     n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)
   );
@@ -144,10 +126,8 @@ export default function DashboardLayout() {
             >
               {({ isActive }) => (
                 <>
-                  <span
-                    className="material-symbols-outlined text-[22px]"
-                    style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                  >
+                  <span className="material-symbols-outlined text-[22px]"
+                    style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
                     {item.icon}
                   </span>
                   <span className="text-[10px] font-medium leading-none">{item.label}</span>
@@ -156,50 +136,55 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
 
-          {/* More button (admin only) */}
+          {/* More — only opens, never toggles (close lives inside the overlay) */}
           {isAdmin && (
             <button
-              onClick={() => setMoreOpen(v => !v)}
+              onClick={() => setMoreOpen(true)}
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full py-1 rounded-xl transition-colors ${
                 isMoreActive || moreOpen ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
               }`}
             >
-              <span
-                className="material-symbols-outlined text-[22px]"
-                style={{ fontVariationSettings: (isMoreActive || moreOpen) ? "'FILL' 1" : "'FILL' 0" }}
-              >
-                {moreOpen ? 'close' : 'grid_view'}
+              <span className="material-symbols-outlined text-[22px]"
+                style={{ fontVariationSettings: (isMoreActive || moreOpen) ? "'FILL' 1" : "'FILL' 0" }}>
+                grid_view
               </span>
               <span className="text-[10px] font-medium leading-none">More</span>
             </button>
           )}
         </nav>
 
-        {/* ── More Drawer (bottom sheet) ── */}
+        {/* ── Full-screen App Drawer ── */}
         {moreOpen && (
-          <>
-            <div className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
+          <div className="md:hidden fixed inset-0 z-9999 flex flex-col"
+            style={{ background: 'rgba(10,10,20,0.96)', backdropFilter: 'blur(16px)' }}>
 
-            <div
-              ref={drawerRef}
-              className="md:hidden fixed bottom-16 inset-x-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl border-t border-slate-200/50 dark:border-slate-800/50 max-h-[80vh] overflow-y-auto"
-            >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-2 sticky top-0 bg-white dark:bg-slate-900 z-10">
-                <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-14 pb-5 shrink-0">
+              <div>
+                <h2 className="text-white text-xl font-bold tracking-tight">Modules</h2>
+                <p className="text-white/40 text-xs mt-0.5">{gymData?.name || 'Kilos'}</p>
               </div>
+              <button
+                onClick={() => setMoreOpen(false)}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white active:bg-white/20 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[22px]">close</span>
+              </button>
+            </div>
 
-              <div className="px-4 pb-8 flex flex-col gap-5">
+            {/* Module grid */}
+            <div className="flex-1 overflow-y-auto px-5 pb-24">
+              <div className="flex flex-col gap-6">
                 {DRAWER_GROUPS.map(group => {
                   const groupItems = group.items
                     .map(path => ADMIN_NAV_ALL.find(n => n.to === path))
                     .filter(Boolean);
                   return (
                     <div key={group.label}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 px-1">
+                      <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.15em] mb-3">
                         {group.label}
                       </p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-3">
                         {groupItems.map(item => {
                           const isActive = item.end
                             ? location.pathname === item.to
@@ -208,19 +193,23 @@ export default function DashboardLayout() {
                             <NavLink
                               key={item.to}
                               to={item.to}
-                              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${
+                              className={`flex flex-col items-center gap-2 py-3 px-1 rounded-2xl transition-all active:scale-95 ${
                                 isActive
-                                  ? 'bg-primary/10 text-primary'
-                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-700'
+                                  ? 'bg-primary/30 border border-primary/40'
+                                  : 'bg-white/8 border border-white/5 active:bg-white/15'
                               }`}
                             >
-                              <span
-                                className="material-symbols-outlined text-[18px] shrink-0"
-                                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                              >
-                                {item.icon}
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                isActive ? 'bg-primary' : 'bg-white/10'
+                              }`}>
+                                <span className="material-symbols-outlined text-[20px] text-white"
+                                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                                  {item.icon}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-medium text-white/70 text-center leading-tight">
+                                {item.label}
                               </span>
-                              <span className="text-[11px] font-medium leading-tight">{item.label}</span>
                             </NavLink>
                           );
                         })}
@@ -230,7 +219,7 @@ export default function DashboardLayout() {
                 })}
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

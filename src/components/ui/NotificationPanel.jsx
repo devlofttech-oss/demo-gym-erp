@@ -3,15 +3,16 @@ import { getTenantCollection } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
-export default function NotificationPanel({ isOpen, onClose }) {
+export default function NotificationPanel({ isOpen, onClose, triggerRef }) {
   const { gymId } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const panelRef = useRef(null);
 
-  // Close panel if clicked outside
+  // Close panel on outside click — but skip the trigger button (it owns its own toggle)
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (triggerRef?.current?.contains(event.target)) return;
       if (panelRef.current && !panelRef.current.contains(event.target)) {
         onClose();
       }
@@ -22,7 +23,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, triggerRef]);
 
   useEffect(() => {
     const fetchNotifications = async () => {
