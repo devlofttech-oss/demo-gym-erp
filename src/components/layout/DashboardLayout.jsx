@@ -16,10 +16,8 @@ const ADMIN_NAV_ALL = [
   { to: '/equipment',     icon: 'fitness_center',         label: 'Equipment',      fill: false              },
   { to: '/supplements',   icon: 'medication',             label: 'Supplements',    fill: true               },
   { to: '/leads',         icon: 'person_search',          label: 'Leads & CRM',    fill: true               },
-
   { to: '/workouts',      icon: 'exercise',               label: 'Workouts',       fill: true               },
   { to: '/pt',            icon: 'sports_martial_arts',    label: 'Personal Trng',  fill: true               },
-  // { to: '/diet',          icon: 'restaurant',             label: 'Diet & Nutrition',fill: true              }, // Diet module on hold
   { to: '/communication', icon: 'campaign',               label: 'Communication',  fill: true               },
   { to: '/expenses',      icon: 'receipt',                label: 'Expenses',       fill: true               },
   { to: '/reports/monthly',icon: 'insert_chart',          label: 'Reports',        fill: true               },
@@ -28,6 +26,30 @@ const ADMIN_NAV_ALL = [
 
 // 4 items pinned in the mobile bottom bar (admin)
 const ADMIN_PINNED = ['/', '/members', '/checkin', '/payments'];
+
+// Categorised groups shown in the "More" drawer
+const DRAWER_GROUPS = [
+  {
+    label: 'Members',
+    items: ['/leads', '/attendance', '/plans'],
+  },
+  {
+    label: 'Training',
+    items: ['/classes', '/workouts', '/pt'],
+  },
+  {
+    label: 'Finance',
+    items: ['/expenses', '/reports/monthly'],
+  },
+  {
+    label: 'Inventory',
+    items: ['/equipment', '/supplements'],
+  },
+  {
+    label: 'Manage',
+    items: ['/staff', '/communication', '/settings'],
+  },
+];
 
 const STAFF_NAV = [
   { to: '/checkin',      icon: 'how_to_reg',     label: 'Check-in',     fill: true, end: false },
@@ -156,47 +178,56 @@ export default function DashboardLayout() {
         {/* ── More Drawer (bottom sheet) ── */}
         {moreOpen && (
           <>
-            {/* Backdrop */}
             <div className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
 
-            {/* Sheet */}
             <div
               ref={drawerRef}
-              className="md:hidden fixed bottom-16 inset-x-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl border-t border-slate-200/50 dark:border-slate-800/50 max-h-[75vh] overflow-y-auto"
+              className="md:hidden fixed bottom-16 inset-x-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl border-t border-slate-200/50 dark:border-slate-800/50 max-h-[80vh] overflow-y-auto"
             >
               {/* Handle */}
-              <div className="flex justify-center pt-3 pb-1">
+              <div className="flex justify-center pt-3 pb-2 sticky top-0 bg-white dark:bg-slate-900 z-10">
                 <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
               </div>
 
-              <div className="px-4 pb-6">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 mt-2">All Modules</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {drawerItems.map(item => {
-                    const isActive = item.end
-                      ? location.pathname === item.to
-                      : location.pathname.startsWith(item.to);
-                    return (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors ${
-                          isActive
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-700'
-                        }`}
-                      >
-                        <span
-                          className="material-symbols-outlined text-[22px]"
-                          style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                        >
-                          {item.icon}
-                        </span>
-                        <span className="text-[10px] font-medium text-center leading-tight">{item.label}</span>
-                      </NavLink>
-                    );
-                  })}
-                </div>
+              <div className="px-4 pb-8 flex flex-col gap-5">
+                {DRAWER_GROUPS.map(group => {
+                  const groupItems = group.items
+                    .map(path => ADMIN_NAV_ALL.find(n => n.to === path))
+                    .filter(Boolean);
+                  return (
+                    <div key={group.label}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 px-1">
+                        {group.label}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {groupItems.map(item => {
+                          const isActive = item.end
+                            ? location.pathname === item.to
+                            : location.pathname.startsWith(item.to);
+                          return (
+                            <NavLink
+                              key={item.to}
+                              to={item.to}
+                              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-colors ${
+                                isActive
+                                  ? 'bg-primary/10 text-primary'
+                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-700'
+                              }`}
+                            >
+                              <span
+                                className="material-symbols-outlined text-[18px] shrink-0"
+                                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                              >
+                                {item.icon}
+                              </span>
+                              <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>

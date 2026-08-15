@@ -30,6 +30,7 @@ import PTList from './pages/pt/PTList';
 // import DietList from './pages/diet/DietList'; // Diet module on hold
 import CommunicationHub from './pages/communication/CommunicationHub';
 import RenewalsList from './pages/renewals/RenewalsList';
+import MemberQRPage from './pages/public/MemberQRPage';
 
 // Super Admin
 import SuperAdminLayout from './pages/super-admin/SuperAdminLayout';
@@ -59,6 +60,7 @@ export default function App() {
       <Route path="/subscription-ended" element={<SubscriptionEnded />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
+      <Route path="/qr/:memberId" element={<MemberQRPage />} />
 
       {/* Standalone scanner kiosk */}
       <Route path="/scanner" element={

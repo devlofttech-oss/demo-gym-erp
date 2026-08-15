@@ -50,47 +50,23 @@ function waNumber(phone) {
   return digits.length === 10 ? `91${digits}` : digits;
 }
 
-// Share the QR image on WhatsApp. Returns { status, hint } — `hint` is a
-// user-facing note to toast (or null when nothing extra is needed).
-//
-// 1. Mobile / Chrome+Edge desktop on Windows: Web Share sheet with the actual
-//    image attached (pick WhatsApp + contact). Best path.
-// 2. Desktop fallback: copy the QR image to the clipboard, open the WhatsApp
-//    Web chat (to the member if known), and download a backup — user pastes
-//    (Ctrl+V) the image into the chat. wa.me itself can't attach images.
-// 3. Clipboard blocked: download + open chat, user attaches the file manually.
-export async function shareQrOnWhatsApp(blob, { name = '', phone = '', gymName = '' } = {}) {
-  const file = new File([blob], `${name || 'member'}-qr.png`, { type: 'image/png' });
-  const text = `Hi ${name || 'there'}! Here's your ${gymName || 'gym'} check-in QR code. Show it at the entrance to check in. 💪`;
+// Build the public QR download page URL for a member.
+export function memberQrPageUrl(memberId, { name = '', gymName = '' } = {}) {
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  const params = new URLSearchParams();
+  if (name) params.set('name', name);
+  if (gymName) params.set('gym', gymName);
+  return `${base}/qr/${memberId}?${params.toString()}`;
+}
 
-  if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: `${name || 'Member'} — Gym QR`, text });
-      return { status: 'shared', hint: null };
-    } catch (e) {
-      if (e?.name === 'AbortError') return { status: 'cancelled', hint: null };
-      // fall through to the desktop path
-    }
-  }
-
+// Open WhatsApp with a pre-written message that contains the member's QR
+// download link. No file download, no clipboard — just a clean link share.
+export function shareQrOnWhatsApp(memberId, { name = '', phone = '', gymName = '' } = {}) {
+  const link = memberQrPageUrl(memberId, { name, gymName });
+  const text = `Hi ${name || 'there'}! 👋\nHere's your check-in QR code for *${gymName || 'our gym'}*.\n\nTap the link to download your QR:\n${link}\n\nShow it at the entrance to check in. 💪`;
   const num = waNumber(phone);
   const waUrl = num
     ? `https://wa.me/${num}?text=${encodeURIComponent(text)}`
     : `https://wa.me/?text=${encodeURIComponent(text)}`;
-
-  // Try to put the image on the clipboard so it can be pasted into WhatsApp Web.
-  let copied = false;
-  try {
-    if (navigator.clipboard && typeof window !== 'undefined' && window.ClipboardItem) {
-      await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
-      copied = true;
-    }
-  } catch { /* clipboard blocked — fall back to manual attach */ }
-
-  downloadBlob(blob, `${name || 'member'}-qr.png`);
   window.open(waUrl, '_blank');
-
-  return copied
-    ? { status: 'clipboard', hint: 'QR copied — paste it (Ctrl+V) into the WhatsApp chat. A copy was also downloaded.' }
-    : { status: 'download', hint: 'QR downloaded — attach it in the WhatsApp chat.' };
 }
