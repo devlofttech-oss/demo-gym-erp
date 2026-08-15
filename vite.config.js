@@ -35,11 +35,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        '/fast2sms': {
-          target: 'https://www.fast2sms.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/fast2sms/, ''),
-        },
         // Proxy /api/* to Frappe EXCEPT /api/imagekit-auth — that path is served
         // by the imagekit-auth dev middleware above. A regex key with a negative
         // lookahead reliably excludes it (proxy 'bypass' isn't honored by all

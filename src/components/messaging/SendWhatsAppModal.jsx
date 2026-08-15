@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { openWhatsApp } from '../../utils/whatsapp';
 
-export default function SendSMSModal({ phones, defaultMessage = '', recipientLabel = '', onClose }) {
+export default function SendWhatsAppModal({ phones, defaultMessage = '', recipientLabel = '', onClose }) {
   const [message, setMessage] = useState(defaultMessage);
 
   const validPhones = phones.filter(p => String(p).replace(/\D/g, '').length >= 10);

@@ -16,7 +16,7 @@ import { getTenantCollection, createTenantDocument } from '../../firebase/tenant
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import SendSMSModal from '../../components/messaging/SendSMSModal';
+import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 
 function daysUntilExpiry(expiryDate) {
   if (!expiryDate) return null;
@@ -37,8 +37,8 @@ export default function MemberList() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [importing, setImporting] = useState(false);
   const [importPreview, setImportPreview] = useState(null);
-  const [smsMember, setSmsMember] = useState(null);
-  const [smsMessage, setSmsMessage] = useState('');
+  const [remindMember, setRemindMember] = useState(null);
+  const [remindMessage, setRemindMessage] = useState('');
   const [page, setPage] = useState(1);
   const fileInputRef = useRef(null);
 
@@ -581,8 +581,8 @@ export default function MemberList() {
                       {member.phone && (
                         <button
                           onClick={() => {
-                            setSmsMember(member);
-                            setSmsMessage(`Dear ${member.name},\n\nThis is a kind reminder from Deep Fitness Gym.\n\nWe noticed your absence from recent classes. Regular attendance is very important to achieve your fitness goals and maintain consistency.\n\nKindly make sure to attend your upcoming sessions without fail. If you are unable to attend due to any reason, please inform the trainer in advance.\n\nLet's stay consistent and achieve your fitness goals together 💪\n\nThank you\nDeep Fitness Gym`);
+                            setRemindMember(member);
+                            setRemindMessage(`Dear ${member.name},\n\nThis is a kind reminder from Deep Fitness Gym.\n\nWe noticed your absence from recent classes. Regular attendance is very important to achieve your fitness goals and maintain consistency.\n\nKindly make sure to attend your upcoming sessions without fail. If you are unable to attend due to any reason, please inform the trainer in advance.\n\nLet's stay consistent and achieve your fitness goals together 💪\n\nThank you\nDeep Fitness Gym`);
                           }}
                           className="flex-1 flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors shadow-sm"
                         >
@@ -653,7 +653,7 @@ export default function MemberList() {
                 {isExpiringSoon && member.phone && (
                   <div className="flex gap-2 mt-1">
                     <button
-                      onClick={e => { e.stopPropagation(); setSmsMember(member); setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now!`); }}
+                      onClick={e => { e.stopPropagation(); setRemindMember(member); setRemindMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now!`); }}
                       className="flex-1 flex items-center justify-center gap-1 bg-primary text-on-primary py-2 rounded-xl text-sm font-semibold"
                     >
                       <span className="material-symbols-outlined text-[14px]">sms</span> Remind
@@ -750,8 +750,8 @@ export default function MemberList() {
                             <button
                               onClick={e => {
                                 e.stopPropagation();
-                                setSmsMember(member);
-                                setSmsMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now to continue your fitness journey! Visit us or call us to renew.`);
+                                setRemindMember(member);
+                                setRemindMessage(`Hi ${member.name}! Your membership expires on ${member.expiryDate}. Renew now to continue your fitness journey! Visit us or call us to renew.`);
                               }}
                               title={`Send SMS renewal reminder to ${member.name}`}
                               className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-on-primary px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm animate-pulse hover:animate-none"
@@ -802,12 +802,12 @@ export default function MemberList() {
         </div>{/* end desktop table wrapper */}
       </div>{/* end List Card outer */}
 
-      {smsMember && (
-        <SendSMSModal
-          phones={[smsMember.phone]}
-          recipientLabel={`${smsMember.name} · ${smsMember.phone}`}
-          defaultMessage={smsMessage}
-          onClose={() => { setSmsMember(null); setSmsMessage(''); }}
+      {remindMember && (
+        <SendWhatsAppModal
+          phones={[remindMember.phone]}
+          recipientLabel={`${remindMember.name} · ${remindMember.phone}`}
+          defaultMessage={remindMessage}
+          onClose={() => { setRemindMember(null); setRemindMessage(''); }}
         />
       )}
     </div>

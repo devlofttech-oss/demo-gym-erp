@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import SendSMSModal from '../../components/messaging/SendSMSModal';
+import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 
 const fmt12 = (t) => {
   if (!t) return '';
@@ -31,7 +31,7 @@ export default function ClassDetail() {
   const [enrolledMembers, setEnrolledMembers] = useState([]);
   const [allMembers, setAllMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showSMS, setShowSMS] = useState(false);
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -130,7 +130,7 @@ export default function ClassDetail() {
           <h1 className="font-h2 text-h2 text-on-surface">{cls.name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowSMS(true)} disabled={phones.length === 0}
+          <button onClick={() => setShowWhatsApp(true)} disabled={phones.length === 0}
             className="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50">
             <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>sms</span>
             Send SMS to Class
@@ -329,13 +329,13 @@ export default function ClassDetail() {
         </div>
       )}
 
-      {/* SMS Modal */}
-      {showSMS && (
-        <SendSMSModal
+      {/* WhatsApp Modal */}
+      {showWhatsApp && (
+        <SendWhatsAppModal
           phones={phones}
           recipientLabel={`${phones.length} members in ${cls.name}`}
           defaultMessage={`Dear Students,\n\nThis is a kind reminder from your gym.\n\nWe noticed your absence from recent classes. Regular attendance is very important to achieve your fitness goals and maintain consistency.\n\nKindly make sure to attend your upcoming sessions without fail. If you are unable to attend due to any reason, please inform the trainer in advance.\n\nLet's stay consistent and achieve your fitness goals together 💪\n\nThank you`}
-          onClose={() => setShowSMS(false)}
+          onClose={() => setShowWhatsApp(false)}
         />
       )}
 

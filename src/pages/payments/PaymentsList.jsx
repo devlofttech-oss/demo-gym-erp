@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom';
 import { getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import SendSMSModal from '../../components/messaging/SendSMSModal';
+import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 
 const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque'];
 const TABS = [
@@ -24,7 +24,7 @@ const TABS = [
   { id: 'dues',     label: 'Balance Due',   icon: 'payments'     },
 ];
 
-function getSMSDefaultMessage(member) {
+function getWhatsAppReminderMessage(member) {
   if (member.expiryDate && new Date(member.expiryDate) < new Date()) {
     return `Hi ${member.name}! Your membership expired on ${member.expiryDate}. Please renew to continue your fitness journey. Visit us today!`;
   }
@@ -747,12 +747,12 @@ export default function PaymentsList() {
         </div>
       )}
 
-      {/* Send SMS Modal */}
+      {/* Send WhatsApp Modal */}
       {messageMember && (
-        <SendSMSModal
+        <SendWhatsAppModal
           phones={[messageMember.phone]}
           recipientLabel={`${messageMember.name} · ${messageMember.phone}`}
-          defaultMessage={getSMSDefaultMessage(messageMember)}
+          defaultMessage={getWhatsAppReminderMessage(messageMember)}
           onClose={() => setMessageMember(null)}
         />
       )}

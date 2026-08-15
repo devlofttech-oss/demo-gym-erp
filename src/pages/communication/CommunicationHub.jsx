@@ -15,7 +15,6 @@ const announcementTypeColors = {
 };
 
 const channelColors = {
-  SMS: 'bg-amber-50 text-amber-700',
   Email: 'bg-sky-50 text-sky-700',
   WhatsApp: 'bg-emerald-50 text-emerald-700',
   'In-App': 'bg-violet-50 text-violet-700',

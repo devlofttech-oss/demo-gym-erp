@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 import kilosLogo from '../../assets/kilos_logo.png';
-import SendSMSModal from '../../components/messaging/SendSMSModal';
+import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import MeasurementForm from '../measurements/MeasurementForm';
 import { shareQrOnWhatsApp } from '../../utils/memberQr';
 
@@ -1033,7 +1033,7 @@ export default function MemberProfile() {
 
       {/* ── Remind Modal ── */}
       {showRemindModal && (
-        <SendSMSModal
+        <SendWhatsAppModal
           phones={[member.phone]}
           recipientLabel={member.name}
           defaultMessage={`Hi ${member.name}! You have a pending balance of ₹${Number(member.balanceFees).toLocaleString('en-IN')} at ${gymInfo?.name || 'our gym'}. Please clear your dues at the earliest. Thank you!`}

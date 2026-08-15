@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
+import { openWhatsApp } from '../../utils/whatsapp';
 import toast from 'react-hot-toast';
 
 function daysUntil(dateStr) {
@@ -9,6 +10,18 @@ function daysUntil(dateStr) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
   return Math.ceil((d - today) / 86400000);
+}
+
+function renewalReminderMessage(member) {
+  const days = daysUntil(member.expiryDate);
+  const plan = member.planName ? `${member.planName} ` : '';
+  let status;
+  if (days === null) status = 'is due for renewal';
+  else if (days < 0) status = `expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`;
+  else if (days === 0) status = 'expires today';
+  else status = `expires in ${days} day${days === 1 ? '' : 's'} (on ${member.expiryDate})`;
+  return `Hi ${member.name}! A quick reminder that your ${plan}membership ${status}. `
+    + `Please renew soon to continue your fitness journey without interruption. Thank you! 💪`;
 }
 
 export default function RenewalsList() {
@@ -181,6 +194,14 @@ export default function RenewalsList() {
                     {getDaysBadge(days)}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => openWhatsApp(member.phone, renewalReminderMessage(member))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#25D366]/10 text-[#128C4A] hover:bg-[#25D366]/20 transition-colors"
+                      title="Send renewal reminder on WhatsApp"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">chat</span>
+                      Remind
+                    </button>
                     <button
                       onClick={() => { setFreezeModal(member); setFreezeDate(''); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
