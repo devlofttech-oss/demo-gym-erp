@@ -276,6 +276,7 @@ export default function MemberList() {
     else if (filterStatus === 'Expired') matchStatus = !isFrozen && days !== null && days < 0;
     else if (filterStatus === 'Expiring') matchStatus = !isFrozen && days !== null && days >= 0 && days <= 7;
     else if (filterStatus === 'Frozen') matchStatus = isFrozen;
+    else if (filterStatus === 'Balance') matchStatus = Number(m.balanceFees) > 0;
     return matchSearch && matchStatus && matchesCategory(m, filterCategory);
   });
 
@@ -283,6 +284,8 @@ export default function MemberList() {
     const days = daysUntilExpiry(m.expiryDate);
     return days !== null && days >= 0 && days <= 7;
   }).length;
+
+  const balanceDueCount = members.filter(m => Number(m.balanceFees) > 0).length;
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -487,6 +490,7 @@ export default function MemberList() {
             { id: 'Expired',   label: 'Expired' },
             { id: 'Frozen',    label: 'Frozen' },
             { id: 'Absentees', label: 'Absentees' },
+            { id: 'Balance',   label: 'Balance Due' },
           ].map(({ id, label }) => (
             <button
               key={id}
@@ -497,11 +501,14 @@ export default function MemberList() {
                     ? 'bg-amber-500 text-white shadow-sm'
                     : id === 'Absentees'
                       ? 'bg-orange-500 text-white shadow-sm'
-                      : 'bg-primary text-on-primary shadow-sm'
+                      : id === 'Balance'
+                        ? 'bg-rose-600 text-white shadow-sm'
+                        : 'bg-primary text-on-primary shadow-sm'
                   : 'bg-surface-container-lowest border border-outline-variant/30 text-on-surface-variant hover:bg-surface-container'
               }`}
             >
               {id === 'Absentees' && <span className="material-symbols-outlined text-[14px]">person_off</span>}
+              {id === 'Balance' && <span className="material-symbols-outlined text-[14px]">account_balance_wallet</span>}
               {label}
               {id === 'Expiring' && expiringCount > 0 && (
                 <span className={`text-[10px] font-bold px-1.5 py-px rounded-full ${filterStatus === 'Expiring' ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-700'}`}>
@@ -511,6 +518,11 @@ export default function MemberList() {
               {id === 'Absentees' && absenteesLoaded && absentees.length > 0 && (
                 <span className={`text-[10px] font-bold px-1.5 py-px rounded-full ${filterStatus === 'Absentees' ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700'}`}>
                   {absentees.length}
+                </span>
+              )}
+              {id === 'Balance' && balanceDueCount > 0 && (
+                <span className={`text-[10px] font-bold px-1.5 py-px rounded-full ${filterStatus === 'Balance' ? 'bg-white/25 text-white' : 'bg-rose-100 text-rose-700'}`}>
+                  {balanceDueCount}
                 </span>
               )}
             </button>
@@ -649,6 +661,12 @@ export default function MemberList() {
                     {isExpiringSoon && <span className="block text-xs text-amber-500">⚠ {days}d left</span>}
                     {isExpired && <span className="block text-xs text-rose-500">{Math.abs(days)}d ago</span>}
                   </span>
+                  {Number(member.balanceFees) > 0 && (
+                    <>
+                      <span className="text-on-surface-variant">Balance</span>
+                      <span className="font-semibold text-rose-600">₹{Number(member.balanceFees).toLocaleString()}</span>
+                    </>
+                  )}
                 </div>
                 {isExpiringSoon && member.phone && (
                   <div className="flex gap-2 mt-1">
@@ -743,7 +761,17 @@ export default function MemberList() {
                           )}
                         </div>
                       </td>
-                      <td className="p-4">{getStatusBadge(effectiveStatus)}</td>
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          {getStatusBadge(effectiveStatus)}
+                          {Number(member.balanceFees) > 0 && (
+                            <span className="flex items-center gap-1 text-rose-600 text-[11px] font-semibold bg-rose-50 px-2 py-0.5 rounded-md w-fit">
+                              <span className="material-symbols-outlined text-[11px]">account_balance_wallet</span>
+                              ₹{Number(member.balanceFees).toLocaleString()} due
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4">
                         <div className="flex items-center justify-end gap-2">
                           {isExpiringSoon && member.phone && (
