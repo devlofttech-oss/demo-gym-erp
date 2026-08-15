@@ -1,18 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { getTenantCollection, getTenantDocument, setTenantDocument } from '../../firebase/tenantDb';
+import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-
-const DISMISSED_DOC = 'notifications-dismissed'; // gyms/{gymId}/settings/notifications-dismissed
-
-async function loadDismissed(gymId) {
-  const doc = await getTenantDocument(gymId, 'settings', DISMISSED_DOC).catch(() => null);
-  return new Set(doc?.ids || []);
-}
-
-async function saveDismissed(gymId, ids) {
-  await setTenantDocument(gymId, 'settings', DISMISSED_DOC, { ids: [...ids] });
-}
 
 export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef }) {
   const { gymId } = useAuth();
@@ -31,69 +20,22 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
   }, [isOpen, onClose, triggerRef]);
 
   useEffect(() => {
-    const fetchAndSync = async () => {
-      if (!isOpen || !gymId) return;
-      try {
-        setLoading(true);
-        const [members, payments, dismissed] = await Promise.all([
-          getTenantCollection(gymId, 'members'),
-          getTenantCollection(gymId, 'payments'),
-          loadDismissed(gymId),
-        ]);
-
-        const now = new Date(); now.setHours(0, 0, 0, 0);
-        const in7days = new Date(now); in7days.setDate(in7days.getDate() + 7); in7days.setHours(23, 59, 59, 999);
-        const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-        const notifs = [];
-
-        members.forEach(m => {
-          if (!m.expiryDate) return;
-          const exp = new Date(m.expiryDate);
-          // ID includes expiryDate so a renewal (new date) creates a fresh notification
-          const id = `exp-${m.id}-${m.expiryDate}`;
-          if (dismissed.has(id)) return;
-          if (exp >= now && exp <= in7days) {
-            const diffDays = Math.ceil((exp - now) / 864e5);
-            notifs.push({ id, type: 'expiry', title: 'Expiring Soon',
-              message: `${m.name}'s plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}.`,
-              date: new Date().toISOString(), link: `/members/${m.id}` });
-          } else if (exp < now && exp > new Date(now.getTime() - 7 * 864e5)) {
-            const diffDays = Math.floor((now - exp) / 864e5);
-            notifs.push({ id, type: 'expired', title: 'Membership Expired',
-              message: `${m.name}'s plan expired ${diffDays} day${diffDays !== 1 ? 's' : ''} ago.`,
-              date: new Date().toISOString(), link: `/members/${m.id}` });
-          }
-        });
-
-        payments.forEach(p => {
-          if (!p.date) return;
-          const id = `pay-${p.id}`;
-          if (dismissed.has(id)) return;
-          const pDate = new Date(p.date);
-          if (pDate >= yesterday)
-            notifs.push({ id, type: 'payment', title: 'Payment Received',
-              message: `₹${p.amount} from ${p.memberName || 'a member'}.`,
-              date: pDate.toISOString(), link: '/payments' });
-        });
-
-        notifs.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setNotifications(notifs);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAndSync();
+    if (!isOpen || !gymId) return;
+    setLoading(true);
+    getTenantCollection(gymId, 'notifications')
+      .then(docs => {
+        const sorted = [...docs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setNotifications(sorted);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [isOpen, gymId]);
 
   const handleClearAll = async () => {
     if (!notifications.length) return;
     setClearing(true);
     try {
-      const dismissed = await loadDismissed(gymId);
-      notifications.forEach(n => dismissed.add(n.id));
-      await saveDismissed(gymId, dismissed);
+      await Promise.all(notifications.map(n => deleteTenantDocument(gymId, 'notifications', n.id)));
       setNotifications([]);
       onClear?.();
     } catch (e) { console.error(e); }
@@ -102,9 +44,7 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
 
   const handleDismissOne = async (id) => {
     try {
-      const dismissed = await loadDismissed(gymId);
-      dismissed.add(id);
-      await saveDismissed(gymId, dismissed);
+      await deleteTenantDocument(gymId, 'notifications', id);
       setNotifications(prev => {
         const next = prev.filter(n => n.id !== id);
         if (next.length === 0) onClear?.();
@@ -168,7 +108,7 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
                     <span className="text-xs text-on-surface-variant leading-relaxed">{notif.message}</span>
                     <span className="text-[10px] text-on-surface-variant/60 mt-0.5 uppercase font-medium tracking-wider">
                       {notif.type === 'payment'
-                        ? new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        ? new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                         : 'Today'}
                     </span>
                   </div>
