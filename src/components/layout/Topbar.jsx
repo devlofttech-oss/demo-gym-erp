@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import NotificationPanel from '../ui/NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
-import { getTenantCollection } from '../../firebase/tenantDb';
+import { getTenantCollection, getTenantDocument } from '../../firebase/tenantDb';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '../../assets/kilos_logo.png';
 
@@ -77,10 +77,12 @@ export default function Topbar() {
     if (role !== 'admin' || !gymId) return;
     const fetchCount = async () => {
       try {
-        const [members, payments] = await Promise.all([
+        const [members, payments, dismissedDoc] = await Promise.all([
           getTenantCollection(gymId, 'members'),
           getTenantCollection(gymId, 'payments'),
+          getTenantDocument(gymId, 'settings', 'notifications-dismissed').catch(() => null),
         ]);
+        const dismissed = new Set(dismissedDoc?.ids || []);
         const now = new Date(); now.setHours(0, 0, 0, 0);
         const in7days = new Date(now); in7days.setDate(in7days.getDate() + 7); in7days.setHours(23, 59, 59, 999);
         const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
@@ -88,11 +90,15 @@ export default function Topbar() {
         members.forEach(m => {
           if (m.expiryDate) {
             const exp = new Date(m.expiryDate);
+            const id = `exp-${m.id}-${m.expiryDate}`;
+            if (dismissed.has(id)) return;
             if (exp >= now && exp <= in7days) count++;
             else if (exp < now && exp > new Date(now.getTime() - 7 * 864e5)) count++;
           }
         });
-        payments.forEach(p => { if (p.date && new Date(p.date) >= yesterday) count++; });
+        payments.forEach(p => {
+          if (p.date && new Date(p.date) >= yesterday && !dismissed.has(`pay-${p.id}`)) count++;
+        });
         setNotifCount(count);
       } catch { /* silent */ }
     };
