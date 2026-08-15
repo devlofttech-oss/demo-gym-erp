@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { getTenantCollection, setTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { getTenantCollection, getTenantDocument, setTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
+
+const DISMISSED_DOC = 'notifications-dismissed'; // gyms/{gymId}/settings/notifications-dismissed
+
+async function loadDismissed(gymId) {
+  const doc = await getTenantDocument(gymId, 'settings', DISMISSED_DOC).catch(() => null);
+  return new Set(doc?.ids || []);
+}
+
+async function saveDismissed(gymId, ids) {
+  await setTenantDocument(gymId, 'settings', DISMISSED_DOC, { ids: [...ids] });
+}
 
 export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef }) {
   const { gymId } = useAuth();
@@ -24,9 +35,10 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
       if (!isOpen || !gymId) return;
       try {
         setLoading(true);
-        const [members, payments] = await Promise.all([
+        const [members, payments, dismissed] = await Promise.all([
           getTenantCollection(gymId, 'members'),
           getTenantCollection(gymId, 'payments'),
+          loadDismissed(gymId),
         ]);
 
         const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -37,14 +49,17 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
         members.forEach(m => {
           if (!m.expiryDate) return;
           const exp = new Date(m.expiryDate);
+          // ID includes expiryDate so a renewal (new date) creates a fresh notification
+          const id = `exp-${m.id}-${m.expiryDate}`;
+          if (dismissed.has(id)) return;
           if (exp >= now && exp <= in7days) {
             const diffDays = Math.ceil((exp - now) / 864e5);
-            notifs.push({ id: `exp-${m.id}`, type: 'expiry', title: 'Expiring Soon',
+            notifs.push({ id, type: 'expiry', title: 'Expiring Soon',
               message: `${m.name}'s plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}.`,
               date: new Date().toISOString(), link: `/members/${m.id}` });
           } else if (exp < now && exp > new Date(now.getTime() - 7 * 864e5)) {
             const diffDays = Math.floor((now - exp) / 864e5);
-            notifs.push({ id: `exp-${m.id}`, type: 'expired', title: 'Membership Expired',
+            notifs.push({ id, type: 'expired', title: 'Membership Expired',
               message: `${m.name}'s plan expired ${diffDays} day${diffDays !== 1 ? 's' : ''} ago.`,
               date: new Date().toISOString(), link: `/members/${m.id}` });
           }
@@ -52,18 +67,16 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
 
         payments.forEach(p => {
           if (!p.date) return;
+          const id = `pay-${p.id}`;
+          if (dismissed.has(id)) return;
           const pDate = new Date(p.date);
           if (pDate >= yesterday)
-            notifs.push({ id: `pay-${p.id}`, type: 'payment', title: 'Payment Received',
+            notifs.push({ id, type: 'payment', title: 'Payment Received',
               message: `₹${p.amount} from ${p.memberName || 'a member'}.`,
               date: pDate.toISOString(), link: '/payments' });
         });
 
         notifs.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        // Write each notification to Firestore (upsert by ID)
-        await Promise.all(notifs.map(n => setTenantDocument(gymId, 'notifications', n.id, n)));
-
         setNotifications(notifs);
       } catch (e) {
         console.error(e);
@@ -75,26 +88,29 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
   }, [isOpen, gymId]);
 
   const handleClearAll = async () => {
+    if (!notifications.length) return;
     setClearing(true);
     try {
-      await Promise.all(notifications.map(n => deleteTenantDocument(gymId, 'notifications', n.id)));
+      const dismissed = await loadDismissed(gymId);
+      notifications.forEach(n => dismissed.add(n.id));
+      await saveDismissed(gymId, dismissed);
       setNotifications([]);
       onClear?.();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setClearing(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setClearing(false); }
   };
 
   const handleDismissOne = async (id) => {
     try {
-      await deleteTenantDocument(gymId, 'notifications', id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      if (notifications.length <= 1) onClear?.();
-    } catch (e) {
-      console.error(e);
-    }
+      const dismissed = await loadDismissed(gymId);
+      dismissed.add(id);
+      await saveDismissed(gymId, dismissed);
+      setNotifications(prev => {
+        const next = prev.filter(n => n.id !== id);
+        if (next.length === 0) onClear?.();
+        return next;
+      });
+    } catch (e) { console.error(e); }
   };
 
   if (!isOpen) return null;
@@ -103,7 +119,6 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
     <div ref={panelRef}
       className="absolute top-14 right-0 w-80 sm:w-96 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col max-h-[80vh]">
 
-      {/* Header */}
       <div className="px-4 py-3 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-low/50 shrink-0">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-on-surface">Notifications</h3>
@@ -124,7 +139,6 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
         )}
       </div>
 
-      {/* List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {loading ? (
           <div className="p-8 flex justify-center text-on-surface-variant">
