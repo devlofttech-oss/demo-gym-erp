@@ -8,7 +8,7 @@ import PhotoUpload from '../../components/ui/PhotoUpload';
 import kilosLogo from '../../assets/kilos_logo.png';
 import SendSMSModal from '../../components/messaging/SendSMSModal';
 import MeasurementForm from '../measurements/MeasurementForm';
-import { qrSvgToPngBlob, shareQrOnWhatsApp } from '../../utils/memberQr';
+import { shareQrOnWhatsApp } from '../../utils/memberQr';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -180,16 +180,10 @@ export default function MemberProfile() {
     img.src = url;
   };
 
-  const shareQR = async () => {
-    try {
-      const blob = await qrSvgToPngBlob(qrRef.current?.querySelector('svg'), {
-        name: member?.name, caption: gymInfo?.name,
-      });
-      const { hint } = await shareQrOnWhatsApp(blob, {
-        name: member?.name, phone: member?.phone, gymName: gymInfo?.name,
-      });
-      if (hint) toast(hint, { icon: '📎', duration: 5000 });
-    } catch { toast.error('Could not share QR'); }
+  const shareQR = () => {
+    shareQrOnWhatsApp(id, {
+      name: member?.name, phone: member?.phone, gymName: gymInfo?.name,
+    });
   };
 
   const downloadReceipt = () => {
