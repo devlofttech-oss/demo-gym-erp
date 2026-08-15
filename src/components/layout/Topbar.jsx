@@ -180,7 +180,7 @@ export default function Topbar() {
                 </span>
               )}
             </button>
-            <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} triggerRef={notifBtnRef} />
+            <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} onClear={() => setNotifCount(0)} triggerRef={notifBtnRef} />
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
           </>
         )}
