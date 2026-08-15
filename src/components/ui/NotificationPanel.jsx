@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
+import { getTenantCollection, setTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -7,24 +7,23 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
   const { gymId } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const panelRef = useRef(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (triggerRef?.current?.contains(event.target)) return;
-      if (panelRef.current && !panelRef.current.contains(event.target)) onClose();
+    const handleClickOutside = (e) => {
+      if (triggerRef?.current?.contains(e.target)) return;
+      if (panelRef.current && !panelRef.current.contains(e.target)) onClose();
     };
     if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose, triggerRef]);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchAndSync = async () => {
       if (!isOpen || !gymId) return;
       try {
         setLoading(true);
-        // Clean up stale dismissed-list doc left by a previous implementation
-        deleteTenantDocument(gymId, 'settings', 'notifications').catch(() => {});
         const [members, payments] = await Promise.all([
           getTenantCollection(gymId, 'members'),
           getTenantCollection(gymId, 'payments'),
@@ -42,12 +41,12 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
             const diffDays = Math.ceil((exp - now) / 864e5);
             notifs.push({ id: `exp-${m.id}`, type: 'expiry', title: 'Expiring Soon',
               message: `${m.name}'s plan expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}.`,
-              date: new Date(), link: `/members/${m.id}` });
+              date: new Date().toISOString(), link: `/members/${m.id}` });
           } else if (exp < now && exp > new Date(now.getTime() - 7 * 864e5)) {
             const diffDays = Math.floor((now - exp) / 864e5);
             notifs.push({ id: `exp-${m.id}`, type: 'expired', title: 'Membership Expired',
               message: `${m.name}'s plan expired ${diffDays} day${diffDays !== 1 ? 's' : ''} ago.`,
-              date: new Date(), link: `/members/${m.id}` });
+              date: new Date().toISOString(), link: `/members/${m.id}` });
           }
         });
 
@@ -57,10 +56,14 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
           if (pDate >= yesterday)
             notifs.push({ id: `pay-${p.id}`, type: 'payment', title: 'Payment Received',
               message: `₹${p.amount} from ${p.memberName || 'a member'}.`,
-              date: pDate, link: '/payments' });
+              date: pDate.toISOString(), link: '/payments' });
         });
 
-        notifs.sort((a, b) => b.date - a.date);
+        notifs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Write each notification to Firestore (upsert by ID)
+        await Promise.all(notifs.map(n => setTenantDocument(gymId, 'notifications', n.id, n)));
+
         setNotifications(notifs);
       } catch (e) {
         console.error(e);
@@ -68,17 +71,30 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
         setLoading(false);
       }
     };
-    fetch();
+    fetchAndSync();
   }, [isOpen, gymId]);
 
-  const handleClearAll = () => {
-    setNotifications([]);
-    onClear?.();   // resets the badge count in Topbar
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      await Promise.all(notifications.map(n => deleteTenantDocument(gymId, 'notifications', n.id)));
+      setNotifications([]);
+      onClear?.();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setClearing(false);
+    }
   };
 
-  const handleDismissOne = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    if (notifications.length <= 1) onClear?.();
+  const handleDismissOne = async (id) => {
+    try {
+      await deleteTenantDocument(gymId, 'notifications', id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      if (notifications.length <= 1) onClear?.();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   if (!isOpen) return null;
@@ -98,9 +114,11 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
           )}
         </div>
         {notifications.length > 0 && (
-          <button onClick={handleClearAll}
-            className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 font-medium transition-colors">
-            <span className="material-symbols-outlined text-[14px]">delete_sweep</span>
+          <button onClick={handleClearAll} disabled={clearing}
+            className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 font-medium transition-colors disabled:opacity-50">
+            {clearing
+              ? <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+              : <span className="material-symbols-outlined text-[14px]">delete_sweep</span>}
             Clear All
           </button>
         )}
@@ -125,7 +143,7 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
                   <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     notif.type === 'expiry'  ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
                     notif.type === 'expired' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
-                    'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                               'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
                   }`}>
                     <span className="material-symbols-outlined text-[16px]">
                       {notif.type === 'expiry' ? 'schedule' : notif.type === 'expired' ? 'event_busy' : 'payments'}
@@ -136,7 +154,7 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
                     <span className="text-xs text-on-surface-variant leading-relaxed">{notif.message}</span>
                     <span className="text-[10px] text-on-surface-variant/60 mt-0.5 uppercase font-medium tracking-wider">
                       {notif.type === 'payment'
-                        ? notif.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        ? new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                         : 'Today'}
                     </span>
                   </div>
