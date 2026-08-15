@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getTenantCollection } from '../../firebase/tenantDb';
+import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -23,6 +23,8 @@ export default function NotificationPanel({ isOpen, onClose, onClear, triggerRef
       if (!isOpen || !gymId) return;
       try {
         setLoading(true);
+        // Clean up stale dismissed-list doc left by a previous implementation
+        deleteTenantDocument(gymId, 'settings', 'notifications').catch(() => {});
         const [members, payments] = await Promise.all([
           getTenantCollection(gymId, 'members'),
           getTenantCollection(gymId, 'payments'),
