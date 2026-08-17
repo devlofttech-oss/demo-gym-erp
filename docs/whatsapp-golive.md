@@ -1,0 +1,105 @@
+# WhatsApp Cloud API — Go-Live Runbook (Feature 2)
+
+This is the checklist to take the WhatsApp send feature from code → live. All the
+code is already in the repo; these are the **dashboard + config** steps that only
+you can do (Meta account, phone number, secrets).
+
+Model: **centralized** — one Kilos-owned WhatsApp number sends for all gyms; the
+gym's name is inserted into each message. Send-only (no reply inbox), one-click
+send from the app buttons + bulk announcements. No daily auto-job.
+
+---
+
+## 1. Set these Environment Variables in Vercel
+Vercel → Project (Kilos ERP) → **Settings → Environment Variables**. Server-only —
+do **NOT** prefix with `VITE_` (that would leak them to the browser).
+
+| Variable | Value | Where to get it |
+|---|---|---|
+| `WHATSAPP_TOKEN` | Access token | Meta app → WhatsApp → API Setup (temp token for testing) → later a **permanent** System User token |
+| `WHATSAPP_PHONE_NUMBER_ID` | The "From" number's **Phone number ID** | Meta app → WhatsApp → API Setup (shown under the From number) |
+| `FIREBASE_SERVICE_ACCOUNT` | The **entire** service-account JSON, pasted as one value | Firebase Console → Project settings → **Service accounts** → *Generate new private key* → download → paste the file's contents |
+| `WHATSAPP_API_VERSION` | *(optional)* `v21.0` | default is fine |
+| `WHATSAPP_TEMPLATE_LANG` | *(optional)* `en_US` | must match the language of your approved templates |
+
+Optional template-name overrides (only if Meta approves them under different names):
+`WA_TPL_RENEWAL`, `WA_TPL_PAYMENT`, `WA_TPL_CLASS`, `WA_TPL_ANNOUNCEMENT`.
+
+After adding vars, **redeploy** (Vercel → Deployments → Redeploy) so the functions pick them up.
+
+---
+
+## 2. Create these Message Templates in Meta (get them approved)
+Meta → WhatsApp Manager → **Message templates → Create template**. Language **English (US)**
+(`en_US`) to match the default. Each `{{n}}` is filled in automatically by the app.
+
+> The template **name**, **language**, and **number/order of variables** must match exactly.
+
+**1. `renewal_reminder`** — Category: **Utility**
+```
+Hi {{1}}, this is a reminder from {{2}} that your membership expires on {{3}}. Please renew soon to keep training. Thank you!
+```
+Sample values: {{1}}=Ravi, {{2}}=Iron Gym, {{3}}=2026-09-01
+
+**2. `payment_due`** — Category: **Utility**
+```
+Hi {{1}}, this is a payment reminder from {{2}}. You have a pending balance of {{3}}. Please clear your dues at your earliest convenience.
+```
+Sample values: {{1}}=Ravi, {{2}}=Iron Gym, {{3}}=₹1,500
+
+**3. `class_reminder`** — Category: **Utility**
+```
+Hi {{1}}, we've missed you at {{2}}! Regular attendance keeps you on track — see you at your next session. Stay consistent!
+```
+Sample values: {{1}}=Ravi, {{2}}=Iron Gym
+
+**4. `announcement`** — Category: **Marketing**
+```
+Hi {{1}}! {{2}} — {{3}}
+```
+Sample values: {{1}}=Ravi, {{2}}=We're closed this Sunday for maintenance, {{3}}=Iron Gym
+
+Approval usually takes a few minutes to ~24h. **Marketing** templates are scrutinised
+more; if `announcement` is rejected for being too generic, add a clearer fixed prefix
+(e.g. start with "📢 Update from {{3}}:") and resubmit.
+
+---
+
+## 3. Business verification (to send to real members)
+- The **test number** can only message the (max 5) numbers you add in API Setup — good
+  for testing.
+- To message real members and lift the 250/day cap: Meta → **Business verification**
+  (upload Devloft's GST, incorporation certificate, PAN, address proof). 2–4 days.
+- Then add your **dedicated** production number (a SIM **not** on the WhatsApp app),
+  set its display name (e.g. "Kilos"), and swap `WHATSAPP_TOKEN` to a **permanent**
+  System User token + `WHATSAPP_PHONE_NUMBER_ID` to the production number.
+
+---
+
+## 4. How to test
+1. In Meta API Setup, add **your own number** to the allowed test recipients.
+2. Approve the 4 templates (step 2).
+3. Set the env vars (step 1) on a Vercel deployment and redeploy.
+4. Open the deployed app → **Renewals** → a member (use one whose number = your test
+   number) → **Remind** → the confirm modal → **Send**. You should receive it on WhatsApp,
+   and a `messageLogs` doc appears under that gym in Firestore with `status: sent`.
+5. Try **Communication Hub → New Announcement → Send on WhatsApp** for a bulk send.
+
+> **Local dev note:** `/api/whatsapp/send` only runs on Vercel (or via `vercel dev`).
+> Under plain `npm run dev` the button will error — test on a Vercel preview/prod deploy.
+
+---
+
+## 5. What the code does (for reference)
+- `api/whatsapp/send.js` — verifies the caller's Firebase login + gym membership, reads
+  each member from Firestore, sends the template via the Graph API, logs every attempt to
+  `gyms/{gymId}/messageLogs`.
+- `api/_lib/*` — Admin SDK init, Graph API sender, template registry (edit template
+  wording/params in `api/_lib/whatsappTemplates.js`).
+- Frontend: every reminder button + bulk announcements call `sendWhatsApp()` →
+  `src/utils/whatsappApi.js`. Confirm/preview UI in `SendWhatsAppModal.jsx`.
+
+## Cost recap (India)
+- Utility (renewal / payment / class): **~₹0.14** per message
+- Marketing (announcements): **~₹1.10** per message
+- Billed by Meta to the WABA owner (Kilos). No platform/subscription fee.

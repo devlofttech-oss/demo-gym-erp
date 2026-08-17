@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
-import { openWhatsApp } from '../../utils/whatsapp';
+import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import toast from 'react-hot-toast';
 
 function daysUntil(dateStr) {
@@ -10,18 +10,6 @@ function daysUntil(dateStr) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
   return Math.ceil((d - today) / 86400000);
-}
-
-function renewalReminderMessage(member) {
-  const days = daysUntil(member.expiryDate);
-  const plan = member.planName ? `${member.planName} ` : '';
-  let status;
-  if (days === null) status = 'is due for renewal';
-  else if (days < 0) status = `expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`;
-  else if (days === 0) status = 'expires today';
-  else status = `expires in ${days} day${days === 1 ? '' : 's'} (on ${member.expiryDate})`;
-  return `Hi ${member.name}! A quick reminder that your ${plan}membership ${status}. `
-    + `Please renew soon to continue your fitness journey without interruption. Thank you! 💪`;
 }
 
 export default function RenewalsList() {
@@ -33,6 +21,7 @@ export default function RenewalsList() {
   const [freezeModal, setFreezeModal] = useState(null);
   const [freezeDate, setFreezeDate] = useState('');
   const [freezing, setFreezing] = useState(false);
+  const [remindMember, setRemindMember] = useState(null);
 
   useEffect(() => {
     fetchMembers();
@@ -195,7 +184,7 @@ export default function RenewalsList() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => openWhatsApp(member.phone, renewalReminderMessage(member))}
+                      onClick={() => setRemindMember(member)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#25D366] hover:bg-[#20b558] text-white transition-colors shadow-sm"
                       title="Send renewal reminder on WhatsApp"
                     >
@@ -268,6 +257,17 @@ export default function RenewalsList() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* WhatsApp renewal reminder */}
+      {remindMember && (
+        <SendWhatsAppModal
+          gymId={gymId}
+          type="renewal"
+          recipients={[remindMember]}
+          recipientLabel={`${remindMember.name} · ${remindMember.phone}`}
+          onClose={() => setRemindMember(null)}
+        />
       )}
 
       {/* Freeze Modal */}

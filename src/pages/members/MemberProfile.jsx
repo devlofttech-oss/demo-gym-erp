@@ -1034,9 +1034,11 @@ export default function MemberProfile() {
       {/* ── Remind Modal ── */}
       {showRemindModal && (
         <SendWhatsAppModal
-          phones={[member.phone]}
+          gymId={gymId}
+          type="payment"
+          recipients={[{ ...member, id }]}
+          extra={{ amount: member.balanceFees }}
           recipientLabel={member.name}
-          defaultMessage={`Hi ${member.name}! You have a pending balance of ₹${Number(member.balanceFees).toLocaleString('en-IN')} at ${gymInfo?.name || 'our gym'}. Please clear your dues at the earliest. Thank you!`}
           onClose={() => setShowRemindModal(false)}
         />
       )}

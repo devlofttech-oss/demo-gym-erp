@@ -24,13 +24,6 @@ const TABS = [
   { id: 'dues',     label: 'Balance Due',   icon: 'payments'     },
 ];
 
-function getWhatsAppReminderMessage(member) {
-  if (member.expiryDate && new Date(member.expiryDate) < new Date()) {
-    return `Hi ${member.name}! Your membership expired on ${member.expiryDate}. Please renew to continue your fitness journey. Visit us today!`;
-  }
-  return `Hi ${member.name}! This is a reminder that your membership payment is due. Please clear your dues at the earliest.`;
-}
-
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   try {
@@ -751,9 +744,11 @@ export default function PaymentsList() {
       {/* Send WhatsApp Modal */}
       {messageMember && (
         <SendWhatsAppModal
-          phones={[messageMember.phone]}
+          gymId={gymId}
+          type={messageMember.expiryDate && new Date(messageMember.expiryDate) < new Date() ? 'renewal' : 'payment'}
+          recipients={[messageMember]}
+          extra={{ amount: messageMember.balanceFees }}
           recipientLabel={`${messageMember.name} · ${messageMember.phone}`}
-          defaultMessage={getWhatsAppReminderMessage(messageMember)}
           onClose={() => setMessageMember(null)}
         />
       )}

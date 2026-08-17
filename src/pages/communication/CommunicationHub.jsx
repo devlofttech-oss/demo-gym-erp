@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getTenantCollection, createTenantDocument, updateTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
+import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
+import toast from 'react-hot-toast';
 
 const ANNOUNCEMENT_TYPES = ['General', 'Promotion', 'Alert', 'Event'];
 const AUDIENCE_OPTIONS = ['All Members', 'Active Only', 'Expired Members'];
@@ -137,6 +139,8 @@ function AnnouncementsTab({ gymId, userName }) {
     scheduledFor: '',
   });
   const [errors, setErrors] = useState({});
+  const [waModal, setWaModal] = useState(null);
+  const [preparing, setPreparing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -188,6 +192,29 @@ function AnnouncementsTab({ gymId, userName }) {
   function handleChange(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
     if (errors[field]) setErrors((e) => { const n = { ...e }; delete n[field]; return n; });
+  }
+
+  // Prepare the WhatsApp send: load members, filter by the chosen audience,
+  // then open the confirm modal (which sends via the Cloud API).
+  async function handleSendWhatsApp() {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setPreparing(true);
+    try {
+      const members = await getTenantCollection(gymId, 'members');
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const isExpired = (m) => m.expiryDate && new Date(m.expiryDate) < today;
+      let audience = members;
+      if (form.target === 'Active Only') audience = members.filter((m) => !isExpired(m));
+      else if (form.target === 'Expired Members') audience = members.filter(isExpired);
+      const recipients = audience.filter((m) => m.phone);
+      if (!recipients.length) { toast.error('No members with a phone number in this audience'); return; }
+      setWaModal({ recipients, body: `${form.title.trim()}: ${form.message.trim()}` });
+    } catch {
+      toast.error('Failed to load members');
+    } finally {
+      setPreparing(false);
+    }
   }
 
   return (
@@ -278,11 +305,32 @@ function AnnouncementsTab({ gymId, userName }) {
                 : <span className="material-symbols-outlined text-base">send</span>}
               {saving ? 'Saving…' : 'Save Announcement'}
             </button>
+            <button
+              className="bg-[#25D366] hover:bg-[#1ebe5d] text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2 text-sm disabled:opacity-50"
+              onClick={handleSendWhatsApp}
+              disabled={preparing || saving}
+            >
+              {preparing
+                ? <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                : <span className="material-symbols-outlined text-base">forum</span>}
+              Send on WhatsApp
+            </button>
             <button className={ghostBtn} onClick={() => { setShowForm(false); setErrors({}); }}>
               Cancel
             </button>
           </div>
         </div>
+      )}
+
+      {waModal && (
+        <SendWhatsAppModal
+          gymId={gymId}
+          type="announcement"
+          recipients={waModal.recipients}
+          extra={{ body: waModal.body }}
+          recipientLabel={`${waModal.recipients.length} members · ${form.target}`}
+          onClose={() => setWaModal(null)}
+        />
       )}
 
       {/* Table */}
