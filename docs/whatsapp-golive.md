@@ -84,7 +84,7 @@ is **Published**).
 
 In Meta → your app → **WhatsApp → Configuration → Webhooks** (the "Configure Webhooks"
 step):
-1. **Callback URL:** `https://<your-vercel-domain>/api/whatsapp/webhook`
+1. **Callback URL:** `https://app-kilos.devlofttech.com/api/whatsapp/webhook`
 2. **Verify token:** the exact string you set in `WHATSAPP_VERIFY_TOKEN` (e.g. `kilos-wa-2026`)
 3. Click **Verify and save** (our GET handler answers the challenge).
 4. Under **Webhook fields**, subscribe to **`messages`** (this delivers status updates too).
