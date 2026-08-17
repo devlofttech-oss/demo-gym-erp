@@ -21,6 +21,7 @@ do **NOT** prefix with `VITE_` (that would leak them to the browser).
 | `FIREBASE_SERVICE_ACCOUNT` | The **entire** service-account JSON, pasted as one value | Firebase Console → Project settings → **Service accounts** → *Generate new private key* → download → paste the file's contents |
 | `WHATSAPP_API_VERSION` | *(optional)* `v21.0` | default is fine |
 | `WHATSAPP_TEMPLATE_LANG` | *(optional)* `en_US` | must match the language of your approved templates |
+| `WHATSAPP_VERIFY_TOKEN` | *(webhook)* any string you invent, e.g. `kilos-wa-2026` | you'll type the same value in Meta's webhook config |
 
 Optional template-name overrides (only if Meta approves them under different names):
 `WA_TPL_RENEWAL`, `WA_TPL_PAYMENT`, `WA_TPL_CLASS`, `WA_TPL_ANNOUNCEMENT`.
@@ -75,6 +76,25 @@ more; if `announcement` is rejected for being too generic, add a clearer fixed p
   System User token + `WHATSAPP_PHONE_NUMBER_ID` to the production number.
 
 ---
+
+## 3b. Delivery / read status webhook (optional, recommended at go-live)
+Turns "sent" into **delivered ✓✓ / read** on each `messageLogs` entry. Not needed to
+send; wire it when you're near launch (webhooks only receive real data once the app
+is **Published**).
+
+In Meta → your app → **WhatsApp → Configuration → Webhooks** (the "Configure Webhooks"
+step):
+1. **Callback URL:** `https://<your-vercel-domain>/api/whatsapp/webhook`
+2. **Verify token:** the exact string you set in `WHATSAPP_VERIFY_TOKEN` (e.g. `kilos-wa-2026`)
+3. Click **Verify and save** (our GET handler answers the challenge).
+4. Under **Webhook fields**, subscribe to **`messages`** (this delivers status updates too).
+5. **Publish the app** (App Review → publish) so production status events are delivered.
+
+First run may hit a Firestore error asking for a **collection-group index** on
+`messageLogs.wamid` — click the link in the error to auto-create it (one-time).
+
+> We ignore incoming member *messages* (send-only). Capturing/showing replies is a
+> future feature (needs a chat UI).
 
 ## 4. How to test
 1. In Meta API Setup, add **your own number** to the allowed test recipients.
