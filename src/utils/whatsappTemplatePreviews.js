@@ -24,11 +24,11 @@ export function previewText(type, sample = {}) {
   const gymName = sample.gymName || 'our gym';
   switch (type) {
     case 'renewal':
-      return `Hi ${name}, this is a reminder from ${gymName} that your membership expires on ${sample.expiryDate || '{date}'}. Please renew soon to keep training. Thank you!`;
+      return `Hi ${name}, your ${gymName} membership is scheduled to expire on ${sample.expiryDate || '{date}'}. Please contact us if you have any questions about your account.`;
     case 'payment':
       return `Hi ${name}, this is a payment reminder from ${gymName}. You have a pending balance of ${sample.amount || '₹{amount}'}. Please clear your dues at your earliest convenience.`;
     case 'class':
-      return `Hi ${name}, we've missed you at ${gymName}! Regular attendance keeps you on track — see you at your next session. Stay consistent! 💪`;
+      return `Hi ${name}, we've missed you at ${gymName}! Regular attendance keeps you on track — see you at your next session. Stay consistent!`;
     case 'announcement':
       return `Hi ${name}, here's an update from ${gymName}:\n\n${sample.body || '{your announcement}'}\n\nThank you for being a valued member!`;
     default:

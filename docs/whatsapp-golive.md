@@ -38,7 +38,7 @@ Meta → WhatsApp Manager → **Message templates → Create template**. Languag
 
 **1. `renewal_reminder`** — Category: **Utility**
 ```
-Hi {{1}}, this is a reminder from {{2}} that your membership expires on {{3}}. Please renew soon to keep training. Thank you!
+Hi {{1}}, your {{2}} membership is scheduled to expire on {{3}}. Please contact us if you have any questions about your account.
 ```
 Sample values: {{1}}=Ravi, {{2}}=Iron Gym, {{3}}=2026-09-01
 

@@ -37,8 +37,8 @@ export function buildTemplate(type, member, gym, extra = {}) {
   const name = member?.name || 'there';
 
   switch (type) {
-    // renewal_reminder(en): "Hi {{1}}, this is a reminder from {{2}} that your
-    //   membership expires on {{3}}. Please renew soon to keep training. Thank you!"
+    // renewal_reminder(en, Utility): "Hi {{1}}, your {{2}} membership is scheduled to
+    //   expire on {{3}}. Please contact us if you have any questions about your account."
     case 'renewal':
       return {
         template: tpl('WA_TPL_RENEWAL', 'renewal_reminder'),
