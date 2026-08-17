@@ -99,7 +99,28 @@ more; if `announcement` is rejected for being too generic, add a clearer fixed p
 - Frontend: every reminder button + bulk announcements call `sendWhatsApp()` →
   `src/utils/whatsappApi.js`. Confirm/preview UI in `SendWhatsAppModal.jsx`.
 
-## Cost recap (India)
-- Utility (renewal / payment / class): **~₹0.14** per message
-- Marketing (announcements): **~₹1.10** per message
-- Billed by Meta to the WABA owner (Kilos). No platform/subscription fee.
+## Cost per message (India, Meta direct)
+
+Meta bills **per delivered message**, by category. Every reminder is **Utility**
+(cheap); only bulk announcements are **Marketing** (higher). No platform/subscription
+fee — billed to the WABA owner (Kilos).
+
+| In-app button / feature | Template | Category | Cost / message |
+|---|---|---|---|
+| **Renewals → Remind** | `renewal_reminder` | Utility | **≈ ₹0.14** |
+| **Members list → Remind** (expiring) | `renewal_reminder` | Utility | **≈ ₹0.14** |
+| **Member profile → Remind** (balance due) | `payment_due` | Utility | **≈ ₹0.14** |
+| **Members list → ₹ Due** (balance) | `payment_due` | Utility | **≈ ₹0.14** |
+| **Payments → message** (dues / expired) | `payment_due` / `renewal_reminder` | Utility | **≈ ₹0.14** |
+| **Classes → send message** (attendance) | `class_reminder` | Utility | **≈ ₹0.14** |
+| **Members list → Send Reminder** (absence) | `class_reminder` | Utility | **≈ ₹0.14** |
+| **Communication Hub → announcement** | `announcement` | **Marketing** | **≈ ₹1.10** |
+
+The modal's "≈ ₹" estimate = (number of recipients) × (rate above). Examples:
+- Remind 1 member to renew → 1 × ₹0.14 ≈ **₹0.14**
+- Payment reminder to 30 members with dues → 30 × ₹0.14 ≈ **₹4.20**
+- Announcement to 500 members → 500 × ₹1.10 ≈ **₹550**
+
+> Rates are approximate (Meta adjusts India pricing periodically) and shown for
+> planning; Meta's invoice is the source of truth. Incoming replies from members
+> (service messages) are **free**.
