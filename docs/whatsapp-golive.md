@@ -54,11 +54,15 @@ Hi {{1}}, we've missed you at {{2}}! Regular attendance keeps you on track — s
 ```
 Sample values: {{1}}=Ravi, {{2}}=Iron Gym
 
-**4. `announcement`** — Category: **Marketing**
+**4. `announcement`** — Category: **Marketing** — variables: 1=name, 2=gym, 3=message
 ```
-Hi {{1}}! {{2}} — {{3}}
+Hi {{1}}, here's an update from {{2}}:
+
+{{3}}
+
+Thank you for being a valued member!
 ```
-Sample values: {{1}}=Ravi, {{2}}=We're closed this Sunday for maintenance, {{3}}=Iron Gym
+Sample values: {{1}}=Ravi, {{2}}=Iron Gym, {{3}}=We're closed this Sunday for maintenance
 
 Approval usually takes a few minutes to ~24h. **Marketing** templates are scrutinised
 more; if `announcement` is rejected for being too generic, add a clearer fixed prefix

@@ -70,14 +70,15 @@ export function buildTemplate(type, member, gym, extra = {}) {
         components: bodyParams([name, gymName]),
       };
 
-    // announcement(en, MARKETING): "Hi {{1}}! {{2}} — {{3}}"
-    //   1=name, 2=announcement message, 3=gym name
+    // announcement(en, MARKETING):
+    //   "Hi {{1}}, here's an update from {{2}}:\n\n{{3}}\n\nThank you for being a valued member!"
+    //   1=name, 2=gym name, 3=announcement message
     case 'announcement':
       return {
         template: tpl('WA_TPL_ANNOUNCEMENT', 'announcement'),
         language: LANG,
         category: 'marketing',
-        components: bodyParams([name, extra?.body || '', gymName]),
+        components: bodyParams([name, gymName, extra?.body || '']),
       };
 
     default:

@@ -30,7 +30,7 @@ export function previewText(type, sample = {}) {
     case 'class':
       return `Hi ${name}, we've missed you at ${gymName}! Regular attendance keeps you on track — see you at your next session. Stay consistent! 💪`;
     case 'announcement':
-      return `Hi ${name}! ${sample.body || '{your announcement}'} — ${gymName}`;
+      return `Hi ${name}, here's an update from ${gymName}:\n\n${sample.body || '{your announcement}'}\n\nThank you for being a valued member!`;
     default:
       return '';
   }
