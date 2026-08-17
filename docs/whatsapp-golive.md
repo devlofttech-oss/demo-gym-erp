@@ -48,7 +48,7 @@ Hi {{1}}, this is a payment reminder from {{2}}. You have a pending balance of {
 ```
 Sample values: {{1}}=Ravi, {{2}}=Iron Gym, {{3}}=₹1,500
 
-**3. `class_reminder`** — Category: **Utility**
+**3. `class_reminder`** — Category: **Marketing** *(Meta classifies attendance/re-engagement reminders as Marketing)*
 ```
 Hi {{1}}, we've missed you at {{2}}! Regular attendance keeps you on track — see you at your next session. Stay consistent!
 ```
@@ -132,8 +132,8 @@ fee — billed to the WABA owner (Kilos).
 | **Member profile → Remind** (balance due) | `payment_due` | Utility | **≈ ₹0.14** |
 | **Members list → ₹ Due** (balance) | `payment_due` | Utility | **≈ ₹0.14** |
 | **Payments → message** (dues / expired) | `payment_due` / `renewal_reminder` | Utility | **≈ ₹0.14** |
-| **Classes → send message** (attendance) | `class_reminder` | Utility | **≈ ₹0.14** |
-| **Members list → Send Reminder** (absence) | `class_reminder` | Utility | **≈ ₹0.14** |
+| **Classes → send message** (attendance) | `class_reminder` | **Marketing** | **≈ ₹1.10** |
+| **Members list → Send Reminder** (absence) | `class_reminder` | **Marketing** | **≈ ₹1.10** |
 | **Communication Hub → announcement** | `announcement` | **Marketing** | **≈ ₹1.10** |
 
 The modal's "≈ ₹" estimate = (number of recipients) × (rate above). Examples:

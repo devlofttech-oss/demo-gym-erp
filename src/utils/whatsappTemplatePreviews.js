@@ -13,7 +13,7 @@ export const WHATSAPP_TYPE_LABELS = {
 export const WHATSAPP_TYPE_CATEGORY = {
   renewal: 'utility',
   payment: 'utility',
-  class: 'utility',
+  class: 'marketing', // Meta classifies attendance/re-engagement as Marketing
   announcement: 'marketing',
 };
 

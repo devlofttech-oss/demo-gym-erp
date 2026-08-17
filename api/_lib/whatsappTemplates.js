@@ -65,7 +65,8 @@ export function buildTemplate(type, member, gym, extra = {}) {
       return {
         template: tpl('WA_TPL_CLASS', 'class_reminder'),
         language: LANG,
-        category: 'utility',
+        // Meta classifies attendance/re-engagement reminders as Marketing.
+        category: 'marketing',
         components: bodyParams([name, gymName]),
       };
 
