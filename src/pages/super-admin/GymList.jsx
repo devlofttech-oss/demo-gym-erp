@@ -8,6 +8,9 @@ import { useAuth } from '../../context/AuthContext';
 const SUB_COLLECTIONS = [
   'members', 'payments', 'attendance', 'staffAttendance',
   'staff', 'classes', 'equipment', 'supplements', 'expenses', 'settings',
+  'leads', 'notifications', 'plans', 'measurements', 'dietPlans',
+  'workouts', 'announcements', 'followups', 'notificationLogs',
+  'ptPackages', 'ptSessions',
 ];
 
 async function deleteGymFully(gymId) {
