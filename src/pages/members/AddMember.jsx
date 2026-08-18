@@ -74,6 +74,7 @@ export default function AddMember() {
     durationMonths: 1,
     totalFees: 0,
     discountPercent: '',
+    discountAmount: '',
     nextPaymentDays: '',
     paidNow: '',
     paymentMode: 'Cash',
@@ -83,13 +84,24 @@ export default function AddMember() {
     healthNotes: '',
   });
 
-  const basePlanFees   = Number(formData.totalFees || 0);
-  const discountPct    = Math.min(100, Math.max(0, Number(formData.discountPercent || 0)));
-  const discountedTotal = Math.round(basePlanFees * (1 - discountPct / 100));
-  const paidNowNum     = Number(formData.paidNow || 0);
-  const netPaid        = existingCredit + paidNowNum;
-  const balanceFees    = Math.max(0, discountedTotal - netPaid);
-  const discountSavings = basePlanFees - discountedTotal;
+  const basePlanFees    = Number(formData.totalFees || 0);
+  const discountAmt     = Math.min(basePlanFees, Math.max(0, Number(formData.discountAmount || 0)));
+  const discountPct     = basePlanFees > 0 ? +((discountAmt / basePlanFees) * 100).toFixed(1) : 0;
+  const discountedTotal = Math.max(0, basePlanFees - discountAmt);
+  const paidNowNum      = Number(formData.paidNow || 0);
+  const netPaid         = existingCredit + paidNowNum;
+  const balanceFees     = Math.max(0, discountedTotal - netPaid);
+
+  const handleDiscountPercent = (val) => {
+    const pct = Math.min(100, Math.max(0, Number(val) || 0));
+    const amt = basePlanFees > 0 ? Math.round(basePlanFees * pct / 100) : 0;
+    setFormData(prev => ({ ...prev, discountPercent: val, discountAmount: amt > 0 ? amt : '' }));
+  };
+  const handleDiscountAmount = (val) => {
+    const amt = Math.min(basePlanFees, Math.max(0, Number(val) || 0));
+    const pct = basePlanFees > 0 ? +((amt / basePlanFees) * 100).toFixed(1) : 0;
+    setFormData(prev => ({ ...prev, discountAmount: val, discountPercent: pct > 0 ? pct : '' }));
+  };
 
   // Load plans
   useEffect(() => {
@@ -174,6 +186,7 @@ export default function AddMember() {
       durationMonths: months,
       totalFees:     plan.price || 0,
       discountPercent: '',
+      discountAmount: '',
       paidNow:       '',
     }));
   };
@@ -182,8 +195,9 @@ export default function AddMember() {
     e.preventDefault();
     if (!formData.phone) { toast.error('Phone number is required'); return; }
 
-    const discount      = Math.min(100, Math.max(0, Number(formData.discountPercent || 0)));
-    const totalFees     = Math.round(Number(formData.totalFees || 0) * (1 - discount / 100));
+    const discountAmtSubmit = Math.min(basePlanFees, Math.max(0, Number(formData.discountAmount || 0)));
+    const discountPctSubmit = basePlanFees > 0 ? +((discountAmtSubmit / basePlanFees) * 100).toFixed(1) : 0;
+    const totalFees         = Math.max(0, basePlanFees - discountAmtSubmit);
     const paidNow       = Number(formData.paidNow || 0);
     const newPaidFees   = isEdit ? existingCredit + paidNow : paidNow;
     const balance       = Math.max(0, totalFees - newPaidFees);
@@ -220,7 +234,7 @@ export default function AddMember() {
         totalFees,
         paidFees:         newPaidFees,
         balanceFees:      balance,
-        ...(discount > 0 && { discountPercent: discount }),
+        ...(discountAmtSubmit > 0 && { discountAmount: discountAmtSubmit, discountPercent: discountPctSubmit }),
         ...(nextPaymentDate && { nextPaymentDate }),
         ...(finalPhotoUrl && { photoUrl: finalPhotoUrl }),
         ...(formData.emergencyContact && { emergencyContact: formData.emergencyContact }),
@@ -470,14 +484,23 @@ export default function AddMember() {
               )}
 
               {/* Discount */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="font-medium text-sm text-on-surface">Discount (%)</label>
-                  <input type="number" name="discountPercent" value={formData.discountPercent} onChange={handleChange}
+                  <input type="number" value={formData.discountPercent}
+                    onChange={e => handleDiscountPercent(e.target.value)}
                     min="0" max="100" placeholder="0"
-                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm" />
+                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                  <span className="text-xs text-on-surface-variant">Percentage off</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-medium text-sm text-on-surface">Discount (₹)</label>
+                  <input type="number" value={formData.discountAmount}
+                    onChange={e => handleDiscountAmount(e.target.value)}
+                    min="0" placeholder="0"
+                    className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                   <span className="text-xs text-on-surface-variant">
-                    {discountPct > 0 ? `Save ₹${discountSavings.toLocaleString('en-IN')}` : 'Optional discount'}
+                    {discountAmt > 0 ? `${discountPct}% off — save ₹${discountAmt.toLocaleString('en-IN')}` : 'Flat amount off'}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -497,7 +520,7 @@ export default function AddMember() {
                 <div className="flex flex-col gap-1.5">
                   <label className="font-medium text-sm text-on-surface">New Plan Total (₹)</label>
                   <div className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/20 rounded-lg text-on-surface-variant text-sm font-semibold select-none">
-                    {discountPct > 0 ? (
+                    {discountAmt > 0 ? (
                       <span>
                         <span className="line-through opacity-50 mr-1.5">₹{basePlanFees.toLocaleString('en-IN')}</span>
                         <span className="text-primary">₹{discountedTotal.toLocaleString('en-IN')}</span>
@@ -507,7 +530,7 @@ export default function AddMember() {
                     )}
                   </div>
                   <span className="text-xs text-on-surface-variant">
-                    {discountPct > 0 ? `After ${discountPct}% discount` : 'Plan price'}
+                    {discountAmt > 0 ? `After ${discountPct}% (₹${discountAmt.toLocaleString('en-IN')}) discount` : 'Plan price'}
                   </span>
                 </div>
 
