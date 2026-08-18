@@ -34,11 +34,9 @@ export default function RegisterPage() {
     setSaving(true);
 
     try {
-      // 1. Fetch Trial plan
+      // 1. Fetch Trial plan (subscriptionPlans is publicly readable)
       const plans = await getCollection('subscriptionPlans');
-      const trialPlan = plans.find(p =>
-        (p.name || '').toLowerCase() === 'trial' || (p.durationDays === 7)
-      );
+      const trialPlan = plans.find(p => (p.name || '').toLowerCase() === 'trial');
 
       // 2. Generate password
       const password = generatePassword(form.gymName);

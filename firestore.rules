@@ -36,11 +36,13 @@ service cloud.firestore {
 
     // ── Users collection ─────────────────────────────────────────
     match /users/{userId} {
-      // User reads their own doc; superadmin reads all
       allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
 
-      // Any authenticated user can create their own doc
-      // (needed for superadmin bootstrap — no users doc exists yet to check against)
+      // Public trial registration creates the gym owner user doc
+      allow create: if !isSignedIn()
+        && request.resource.data.role == 'admin'
+        && request.resource.data.email is string;
+
       allow create: if isSignedIn() && request.auth.uid == userId;
 
       // Superadmin creates gym owner accounts (secondary app pattern)
@@ -74,39 +76,42 @@ service cloud.firestore {
 
     // ── Gym metadata (root gyms collection) ──────────────────────
     match /gyms/{gymId} {
-      // Admin/staff read their own gym doc(s); superadmin reads all
       allow read: if isSignedIn() && (
         isSuperAdmin() || isAdminOf(gymId) || isStaffOf(gymId)
       );
 
-      // Superadmin: full write
       allow write: if isSuperAdmin();
 
-      // Admin: create a new branch — ownerUid in the new doc must match their uid
+      // Public trial registration — must be a trial plan with required fields
+      allow create: if !isSignedIn()
+        && request.resource.data.planName == 'Trial'
+        && request.resource.data.isActive == true
+        && request.resource.data.ownerEmail is string;
+
       allow create: if isSignedIn() && userDocExists()
         && userDocData().role == 'admin'
         && request.resource.data.ownerUid == request.auth.uid;
 
-      // Admin: update gym docs they own (e.g. name change from Settings)
       allow update: if isAdminOf(gymId);
     }
 
     // ── Subscription plan templates (superadmin CRUD, admins read) ─
     match /subscriptionPlans/{planId} {
-      allow read: if isSignedIn();
+      allow read: if true; // public — register page needs to read trial plan without auth
       allow write: if isSuperAdmin();
     }
 
     // ── Trial sign-up requests ────────────────────────────────────
     match /trialRequests/{reqId} {
-      // Public registration form — anyone can submit
       allow create: if true;
-      // Superadmin manages the queue
       allow read, update, delete: if isSuperAdmin();
     }
 
     // ── Gym tenant data ───────────────────────────────────────────
     match /gyms/{gymId}/{collection}/{docId} {
+      // Public trial registration seeds the gym settings doc
+      allow create: if !isSignedIn() && collection == 'settings' && docId == 'general';
+
       // Superadmin and gym admin: full access
       allow read, write: if isSuperAdmin() || isAdminOf(gymId);
 
