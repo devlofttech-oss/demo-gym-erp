@@ -54,10 +54,9 @@ export default function PaymentPage() {
     notes: '',
   });
 
-  // Fully paid = member has a plan, has made at least one payment, and owes nothing
+  // Fully paid = member has no outstanding balance (paidFees=0 is valid for ₹0 plans)
   const isFullyPaid = selectedMember !== null
-    && Number(selectedMember.balanceFees || 0) === 0
-    && Number(selectedMember.paidFees    || 0) > 0;
+    && Number(selectedMember.balanceFees || 0) === 0;
 
   // Base for balance: if member has existing outstanding balance use that, else use plan price
   const outstandingBase = selectedMember?.balanceFees > 0
@@ -130,7 +129,7 @@ export default function PaymentPage() {
     if (!member) return;
     setSelectedMember(member);
 
-    const memberIsFullyPaid = Number(member.balanceFees || 0) === 0 && Number(member.paidFees || 0) > 0;
+    const memberIsFullyPaid = Number(member.balanceFees || 0) === 0;
 
     if (!memberIsFullyPaid) {
       // ── Outstanding balance: keep the existing plan & fees as-is ──────────
