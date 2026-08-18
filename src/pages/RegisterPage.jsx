@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { firebaseConfig } from '../firebase/config';
 import { getCollection, createDocument, setDocument } from '../firebase/db';
 import { setTenantDocument } from '../firebase/tenantDb';
 import logoImage from '../assets/kilos_logo.png';
@@ -42,9 +43,17 @@ export default function RegisterPage() {
       // 2. Generate password
       const password = generatePassword(form.gymName);
 
-      // 3. Create Firebase Auth user
-      const { user } = await createUserWithEmailAndPassword(auth, form.email.trim(), password);
-      const uid = user.uid;
+      // 3. Create Firebase Auth user via secondary app so main auth session is unaffected
+      const appName = 'register-' + Date.now();
+      const secondaryApp = initializeApp(firebaseConfig, appName);
+      const secondaryAuth = getAuth(secondaryApp);
+      let uid;
+      try {
+        const { user } = await createUserWithEmailAndPassword(secondaryAuth, form.email.trim(), password);
+        uid = user.uid;
+      } finally {
+        await deleteApp(secondaryApp);
+      }
 
       // 4. Calculate trial dates
       const today = new Date();
