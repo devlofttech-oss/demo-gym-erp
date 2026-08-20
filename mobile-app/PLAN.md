@@ -1,201 +1,246 @@
-# Kilos Mobile — Full Build Plan
+# Kilos Mobile — Master Build Plan
 
-## Strategy: Freeze the native layer now
-
-All future modules are pure Dart (Firestore CRUD + UI). The only native plugins
-needed across the entire app have been identified below and will be added to
-pubspec.yaml **right now** before the production baseline is cut. After that,
-every new screen ships as a Shorebird OTA patch — no Play Store upload ever again.
+**Source of truth across sessions.** Update status here as each screen ships.
+Current baseline: **v1.0.3+4** (all future work is OTA — no Play Store upload needed).
 
 ---
 
-## Native plugins to add NOW (one-time)
-
-| Plugin | Why |
-|--------|-----|
-| `image_picker` | Member profile photos (PhotoUpload) |
-| `path_provider` | Save PDFs/files to device storage |
-| `share_plus` | Share monthly reports / PDFs |
-| `printing` | Print or export monthly report as PDF |
-| `pdf` | Generate PDF in Dart (pure Dart, but listed for completeness) |
-| `firebase_messaging` | Push notifications (NotificationPanel exists in web) |
-| `flutter_local_notifications` | Local notification display when app is foreground |
-
-After adding these, bump version to `1.0.2+3`, push tag `v1.0.2`, upload to Play.
-All future changes → OTA only.
+## Legend
+- ✅ Done & live on Play Store
+- 🔄 In progress
+- ⬜ Not started
 
 ---
 
-## Phase 1 — DONE ✅
+## Navigation redesign (needed before Phase 2)
 
-| Screen | Status |
-|--------|--------|
-| Dashboard (KPIs, charts, activity) | ✅ |
-| Members (list, add, detail, payments tab, attendance tab) | ✅ |
-| Payments (list, dues, record/renew) | ✅ |
-| Attendance log | ✅ |
-| Check-in (QR scanner + beeps) | ✅ |
+Current bottom nav (5 tabs for admin): Dashboard · Members · Payments · Check-in · Attendance
+
+Phase 2+ adds ~12 more modules that can't all fit in a bottom bar. Plan:
+- Keep the 5 main tabs as-is
+- Add a **6th "More" tab** (grid of tiles, one per remaining module)
+- Modules in the More grid: Plans, Staff, Classes, PT, Expenses, Supplements, Leads, Renewals, Measurements, Diet, Workouts, Equipment, Reports, Settings
+- Staff role sees: Check-in · Attendance only (unchanged)
 
 ---
 
-## Phase 2 — Staff, Plans, Expenses, Supplements
+## Phase 1 — Core (DONE ✅)
 
-All pure Dart. OTA patch only.
+| Screen | Web source | Status |
+|--------|-----------|--------|
+| Dashboard (KPIs, charts, activity feed) | `Dashboard.jsx` | ✅ |
+| Members list (search, filters, WhatsApp) | `MemberList.jsx` | ✅ |
+| Add Member | `AddMember.jsx` | ✅ |
+| Member Detail (profile + payments + attendance tabs) | `MemberDetail.jsx` | ✅ |
+| Payments list + Dues tab | `PaymentList.jsx`, `DuesPage.jsx` | ✅ |
+| Record / Renew Payment | `PaymentPage.jsx` | ✅ |
+| Attendance log (date-grouped, filters) | `AttendanceList.jsx` | ✅ |
+| Check-in (QR scanner, beeps, live feed) | `Checkin.jsx`, `CheckinScreen.jsx` | ✅ |
 
-### 2A. Plans (`/plans`)
-Web: `PlanList.jsx`, `PlanForm.jsx`
-- List gym's membership plans (name, price, duration, category)
-- Add / edit / delete plan
-- Changes reflect in Members' plan dropdown
+---
 
-### 2B. Staff (`/staff`)
-Web: `StaffList.jsx`, `StaffProfile.jsx`
+## Phase 2 — Plans, Staff, Expenses, Supplements ⬜
+
+All pure Dart → OTA patch. No native changes.
+Add **More tab** to home shell in this phase.
+
+### 2A. Membership Plans
+- File: `lib/screens/plans/plans_screen.dart`
+- Web: `PlanList.jsx` + `PlanForm.jsx`
+- List plans (name, price, duration, category: Gym/Zumba/Group)
+- Add / edit / delete plan via bottom sheet
+- Changes reflect in Add Member plan dropdown
+
+### 2B. Staff
+- File: `lib/screens/staff/staff_screen.dart`
+- Web: `StaffList.jsx` + `StaffProfile.jsx`
 - List staff with role badge (admin/staff)
-- Add staff → creates Firestore user doc (gym owner sets credentials separately in Firebase Auth)
-- View/edit staff profile
+- View/edit staff profile (name, phone, role, join date)
+- Add staff → creates Firestore doc
 
-### 2C. Expenses (`/expenses`)
-Web: `ExpenseList.jsx`
-- Log gym expenses (category, amount, date, note)
-- Filter by month
-- Total vs revenue comparison (feeds Dashboard bar chart)
+### 2C. Expenses
+- File: `lib/screens/expenses/expenses_screen.dart`
+- Web: `ExpenseList.jsx`
+- Log expenses (category, amount, date, note)
+- Month filter
+- Total expense shown alongside revenue
 
-### 2D. Supplements (`/supplements`)
-Web: `SupplementList.jsx`
+### 2D. Supplement Sales
+- File: `lib/screens/supplements/supplements_screen.dart`
+- Web: `SupplementList.jsx`
 - Record supplement sales (item, qty, price, member)
 - Sales log with date filter
-- Already partially visible in Dashboard revenue
 
 ---
 
-## Phase 3 — Classes, PT, Leads
+## Phase 3 — Leads, Renewals, Opportunities ⬜
 
-All pure Dart. OTA patch only.
+Pure Dart → OTA.
 
-### 3A. Group Classes (`/classes`)
-Web: `ClassList.jsx`, `AddClass.jsx`, `ClassDetail.jsx`
-- List classes (Zumba, Group, etc.) with schedule
-- Add/edit class with timings, instructor, capacity
-- View enrolled members per class
+### 3A. Leads / Prospects
+- File: `lib/screens/leads/leads_screen.dart`
+- Web: `LeadList.jsx` + `LeadForm.jsx`
+- Prospect list with status pill (New/Contacted/Converted/Lost)
+- Add lead (name, phone, source, interest)
+- WhatsApp follow-up button (url_launcher — already wired)
+- Convert lead → auto-open Add Member
 
-### 3B. Personal Training (`/pt`)
-Web: `PTList.jsx`, `PTPackageForm.jsx`, `PTSessionForm.jsx`
-- PT packages (member, trainer, sessions count, price)
-- Log completed PT sessions
-- Track remaining sessions per package
-
-### 3C. Leads (`/leads`)
-Web: `LeadList.jsx`, `LeadForm.jsx`
-- Prospect/lead list with status (new, contacted, converted, lost)
-- Add lead with source, phone, interest
-- WhatsApp follow-up button (url_launcher — already have it)
-- Convert lead → member
-
----
-
-## Phase 4 — Health Tracking (Diet, Workouts, Measurements, Equipment)
-
-All pure Dart. OTA patch only.
-
-### 4A. Measurements (`/measurements`)
-Web: `MeasurementList.jsx`, `MeasurementForm.jsx`
-- Log member body measurements (weight, BMI, body fat %, etc.)
-- Per-member history with date
-
-### 4B. Diet Plans (`/diet`)
-Web: `DietList.jsx`, `DietForm.jsx`
-- Create diet plans (meal name, calories, macros)
-- Assign to member
-
-### 4C. Workout Plans (`/workouts`)
-Web: `WorkoutList.jsx`, `WorkoutForm.jsx`
-- Create workout plans (exercise, sets, reps)
-- Assign to member
-
-### 4D. Equipment (`/equipment`)
-Web: `EquipmentList.jsx`
-- Equipment inventory (name, qty, purchase date, condition)
-- Flag for maintenance
-
----
-
-## Phase 5 — Reports, Notifications, Communication
-
-Needs `printing`, `firebase_messaging`, `flutter_local_notifications` (added in native freeze).
-
-### 5A. Monthly Report (`/reports`)
-Web: `MonthlyReport.jsx`
-- Revenue summary by month
-- Member stats (new, renewed, expired)
-- Attendance summary
-- **Export as PDF** → share via `share_plus` + `printing`
-
-### 5B. Push Notifications
-Web: `NotificationPanel.jsx`
-- Firebase Messaging integration
-- Notify staff on new member, expiry alerts
-- Local notification when app is in foreground
-
-### 5C. Communication Hub (`/communication`)
-Web: `CommunicationHub.jsx`
-- Bulk WhatsApp message to filtered member groups
-- Pre-built templates (expiry reminder, payment due, welcome)
-
----
-
-## Phase 6 — Member Photos, Settings, Renewals
-
-### 6A. Member Profile Photo
-Web: `PhotoUpload.jsx` (used in MemberDetail)
-- Pick photo from gallery or camera (`image_picker`)
-- Upload to Firebase Storage
-- Display in member card and detail screen
-
-### 6B. Settings (`/settings`)
-Web: `Settings.jsx`
-- Gym name, address, contact
-- Working hours
-- Grace period config
-- Plan defaults
-
-### 6C. Renewals List (`/renewals`)
-Web: `RenewalsList.jsx`
-- Upcoming renewals in next 7/14/30 days
-- Quick renew action
+### 3B. Upcoming Renewals
+- File: `lib/screens/renewals/renewals_screen.dart`
+- Web: `RenewalsList.jsx`
+- Members expiring in next 7/14/30 days (filter toggle)
+- Quick renew → opens Record Payment
 - WhatsApp reminder button
 
+### 3C. Opportunities (Member upsell)
+- File: inside `member_detail_screen.dart` as a new tab
+- Web: `OpportunityList.jsx` + `OpportunityDetail.jsx`
+- Per-member upsell opportunities (PT package, plan upgrade, etc.)
+- Add / edit / mark won/lost
+
 ---
 
-## Build order recommendation
+## Phase 4 — Classes & Personal Training ⬜
+
+Pure Dart → OTA.
+
+### 4A. Group Classes
+- Files: `lib/screens/classes/classes_screen.dart`, `add_class_screen.dart`, `class_detail_screen.dart`
+- Web: `ClassList.jsx`, `AddClass.jsx`, `ClassDetail.jsx`
+- Class list (name, category, schedule, instructor, capacity)
+- Add class with 12-hour AM/PM time picker (matches web's TimePicker12)
+- Class detail: enrolled members list, WhatsApp message button
+
+### 4B. Personal Training
+- Files: `lib/screens/pt/pt_screen.dart`, `pt_package_screen.dart`, `pt_session_screen.dart`
+- Web: `PTList.jsx`, `PTPackageForm.jsx`, `PTSessionForm.jsx`
+- PT packages (member, trainer, total sessions, price, paid)
+- Log completed session → decrement remaining count
+- List sessions per package
+
+---
+
+## Phase 5 — Health Tracking ⬜
+
+Pure Dart → OTA.
+
+### 5A. Body Measurements
+- Files: `lib/screens/measurements/measurements_screen.dart`, `add_measurement_screen.dart`
+- Web: `MeasurementList.jsx`, `MeasurementForm.jsx`
+- Per-member: weight, BMI, body fat %, chest, waist, hip (date-stamped)
+- Trend line chart (fl_chart — already bundled)
+
+### 5B. Diet Plans
+- Files: `lib/screens/diet/diet_screen.dart`, `add_diet_screen.dart`
+- Web: `DietList.jsx`, `DietForm.jsx`
+- Create diet plan (meal, calories, protein, carbs, fat)
+- Assign to member
+
+### 5C. Workout Plans
+- Files: `lib/screens/workouts/workouts_screen.dart`, `add_workout_screen.dart`
+- Web: `WorkoutList.jsx`, `WorkoutForm.jsx`
+- Create workout plan (exercise, sets, reps, rest)
+- Assign to member
+
+### 5D. Equipment
+- File: `lib/screens/equipment/equipment_screen.dart`
+- Web: `EquipmentList.jsx`
+- Inventory (name, qty, purchase date, condition)
+- Flag for maintenance (color-coded status pill)
+
+---
+
+## Phase 6 — Reports, Notifications, Communication ⬜
+
+Uses pre-bundled native plugins: `printing`, `share_plus`, `firebase_messaging`, `flutter_local_notifications`.
+
+### 6A. Monthly Report
+- File: `lib/screens/reports/report_screen.dart`
+- Web: `MonthlyReport.jsx`
+- Month picker → load revenue, new members, renewals, attendance
+- Summary cards + bar chart (fl_chart)
+- **Export PDF** → generate with `pdf` package → share via `share_plus`
+
+### 6B. Notification Panel
+- Widget: `lib/widgets/notification_panel.dart` (slide-in from top bar bell icon)
+- Web: `NotificationPanel.jsx`
+- Reads `gyms/{gymId}/notifications` collection (event-driven, written by Firestore triggers)
+- Badge count on bell; tap → mark read / clear all
+
+### 6C. Communication Hub (WhatsApp Cloud API)
+- File: `lib/screens/communication/communication_screen.dart`
+- Web: `CommunicationHub.jsx`
+- Bulk WhatsApp to filtered member group (expiring, expired, all active)
+- Message templates (expiry reminder, payment due, welcome, announcement)
+- Uses same WhatsApp Cloud API key stored in gym's Firestore doc
+- Shows delivery/read status from `gyms/{gymId}/whatsappMessages`
+
+---
+
+## Phase 7 — Member Photos, Settings, Member QR ⬜
+
+### 7A. Member Profile Photo
+- Add photo picker to `add_member_screen.dart` and `member_detail_screen.dart`
+- Web: `PhotoUpload.jsx` (now uses **ImageKit**, not Firebase Storage)
+- Pick from gallery or camera (`image_picker` — pre-bundled)
+- Upload to ImageKit via HTTP POST (`https://upload.imagekit.io/api/v1/files/upload`)
+- ImageKit public key + URL endpoint stored in gym's Firestore settings doc
+- Display in member card avatar and detail header
+
+### 7B. Settings
+- File: `lib/screens/settings/settings_screen.dart`
+- Web: `Settings.jsx`
+- Gym name, address, phone, working hours
+- Grace period days, default plan
+- ImageKit credentials (for photo upload)
+- WhatsApp Cloud API token + phone number ID (for Communication Hub)
+
+### 7C. Member QR Code
+- Add QR display to `member_detail_screen.dart` (new tab or bottom sheet)
+- Web: `MemberQRPage.jsx` (public page scanned by kiosk)
+- Generate QR from member ID using `qr_flutter` (pure Dart — OTA safe)
+- Show QR → member can screenshot and present at check-in kiosk
+- Note: add `qr_flutter` to pubspec (pure Dart, no native, safe as OTA)
+
+---
+
+## Version history
+
+| Version | Build | What changed (native) | Baseline needed? |
+|---------|-------|-----------------------|-----------------|
+| 1.0.0 | 1 | Initial release | ✅ uploaded to Play |
+| 1.0.1 | 2 | shorebird_code_push + flutter_native_splash | ✅ uploaded to Play |
+| 1.0.2 | 3 | Pub conflict fixes (not used) | ❌ skip |
+| 1.0.3 | 4 | All future native plugins pre-bundled | ⬜ **upload this AAB to Play** |
+| future | — | All Dart changes only | OTA forever |
+
+> ⚠️ **Action needed:** Download the `kilos-release-aab` artifact from the
+> **v1.0.3 "Cut store release (baseline) #5"** CI run and upload it to Play Console
+> (Internal testing → create new release). This is the final native baseline.
+
+---
+
+## Build order
 
 ```
-Phase 2 → Phase 3 → Phase 6C (Renewals) → Phase 6B (Settings)
-→ Phase 4 → Phase 5 → Phase 6A (Photos, needs Storage)
+Phase 2 (nav redesign + Plans/Staff/Expenses/Supplements)
+  → Phase 3 (Leads/Renewals/Opportunities)
+  → Phase 4 (Classes/PT)
+  → Phase 5 (Health tracking)
+  → Phase 6 (Reports/Notifications/Comms)
+  → Phase 7 (Photos/Settings/QR)
 ```
 
-Phase 6A (member photos) is last because it needs Firebase Storage configured
-(a separate Firebase product, not in use yet).
-
 ---
 
-## Version plan
+## Quick status
 
-| Baseline | What changed (native) | Action |
-|----------|-----------------------|--------|
-| 1.0.1+2 | shorebird_code_push + flutter_native_splash | Current — CI building now |
-| 1.0.2+3 | image_picker, path_provider, share_plus, printing, firebase_messaging, flutter_local_notifications | **Cut now → upload to Play → done forever** |
-| future | Nothing — all Dart | OTA only |
-
----
-
-## Firebase Storage (needed for Phase 6A only)
-
-Currently not configured. To enable:
-1. Firebase Console → Storage → Enable
-2. Add `firebase_storage` to pubspec (native → needs a baseline, but this is already
-   the 1.0.2+3 freeze, so add it there too)
-3. Register the Android app in Firebase Console → download `google-services.json`
-   (currently skipped; needed for Storage + Messaging)
-
-> Note: Firestore + Auth work without registering the app because we hardcode the
-> config. Storage and Messaging need the app registered to get proper tokens.
+| Phase | What | Status |
+|-------|------|--------|
+| 1 | Dashboard, Members, Payments, Attendance, Check-in | ✅ Live |
+| 2 | Plans, Staff, Expenses, Supplements + More tab nav | ⬜ |
+| 3 | Leads, Renewals, Opportunities | ⬜ |
+| 4 | Classes, Personal Training | ⬜ |
+| 5 | Measurements, Diet, Workouts, Equipment | ⬜ |
+| 6 | Reports (PDF), Notifications, WhatsApp Hub | ⬜ |
+| 7 | Member Photos, Settings, Member QR | ⬜ |
