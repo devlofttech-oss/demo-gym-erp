@@ -73,6 +73,7 @@ export default function AddMember() {
     durationDays: 30,
     durationMonths: 1,
     totalFees: 0,
+    joiningFees: '',
     discountPercent: '',
     discountAmount: '',
     nextPaymentDays: '',
@@ -85,12 +86,14 @@ export default function AddMember() {
   });
 
   const basePlanFees    = Number(formData.totalFees || 0);
+  const joiningFeesAmt  = Number(formData.joiningFees || 0);
   const discountAmt     = Math.min(basePlanFees, Math.max(0, Number(formData.discountAmount || 0)));
   const discountPct     = basePlanFees > 0 ? +((discountAmt / basePlanFees) * 100).toFixed(1) : 0;
   const discountedTotal = Math.max(0, basePlanFees - discountAmt);
+  const finalTotal      = discountedTotal + joiningFeesAmt;
   const paidNowNum      = Number(formData.paidNow || 0);
   const netPaid         = existingCredit + paidNowNum;
-  const balanceFees     = Math.max(0, discountedTotal - netPaid);
+  const balanceFees     = Math.max(0, finalTotal - netPaid);
 
   const handleDiscountPercent = (val) => {
     const pct = Math.min(100, Math.max(0, Number(val) || 0));
@@ -197,7 +200,8 @@ export default function AddMember() {
 
     const discountAmtSubmit = Math.min(basePlanFees, Math.max(0, Number(formData.discountAmount || 0)));
     const discountPctSubmit = basePlanFees > 0 ? +((discountAmtSubmit / basePlanFees) * 100).toFixed(1) : 0;
-    const totalFees         = Math.max(0, basePlanFees - discountAmtSubmit);
+    const joiningFees       = Number(formData.joiningFees || 0);
+    const totalFees         = Math.max(0, basePlanFees - discountAmtSubmit) + joiningFees;
     const paidNow       = Number(formData.paidNow || 0);
     const newPaidFees   = isEdit ? existingCredit + paidNow : paidNow;
     const balance       = Math.max(0, totalFees - newPaidFees);
@@ -234,6 +238,7 @@ export default function AddMember() {
         totalFees,
         paidFees:         newPaidFees,
         balanceFees:      balance,
+        ...(joiningFees > 0 && { joiningFees }),
         ...(discountAmtSubmit > 0 && { discountAmount: discountAmtSubmit, discountPercent: discountPctSubmit }),
         ...(nextPaymentDate && { nextPaymentDate }),
         ...(finalPhotoUrl && { photoUrl: finalPhotoUrl }),
@@ -473,15 +478,24 @@ export default function AddMember() {
                     <p className="text-emerald-700 dark:text-emerald-400">
                       ₹{existingCredit.toLocaleString('en-IN')} already paid on previous plan will be credited to the new plan.
                     </p>
-                    {discountedTotal > 0 && (
+                    {finalTotal > 0 && (
                       <p className="text-emerald-700 dark:text-emerald-400">
                         Net to collect today:{' '}
-                        <strong>₹{Math.max(0, discountedTotal - existingCredit).toLocaleString('en-IN')}</strong>
+                        <strong>₹{Math.max(0, finalTotal - existingCredit).toLocaleString('en-IN')}</strong>
                       </p>
                     )}
                   </div>
                 </div>
               )}
+
+              {/* Joining Fees */}
+              <div className="flex flex-col gap-1.5">
+                <label className="font-medium text-sm text-on-surface">Joining Fees (₹)</label>
+                <input type="number" name="joiningFees" value={formData.joiningFees}
+                  onChange={handleChange} min="0" placeholder="0"
+                  className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-on-surface outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                <span className="text-xs text-on-surface-variant">One-time joining fee (added to total)</span>
+              </div>
 
               {/* Discount */}
               <div className="grid grid-cols-3 gap-3">
@@ -518,19 +532,23 @@ export default function AddMember() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Total Fees */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-medium text-sm text-on-surface">New Plan Total (₹)</label>
+                  <label className="font-medium text-sm text-on-surface">Grand Total (₹)</label>
                   <div className="w-full px-3 py-2.5 bg-surface-container border border-outline-variant/20 rounded-lg text-on-surface-variant text-sm font-semibold select-none">
                     {discountAmt > 0 ? (
                       <span>
-                        <span className="line-through opacity-50 mr-1.5">₹{basePlanFees.toLocaleString('en-IN')}</span>
-                        <span className="text-primary">₹{discountedTotal.toLocaleString('en-IN')}</span>
+                        <span className="line-through opacity-50 mr-1.5">₹{(basePlanFees + joiningFeesAmt).toLocaleString('en-IN')}</span>
+                        <span className="text-primary">₹{finalTotal.toLocaleString('en-IN')}</span>
                       </span>
                     ) : (
-                      basePlanFees > 0 ? `₹${basePlanFees.toLocaleString('en-IN')}` : '—'
+                      finalTotal > 0 ? `₹${finalTotal.toLocaleString('en-IN')}` : '—'
                     )}
                   </div>
                   <span className="text-xs text-on-surface-variant">
-                    {discountAmt > 0 ? `After ${discountPct}% (₹${discountAmt.toLocaleString('en-IN')}) discount` : 'Plan price'}
+                    {joiningFeesAmt > 0
+                      ? `Plan ₹${discountedTotal.toLocaleString('en-IN')} + Joining ₹${joiningFeesAmt.toLocaleString('en-IN')}`
+                      : discountAmt > 0
+                        ? `After ${discountPct}% (₹${discountAmt.toLocaleString('en-IN')}) discount`
+                        : 'Plan price'}
                   </span>
                 </div>
 
@@ -600,8 +618,8 @@ export default function AddMember() {
               <p className="text-sm font-semibold text-on-surface">Payment Summary</p>
               <div className="flex flex-wrap gap-4 mt-1 text-sm">
                 <div>
-                  <span className="text-on-surface-variant">Plan total:</span>{' '}
-                  <span className="font-semibold text-on-surface">₹{discountedTotal.toLocaleString('en-IN')}</span>
+                  <span className="text-on-surface-variant">Grand total:</span>{' '}
+                  <span className="font-semibold text-on-surface">₹{finalTotal.toLocaleString('en-IN')}</span>
                 </div>
                 {isEdit && existingCredit > 0 && (
                   <div>

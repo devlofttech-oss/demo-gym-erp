@@ -101,6 +101,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ── Public receipts ──────────────────────────────────────────
+    match /receipts/{receiptId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
     // ── Trial sign-up requests ────────────────────────────────────
     match /trialRequests/{reqId} {
       allow create: if true;

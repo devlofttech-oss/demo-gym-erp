@@ -9,6 +9,7 @@ import kilosLogo from '../../assets/kilos_logo.png';
 import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import MeasurementForm from '../measurements/MeasurementForm';
 import { shareQrOnWhatsApp } from '../../utils/memberQr';
+import { publishReceipt, openReceiptWhatsApp } from '../../utils/receiptShare';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -282,11 +283,24 @@ export default function MemberProfile() {
     `;
 
     const win = window.open('', '_blank', 'width=700,height=900');
-    if (!win) { toast.error('Allow popups to download the receipt'); return; }
+    if (!win) { toast.error('Allow popups to view the receipt'); return; }
     win.document.write(html);
     win.document.close();
     win.focus();
-    setTimeout(() => { win.print(); }, 400);
+  };
+
+  const [sendingReceipt, setSendingReceipt] = useState(false);
+  const sendReceiptWhatsApp = async () => {
+    if (!member) return;
+    setSendingReceipt(true);
+    try {
+      const url = await publishReceipt(member, gymInfo);
+      openReceiptWhatsApp(url, member, gymInfo);
+    } catch {
+      toast.error('Failed to prepare receipt link');
+    } finally {
+      setSendingReceipt(false);
+    }
   };
 
   useEffect(() => {
@@ -547,7 +561,14 @@ export default function MemberProfile() {
           </Link>
           <button onClick={downloadReceipt} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
             <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-            Download Receipt
+            View Receipt
+          </button>
+          <button onClick={sendReceiptWhatsApp} disabled={sendingReceipt} className="flex-1 md:flex-none bg-[#25D366] hover:bg-[#20b558] text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm disabled:opacity-60">
+            {sendingReceipt
+              ? <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+              : <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.855L.057 23.487a.75.75 0 0 0 .921.921l5.632-1.475A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.74 9.74 0 0 1-4.962-1.355l-.355-.212-3.683.965.982-3.588-.232-.371A9.712 9.712 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+            }
+            Send Receipt
           </button>
           <Link to={`/members/${id}/edit`} className="flex-1 md:flex-none bg-surface-container border border-outline-variant/30 text-on-surface px-4 py-2 rounded-lg font-medium hover:bg-surface-container-high transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
             <span className="material-symbols-outlined text-[16px]">edit</span>

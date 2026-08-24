@@ -31,6 +31,7 @@ import PTList from './pages/pt/PTList';
 import CommunicationHub from './pages/communication/CommunicationHub';
 import RenewalsList from './pages/renewals/RenewalsList';
 import MemberQRPage from './pages/public/MemberQRPage';
+import ReceiptPage from './pages/public/ReceiptPage';
 
 // Super Admin
 import SuperAdminLayout from './pages/super-admin/SuperAdminLayout';
@@ -61,6 +62,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
       <Route path="/qr/:memberId" element={<MemberQRPage />} />
+      <Route path="/receipt/:receiptId" element={<ReceiptPage />} />
 
       {/* Standalone scanner kiosk */}
       <Route path="/scanner" element={

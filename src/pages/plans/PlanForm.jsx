@@ -9,7 +9,6 @@ const EMPTY_FORM = {
   durationMonths: '',
   sessions: '',
   price: '',
-  joiningFee: '0',
   gstPercent: '',
   description: '',
   features: [],
@@ -35,7 +34,6 @@ export default function PlanForm({ plan, onClose, onSaved }) {
       durationMonths: plan.durationMonths != null ? String(plan.durationMonths) : '',
       sessions: plan.sessions != null ? String(plan.sessions) : '',
       price: plan.price != null ? String(plan.price) : '',
-      joiningFee: plan.joiningFee != null ? String(plan.joiningFee) : '0',
       gstPercent: plan.gstPercent != null ? String(plan.gstPercent) : '',
       description: plan.description || '',
       features: plan.features ? [...plan.features] : [],
@@ -82,7 +80,6 @@ export default function PlanForm({ plan, onClose, onSaved }) {
         name: form.name.trim(),
         type: form.type,
         price: Number(form.price),
-        joiningFee: Number(form.joiningFee) || 0,
         gstPercent: form.gstPercent !== '' ? Number(form.gstPercent) : 0,
         description: form.description.trim(),
         features: form.features,
@@ -192,7 +189,7 @@ export default function PlanForm({ plan, onClose, onSaved }) {
           </div>
 
           {/* Price + Joining Fee + GST */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-on-surface-variant">
                 Price (₹) <span className="text-error">*</span>
@@ -201,18 +198,6 @@ export default function PlanForm({ plan, onClose, onSaved }) {
                 type="number"
                 name="price"
                 value={form.price}
-                onChange={handle}
-                min="0"
-                placeholder="0"
-                className="w-full px-4 py-2.5 bg-surface-container border border-outline-variant/30 rounded-lg text-on-surface outline-none focus:border-primary"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-on-surface-variant">Joining Fee (₹)</label>
-              <input
-                type="number"
-                name="joiningFee"
-                value={form.joiningFee}
                 onChange={handle}
                 min="0"
                 placeholder="0"

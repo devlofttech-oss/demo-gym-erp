@@ -60,11 +60,6 @@ function PlanCard({ plan, onEdit, onDelete, onToggleActive }) {
           <div className="text-2xl font-bold text-primary">
             ₹{Number(plan.price || 0).toLocaleString('en-IN')}
           </div>
-          {plan.joiningFee > 0 && (
-            <div className="text-xs text-on-surface-variant mt-0.5">
-              Joining: ₹{Number(plan.joiningFee).toLocaleString('en-IN')}
-            </div>
-          )}
         </div>
         {displayDuration && (
           <div className="flex items-center gap-1 text-sm text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-lg">
