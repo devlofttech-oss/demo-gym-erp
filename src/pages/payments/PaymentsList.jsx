@@ -175,32 +175,49 @@ export default function PaymentsList() {
         </Link>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setSearchTerm(''); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === tab.id
-                ? 'bg-surface-container-lowest text-on-surface shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
-            {tab.label}
-            {tab.id === 'expired' && expiredMembers.length > 0 && (
-              <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
-                {expiredMembers.length}
-              </span>
-            )}
-            {tab.id === 'dues' && balanceDueMembers.length > 0 && (
-              <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
-                {balanceDueMembers.length}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Tabs + Month filter */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex gap-1 bg-surface-container rounded-xl p-1 w-fit">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setSearchTerm(''); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? 'bg-surface-container-lowest text-on-surface shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+              {tab.label}
+              {tab.id === 'expired' && expiredMembers.length > 0 && (
+                <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
+                  {expiredMembers.length}
+                </span>
+              )}
+              {tab.id === 'dues' && balanceDueMembers.length > 0 && (
+                <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-4.5 text-center">
+                  {balanceDueMembers.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-3 py-2 shadow-sm">
+          <span className="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_month</span>
+          <span className="text-xs text-on-surface-variant font-medium">Month</span>
+          <input
+            type="month"
+            value={filterMonth}
+            onChange={e => { setFilterMonth(e.target.value); setPage(1); }}
+            className="bg-transparent text-on-surface outline-none text-sm"
+          />
+          {filterMonth && (
+            <button onClick={() => setFilterMonth('')} className="text-on-surface-variant hover:text-on-surface transition-colors ml-1">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ─── PAYMENTS TAB ─── */}
@@ -256,37 +273,21 @@ export default function PaymentsList() {
             </div>
           </div>
 
-          {/* Search + Month Filter */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-3 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 max-w-md shadow-sm flex-1">
-              <span className="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
-              <input
-                type="text"
-                placeholder="Search by member, plan, mode..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="flex-1 bg-transparent text-on-surface outline-none text-sm placeholder:text-on-surface-variant"
-              />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm('')} className="text-on-surface-variant hover:text-on-surface transition-colors">
-                  <span className="material-symbols-outlined text-[18px]">close</span>
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 shadow-sm">
-              <span className="material-symbols-outlined text-on-surface-variant text-[18px]">calendar_month</span>
-              <input
-                type="month"
-                value={filterMonth}
-                onChange={e => setFilterMonth(e.target.value)}
-                className="bg-transparent text-on-surface outline-none text-sm"
-              />
-              {filterMonth && (
-                <button onClick={() => setFilterMonth('')} className="text-on-surface-variant hover:text-on-surface transition-colors ml-1">
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
-              )}
-            </div>
+          {/* Search */}
+          <div className="flex items-center gap-3 bg-surface-container-lowest border border-outline-variant/30 rounded-xl px-4 py-2.5 max-w-md shadow-sm">
+            <span className="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+            <input
+              type="text"
+              placeholder="Search by member, plan, mode..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="flex-1 bg-transparent text-on-surface outline-none text-sm placeholder:text-on-surface-variant"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="text-on-surface-variant hover:text-on-surface transition-colors">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile card list */}
