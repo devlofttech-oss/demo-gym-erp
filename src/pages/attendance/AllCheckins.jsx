@@ -47,6 +47,36 @@ function formatDateLabel(iso) {
   } catch { return iso; }
 }
 
+function getWeekDays() {
+  const t = new Date();
+  const dow = t.getDay();
+  const monday = new Date(t);
+  monday.setDate(t.getDate() - (dow === 0 ? 6 : dow - 1));
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    if (d <= t) days.push(d.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+function getMonthDays() {
+  const t = new Date();
+  const days = [];
+  for (let d = 1; d <= t.getDate(); d++) {
+    days.push(new Date(t.getFullYear(), t.getMonth(), d).toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+function dayChipLabel(iso, short = false) {
+  const d = new Date(iso + 'T00:00:00');
+  const weekday = d.toLocaleDateString('en-IN', { weekday: 'short' });
+  const num = d.getDate();
+  return short ? `${weekday} ${num}` : `${weekday}\n${num}`;
+}
+
 export default function AllCheckins() {
   const { gymId } = useAuth();
   const [records, setRecords] = useState([]);
@@ -54,6 +84,7 @@ export default function AllCheckins() {
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('today');
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDay, setSelectedDay] = useState(null);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -73,19 +104,29 @@ export default function AllCheckins() {
     fetch();
   }, []);
 
-  useEffect(() => { setPage(1); }, [dateFilter, customDate, search]);
+  useEffect(() => { setPage(1); setSelectedDay(null); }, [dateFilter, customDate, search]);
+  useEffect(() => { setPage(1); }, [selectedDay]);
 
   const today = new Date().toISOString().split('T')[0];
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().split('T')[0];
+  const weekDays  = getWeekDays();
+  const monthDays = getMonthDays();
+  const weekStart  = weekDays[0] || today;
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+  // count per day for chips
+  const countByDay = {};
+  records.forEach(a => {
+    const d = getRecordDate(a);
+    if (d) countByDay[d] = (countByDay[d] || 0) + 1;
+  });
 
   const filtered = records.filter(a => {
     const d = getRecordDate(a);
     if (!d) return false;
     let matchDate = true;
-    if (dateFilter === 'today') matchDate = d === today;
-    else if (dateFilter === 'week') matchDate = d >= weekAgo;
-    else if (dateFilter === 'month') matchDate = d >= monthStart;
+    if (dateFilter === 'today')  matchDate = d === today;
+    else if (dateFilter === 'week')  matchDate = selectedDay ? d === selectedDay : d >= weekStart;
+    else if (dateFilter === 'month') matchDate = selectedDay ? d === selectedDay : d >= monthStart;
     else if (dateFilter === 'custom') matchDate = d === customDate;
     const term = search.toLowerCase();
     return matchDate && (!term || a.memberName?.toLowerCase().includes(term));
@@ -192,6 +233,79 @@ export default function AllCheckins() {
           )}
         </div>
       </div>
+
+      {/* Day chips — week */}
+      {dateFilter === 'week' && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {weekDays.map(iso => {
+            const isActive = selectedDay === iso;
+            const count = countByDay[iso] || 0;
+            const d = new Date(iso + 'T00:00:00');
+            const isToday = iso === today;
+            return (
+              <button key={iso} onClick={() => setSelectedDay(isActive ? null : iso)}
+                className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl border text-sm font-medium shrink-0 transition-all ${
+                  isActive
+                    ? 'bg-primary text-on-primary border-primary shadow-sm'
+                    : 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:border-primary/40 hover:text-on-surface'
+                }`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${isActive ? 'text-on-primary/80' : isToday ? 'text-primary' : 'text-on-surface-variant'}`}>
+                  {d.toLocaleDateString('en-IN', { weekday: 'short' })}
+                </span>
+                <span className="text-base font-bold leading-none">{d.getDate()}</span>
+                {count > 0
+                  ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-on-primary' : 'bg-primary/10 text-primary'}`}>{count}</span>
+                  : <span className="text-[10px] text-on-surface-variant/40">–</span>
+                }
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Day chips — month */}
+      {dateFilter === 'month' && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {monthDays.map(iso => {
+            const isActive = selectedDay === iso;
+            const count = countByDay[iso] || 0;
+            const d = new Date(iso + 'T00:00:00');
+            const isToday = iso === today;
+            return (
+              <button key={iso} onClick={() => setSelectedDay(isActive ? null : iso)}
+                className={`flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border text-sm font-medium shrink-0 transition-all ${
+                  isActive
+                    ? 'bg-primary text-on-primary border-primary shadow-sm'
+                    : count > 0
+                      ? 'bg-surface-container-lowest border-outline-variant/30 text-on-surface-variant hover:border-primary/40 hover:text-on-surface'
+                      : 'bg-surface-container border-transparent text-on-surface-variant/40'
+                }`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${isActive ? 'text-on-primary/80' : isToday ? 'text-primary' : 'text-on-surface-variant'}`}>
+                  {d.toLocaleDateString('en-IN', { weekday: 'short' })}
+                </span>
+                <span className="text-sm font-bold leading-none">{d.getDate()}</span>
+                {count > 0
+                  ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-on-primary' : 'bg-primary/10 text-primary'}`}>{count}</span>
+                  : <span className="text-[10px] text-on-surface-variant/30">–</span>
+                }
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Active day label */}
+      {selectedDay && (dateFilter === 'week' || dateFilter === 'month') && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-on-surface">
+            {new Date(selectedDay + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </span>
+          <button onClick={() => setSelectedDay(null)} className="text-xs text-on-surface-variant hover:text-on-surface underline">
+            Show all {dateFilter === 'week' ? 'week' : 'month'}
+          </button>
+        </div>
+      )}
+
 
       {/* Table */}
       <div className="bg-surface-container-lowest rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)] overflow-hidden">
