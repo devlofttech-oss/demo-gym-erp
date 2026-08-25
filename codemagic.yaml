@@ -77,8 +77,14 @@ workflows:
         APP_STORE_APP_ID: "6804961729"
         FIREBASE_IOS_APP_ID: "1:1042216377771:ios:95344c3054e0f8417e46ee"
         FIREBASE_IOS_API_KEY: "AIzaSyDN2kYkL8GzaTfKG6md7CJs_m3p--1UT9U"
-      # SHOREBIRD_TOKEN must be added as an encrypted variable in Codemagic UI:
-      # Teams → Environment variables → Add → name: SHOREBIRD_TOKEN, mark as secret
+      # SHOREBIRD_TOKEN lives in a Codemagic environment variable GROUP named
+      # `shorebird`. Codemagic only injects team variables into a build if the
+      # workflow names their group here — without this line the token never
+      # reaches the machine and `shorebird release` fails to authenticate.
+      # Codemagic UI: Teams → Environment variables → group `shorebird`,
+      # name SHOREBIRD_TOKEN, value from `shorebird login:ci`, tick Secret.
+      groups:
+        - shorebird
     scripts:
       - name: Enable Swift Package Manager
         script: flutter config --enable-swift-package-manager || true
