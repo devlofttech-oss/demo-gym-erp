@@ -1,0 +1,160 @@
+# Codemagic CI/CD for the Kilos Flutter app (lives in ./mobile-app).
+#
+# The repo root is a Vite/React web app; the mobile app is a Flutter project in
+# `mobile-app/`, which is why every workflow sets `working_directory`. Codemagic
+# reads this file from the repo root — leave it here.
+#
+# Two workflows:
+#   ios-validate  — unsigned compile check. Needs NO Apple Developer account.
+#                   Run this first to prove the iOS toolchain is green.
+#   ios-release   — signed .ipa -> App Store Connect / TestFlight.
+#                   Needs the $99/yr Apple Developer Program + the setup in
+#                   mobile-app/CODEMAGIC-IOS.md.
+
+definitions:
+  cache: &flutter_cache
+    cache_paths:
+      - $HOME/.pub-cache
+
+workflows:
+
+  # ---------------------------------------------------------------------------
+  # 1. Does it even build? No Apple account, no certificates, no signing.
+  # ---------------------------------------------------------------------------
+  ios-validate:
+    name: iOS · unsigned build check
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    working_directory: mobile-app
+    cache: *flutter_cache
+    environment:
+      # pubspec.lock currently needs Flutter >= 3.47.1. `stable` is past that;
+      # pin an exact version here (e.g. `flutter: 3.47.1`) if a future stable
+      # ever breaks resolution.
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Toolchain versions
+        script: |
+          flutter --version
+          pod --version
+      - name: Enable Swift Package Manager
+        # Runner.xcodeproj references FlutterGeneratedPluginSwiftPackage, so the
+        # project expects SPM. Harmless no-op when it is already the default.
+        script: flutter config --enable-swift-package-manager || true
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Analyze
+        # Informational only — lint findings should not block a build check.
+        script: flutter analyze --no-pub || true
+      - name: Build unsigned iOS app
+        script: flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.app
+      - flutter_drive.log
+      - /tmp/xcodebuild_logs/*.log
+
+  # ---------------------------------------------------------------------------
+  # 2. The real thing: signed archive -> App Store Connect -> TestFlight.
+  # ---------------------------------------------------------------------------
+  ios-release:
+    name: iOS · TestFlight release
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    working_directory: mobile-app
+    cache: *flutter_cache
+    integrations:
+      # Must match the App Store Connect API key name you add under
+      # Codemagic -> Teams/Personal Account -> Integrations -> App Store Connect.
+      app_store_connect: Kilos App Store Connect
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.devloft.kilos
+      vars:
+        BUNDLE_ID: "com.devloft.kilos"
+        # App Store Connect -> your app -> App Information -> "Apple ID"
+        # (a 10-digit number). Leave as-is before the app record exists; the
+        # build number then falls back to Codemagic's own counter.
+        APP_STORE_APP_ID: ""
+        # Firebase console -> Project settings -> the iOS app you registered for
+        # com.devloft.kilos. These are NOT secrets — they ship inside every copy
+        # of the app. Leave blank and the app falls back to the web app id,
+        # which the native Firebase SDK rejects at launch.
+        FIREBASE_IOS_APP_ID: ""
+        FIREBASE_IOS_API_KEY: ""
+    scripts:
+      - name: Enable Swift Package Manager
+        script: flutter config --enable-swift-package-manager || true
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Apply provisioning profiles to Xcode project
+        script: xcode-project use-profiles
+      - name: Build signed .ipa
+        script: |
+          set -e
+
+          # --- build number ------------------------------------------------
+          # App Store Connect rejects a build number it has already seen, so
+          # take the highest one TestFlight knows about and add one.
+          if [ -n "$APP_STORE_APP_ID" ]; then
+            LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" || echo 0)
+            BUILD_NUM=$(( LATEST + 1 ))
+          else
+            echo "APP_STORE_APP_ID not set — using Codemagic build counter."
+            BUILD_NUM=$PROJECT_BUILD_NUMBER
+          fi
+          echo "Building build number $BUILD_NUM"
+
+          # --- Firebase iOS identity ---------------------------------------
+          DEFINES=""
+          if [ -n "$FIREBASE_IOS_APP_ID" ]; then
+            DEFINES="$DEFINES --dart-define=FIREBASE_IOS_APP_ID=$FIREBASE_IOS_APP_ID"
+          else
+            echo "WARNING: FIREBASE_IOS_APP_ID is empty. The app will start with the"
+            echo "         web Firebase app id and Firebase will fail to initialise."
+          fi
+          if [ -n "$FIREBASE_IOS_API_KEY" ]; then
+            DEFINES="$DEFINES --dart-define=FIREBASE_IOS_API_KEY=$FIREBASE_IOS_API_KEY"
+          fi
+
+          # Version name comes from pubspec.yaml (`version: 1.0.3+4`).
+          flutter build ipa --release \
+            --build-number="$BUILD_NUM" \
+            $DEFINES \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Uploads to TestFlight. Flip submit_to_app_store to true (and add
+        # release_type/copyright) once you are ready for public review.
+        submit_to_testflight: true
+        submit_to_app_store: false
+        # beta_groups:
+        #   - Internal testers
+      email:
+        recipients:
+          - your-email@example.com
+        notify:
+          success: true
+          failure: true
+
+# ---------------------------------------------------------------------------
+# Auto-triggering is off on purpose so pushes don't silently burn build minutes.
+# Uncomment inside a workflow to build every tag like v1.0.4:
+#
+#     triggering:
+#       events:
+#         - tag
+#       tag_patterns:
+#         - pattern: 'v*'
+#           include: true
+# ---------------------------------------------------------------------------

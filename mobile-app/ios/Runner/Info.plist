@@ -6,6 +6,12 @@
 		<true/>
 		<key>NSCameraUsageDescription</key>
 		<string>Kilos uses the camera to scan member QR codes for gym check-in.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Kilos needs access to your photos so you can attach a member photo or a payment receipt.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Kilos saves receipts and reports to your photo library when you choose to export them.</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>

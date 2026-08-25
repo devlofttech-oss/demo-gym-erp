@@ -43,9 +43,29 @@ class DefaultFirebaseOptions {
     storageBucket: _bucket,
   );
 
+  // iOS needs its OWN Firebase app id — the native SDK validates the format and
+  // rejects a `...:web:...` id at startup. Register the iOS app (bundle id
+  // com.devloft.kilos) in the Firebase console, then pass the real values in at
+  // build time so nothing secret-ish is hardcoded here:
+  //
+  //   flutter build ipa --dart-define=FIREBASE_IOS_APP_ID=1:1042216377771:ios:xxxx
+  //                     --dart-define=FIREBASE_IOS_API_KEY=AIza...
+  //
+  // Codemagic passes both from the `kilos_ios` environment group (see
+  // codemagic.yaml). Until they are set the web id is used, which only works
+  // for running on a simulator against Firestore in permissive mode.
+  static const _iosAppId = String.fromEnvironment(
+    'FIREBASE_IOS_APP_ID',
+    defaultValue: _appId,
+  );
+  static const _iosApiKey = String.fromEnvironment(
+    'FIREBASE_IOS_API_KEY',
+    defaultValue: _apiKey,
+  );
+
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: _apiKey,
-    appId: _appId,
+    apiKey: _iosApiKey,
+    appId: _iosAppId,
     messagingSenderId: _sender,
     projectId: _project,
     storageBucket: _bucket,
