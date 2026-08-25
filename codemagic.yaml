@@ -7,9 +7,9 @@
 # Two workflows:
 #   ios-validate  — unsigned compile check. Needs NO Apple Developer account.
 #                   Run this first to prove the iOS toolchain is green.
-#   ios-release   — signed .ipa -> App Store Connect / TestFlight.
-#                   Needs the $99/yr Apple Developer Program + the setup in
-#                   mobile-app/CODEMAGIC-IOS.md.
+#   ios-release   — signed .ipa -> App Store Connect / TestFlight via Shorebird.
+#                   Needs the $99/yr Apple Developer Program + setup in
+#                   mobile-app/CODEMAGIC-IOS.md + SHOREBIRD_TOKEN env var.
 
 definitions:
   cache: &flutter_cache
@@ -28,9 +28,6 @@ workflows:
     working_directory: mobile-app
     cache: *flutter_cache
     environment:
-      # pubspec.lock currently needs Flutter >= 3.47.1. `stable` is past that;
-      # pin an exact version here (e.g. `flutter: 3.47.1`) if a future stable
-      # ever breaks resolution.
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -40,13 +37,10 @@ workflows:
           flutter --version
           pod --version
       - name: Enable Swift Package Manager
-        # Runner.xcodeproj references FlutterGeneratedPluginSwiftPackage, so the
-        # project expects SPM. Harmless no-op when it is already the default.
         script: flutter config --enable-swift-package-manager || true
       - name: Get Flutter packages
         script: flutter pub get
       - name: Analyze
-        # Informational only — lint findings should not block a build check.
         script: flutter analyze --no-pub || true
       - name: Build unsigned iOS app
         script: flutter build ios --release --no-codesign
@@ -56,16 +50,19 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
 
   # ---------------------------------------------------------------------------
-  # 2. The real thing: signed archive -> App Store Connect -> TestFlight.
+  # 2. Shorebird release → signed .ipa → TestFlight.
+  #    Uses `shorebird release ios` instead of `flutter build ipa` so that
+  #    future `shorebird patch ios` calls (from GitHub Actions on every push)
+  #    can push OTA updates without a new App Store submission.
   # ---------------------------------------------------------------------------
   ios-release:
-    name: iOS · TestFlight release
+    name: iOS · TestFlight release (Shorebird)
     instance_type: mac_mini_m2
     max_build_duration: 90
     working_directory: mobile-app
     cache: *flutter_cache
     integrations:
-      # Must match the App Store Connect API key name you add under
+      # Must match the App Store Connect API key name you added under
       # Codemagic -> Teams/Personal Account -> Integrations -> App Store Connect.
       app_store_connect: Kilos App Store Connect
     environment:
@@ -77,20 +74,11 @@ workflows:
         bundle_identifier: com.devloft.kilos
       vars:
         BUNDLE_ID: "com.devloft.kilos"
-        # Codemagic rejects empty values, so unfilled settings use the literal
-        # CHANGEME sentinel and the build script treats that as "not set yet".
-        #
-        # App Store Connect -> your app -> App Information -> "Apple ID"
-        # (a 10-digit number). Quoted so YAML keeps it a string, not an int.
-        # Until it is filled in, the build number falls back to Codemagic's
-        # own counter.
         APP_STORE_APP_ID: "6804961729"
-        # Firebase console -> Project settings -> the iOS app you registered for
-        # com.devloft.kilos. These are NOT secrets — they ship inside every copy
-        # of the app. Left as CHANGEME, the app falls back to the web app id,
-        # which the native Firebase SDK rejects at launch.
         FIREBASE_IOS_APP_ID: "1:1042216377771:ios:95344c3054e0f8417e46ee"
         FIREBASE_IOS_API_KEY: "AIzaSyDN2kYkL8GzaTfKG6md7CJs_m3p--1UT9U"
+      # SHOREBIRD_TOKEN must be added as an encrypted variable in Codemagic UI:
+      # Teams → Environment variables → Add → name: SHOREBIRD_TOKEN, mark as secret
     scripts:
       - name: Enable Swift Package Manager
         script: flutter config --enable-swift-package-manager || true
@@ -98,21 +86,21 @@ workflows:
         script: flutter pub get
       - name: Apply provisioning profiles to Xcode project
         script: xcode-project use-profiles
-      - name: Build signed .ipa
+      - name: Install Shorebird CLI
+        script: |
+          curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash
+          echo "export PATH=\"$HOME/.shorebird/bin:$PATH\"" >> $CM_ENV
+      - name: Build signed .ipa via Shorebird
         script: |
           set -e
 
-          # A var still holding the CHANGEME placeholder counts as unset.
           is_set() { [ -n "$1" ] && [ "$1" != "CHANGEME" ]; }
 
           # --- build number ------------------------------------------------
-          # App Store Connect rejects a build number it has already seen, so
-          # take the highest one TestFlight knows about and add one.
           if is_set "$APP_STORE_APP_ID"; then
             LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" || echo 0)
             BUILD_NUM=$(( LATEST + 1 ))
           else
-            echo "APP_STORE_APP_ID not set — using Codemagic build counter."
             BUILD_NUM=$PROJECT_BUILD_NUMBER
           fi
           echo "Building build number $BUILD_NUM"
@@ -121,16 +109,16 @@ workflows:
           DEFINES=""
           if is_set "$FIREBASE_IOS_APP_ID"; then
             DEFINES="$DEFINES --dart-define=FIREBASE_IOS_APP_ID=$FIREBASE_IOS_APP_ID"
-          else
-            echo "WARNING: FIREBASE_IOS_APP_ID is not set. The app will start with"
-            echo "         the web Firebase app id and fail to initialise."
           fi
           if is_set "$FIREBASE_IOS_API_KEY"; then
             DEFINES="$DEFINES --dart-define=FIREBASE_IOS_API_KEY=$FIREBASE_IOS_API_KEY"
           fi
 
-          # Version name comes from pubspec.yaml (`version: 1.0.3+4`).
-          flutter build ipa --release \
+          # `shorebird release ios` builds the .ipa AND registers it with
+          # Shorebird so patches can be pushed to it later via GitHub Actions.
+          # Flutter args go after `--`.
+          yes | shorebird release ios \
+            -- \
             --build-number="$BUILD_NUM" \
             $DEFINES \
             --export-options-plist=/Users/builder/export_options.plist
@@ -141,12 +129,8 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        # Uploads to TestFlight. Flip submit_to_app_store to true (and add
-        # release_type/copyright) once you are ready for public review.
         submit_to_testflight: true
         submit_to_app_store: false
-        # beta_groups:
-        #   - Internal testers
       email:
         recipients:
           - devlofttech@gmail.com
@@ -156,12 +140,4 @@ workflows:
 
 # ---------------------------------------------------------------------------
 # Auto-triggering is off on purpose so pushes don't silently burn build minutes.
-# Uncomment inside a workflow to build every tag like v1.0.4:
-#
-#     triggering:
-#       events:
-#         - tag
-#       tag_patterns:
-#         - pattern: 'v*'
-#           include: true
 # ---------------------------------------------------------------------------
