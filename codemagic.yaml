@@ -84,13 +84,13 @@ workflows:
         # (a 10-digit number). Quoted so YAML keeps it a string, not an int.
         # Until it is filled in, the build number falls back to Codemagic's
         # own counter.
-        APP_STORE_APP_ID: "CHANGEME"
+        APP_STORE_APP_ID: "6804961729"
         # Firebase console -> Project settings -> the iOS app you registered for
         # com.devloft.kilos. These are NOT secrets — they ship inside every copy
         # of the app. Left as CHANGEME, the app falls back to the web app id,
         # which the native Firebase SDK rejects at launch.
-        FIREBASE_IOS_APP_ID: "CHANGEME"
-        FIREBASE_IOS_API_KEY: "CHANGEME"
+        FIREBASE_IOS_APP_ID: "1:1042216377771:ios:95344c3054e0f8417e46ee"
+        FIREBASE_IOS_API_KEY: "AIzaSyDN2kYkL8GzaTfKG6md7CJs_m3p--1UT9U"
     scripts:
       - name: Enable Swift Package Manager
         script: flutter config --enable-swift-package-manager || true
@@ -149,7 +149,7 @@ workflows:
         #   - Internal testers
       email:
         recipients:
-          - your-email@example.com
+          - devlofttech@gmail.com
         notify:
           success: true
           failure: true
