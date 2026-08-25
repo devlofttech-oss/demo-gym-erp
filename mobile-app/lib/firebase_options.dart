@@ -56,11 +56,11 @@ class DefaultFirebaseOptions {
   // for running on a simulator against Firestore in permissive mode.
   static const _iosAppId = String.fromEnvironment(
     'FIREBASE_IOS_APP_ID',
-    defaultValue: _appId,
+    defaultValue: '1:1042216377771:ios:95344c3054e0f8417e46ee',
   );
   static const _iosApiKey = String.fromEnvironment(
     'FIREBASE_IOS_API_KEY',
-    defaultValue: _apiKey,
+    defaultValue: 'AIzaSyDN2kYkL8GzaTfKG6md7CJs_m3p--1UT9U',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
