@@ -9,7 +9,7 @@
 //   type ∈ 'renewal' | 'payment' | 'class' | 'announcement'
 //
 // Returns: { sent, failed, results: [{ memberId, status, error }] }
-import { getAdmin, getDb, verifyIdToken } from '../_lib/firebaseAdmin.js';
+import { FieldValue, getDb, verifyIdToken } from '../_lib/firebaseAdmin.js';
 import { normalizePhone, sendTemplateMessage } from '../_lib/whatsapp.js';
 import { buildTemplate, TEMPLATE_TYPES } from '../_lib/whatsappTemplates.js';
 
@@ -44,7 +44,6 @@ export default async function handler(req, res) {
   }
 
   const db = getDb();
-  const admin = getAdmin();
 
   // ── Authorize this user for this gym ─────────────────────────────────────
   try {
@@ -71,7 +70,7 @@ export default async function handler(req, res) {
   for (let i = 0; i < ids.length; i += CHUNK) {
     const batch = ids.slice(i, i + CHUNK);
     const settled = await Promise.all(
-      batch.map((memberId) => sendToMember({ db, admin, gymId, gym, memberId, type, extra, uid }))
+      batch.map((memberId) => sendToMember({ db, gymId, gym, memberId, type, extra, uid }))
     );
     results.push(...settled);
   }
@@ -80,7 +79,7 @@ export default async function handler(req, res) {
   return res.status(200).json({ sent, failed: results.length - sent, results });
 }
 
-async function sendToMember({ db, admin, gymId, gym, memberId, type, extra, uid }) {
+async function sendToMember({ db, gymId, gym, memberId, type, extra, uid }) {
   try {
     const snap = await db.doc(`gyms/${gymId}/members/${memberId}`).get();
     if (!snap.exists) return { memberId, status: 'failed', error: 'Member not found' };
@@ -105,7 +104,7 @@ async function sendToMember({ db, admin, gymId, gym, memberId, type, extra, uid 
       wamid: r.ok ? r.wamid : null,
       error: r.ok ? null : r.error,
       sentBy: uid,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     return { memberId, status: r.ok ? 'sent' : 'failed', error: r.ok ? null : r.error };

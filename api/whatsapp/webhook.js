@@ -14,7 +14,7 @@
 // status updates. HMAC signature verification is omitted (the verify-token
 // handshake gates the subscription; status updates are low-risk). It can be
 // added later with WHATSAPP_APP_SECRET + raw-body verification if needed.
-import { getAdmin, getDb } from '../_lib/firebaseAdmin.js';
+import { FieldValue, getDb } from '../_lib/firebaseAdmin.js';
 
 export default async function handler(req, res) {
   // ── Verification handshake ────────────────────────────────────────────────
@@ -44,8 +44,6 @@ export default async function handler(req, res) {
 
 async function processStatuses(body) {
   const db = getDb();
-  const admin = getAdmin();
-  const FieldValue = admin.firestore.FieldValue;
 
   for (const entry of body.entry || []) {
     for (const change of entry.changes || []) {
