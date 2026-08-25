@@ -17,6 +17,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
+import WhatsAppLinkModal from '../../components/messaging/WhatsAppLinkModal';
 
 function daysUntilExpiry(expiryDate) {
   if (!expiryDate) return null;
@@ -39,6 +40,7 @@ export default function MemberList() {
   const [importPreview, setImportPreview] = useState(null);
   const [remindMember, setRemindMember] = useState(null);
   const [remindType, setRemindType] = useState('renewal');
+  const [absenceMember, setAbsenceMember] = useState(null);
   const [page, setPage] = useState(1);
   const fileInputRef = useRef(null);
 
@@ -593,8 +595,7 @@ export default function MemberList() {
                       {member.phone && (
                         <button
                           onClick={() => {
-                            setRemindMember(member);
-                            setRemindType('class');
+                            setAbsenceMember(member);
                           }}
                           className="flex-1 flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors shadow-sm"
                         >
@@ -864,6 +865,15 @@ export default function MemberList() {
           extra={{ amount: remindMember.balanceFees }}
           recipientLabel={`${remindMember.name} · ${remindMember.phone}`}
           onClose={() => setRemindMember(null)}
+        />
+      )}
+
+      {absenceMember && (
+        <WhatsAppLinkModal
+          recipients={[absenceMember]}
+          recipientLabel={`${absenceMember.name} · ${absenceMember.phone}`}
+          defaultMessage={`Hi ${absenceMember.name}, we've missed you at the gym! Regular attendance keeps you on track — see you at your next session. 💪`}
+          onClose={() => setAbsenceMember(null)}
         />
       )}
     </div>
