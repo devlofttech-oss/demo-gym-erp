@@ -17,7 +17,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase": "^12.12.1",
-    "firebase-admin": "^14.2.0",
+    "firebase-admin": "^12.7.0",
     "framer-motion": "^12.38.0",
     "frappe-react-sdk": "^1.14.0",
     "html2canvas": "^1.4.1",
