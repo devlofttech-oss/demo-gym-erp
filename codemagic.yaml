@@ -77,16 +77,20 @@ workflows:
         bundle_identifier: com.devloft.kilos
       vars:
         BUNDLE_ID: "com.devloft.kilos"
+        # Codemagic rejects empty values, so unfilled settings use the literal
+        # CHANGEME sentinel and the build script treats that as "not set yet".
+        #
         # App Store Connect -> your app -> App Information -> "Apple ID"
-        # (a 10-digit number). Leave as-is before the app record exists; the
-        # build number then falls back to Codemagic's own counter.
-        APP_STORE_APP_ID: ""
+        # (a 10-digit number). Quoted so YAML keeps it a string, not an int.
+        # Until it is filled in, the build number falls back to Codemagic's
+        # own counter.
+        APP_STORE_APP_ID: "CHANGEME"
         # Firebase console -> Project settings -> the iOS app you registered for
         # com.devloft.kilos. These are NOT secrets — they ship inside every copy
-        # of the app. Leave blank and the app falls back to the web app id,
+        # of the app. Left as CHANGEME, the app falls back to the web app id,
         # which the native Firebase SDK rejects at launch.
-        FIREBASE_IOS_APP_ID: ""
-        FIREBASE_IOS_API_KEY: ""
+        FIREBASE_IOS_APP_ID: "CHANGEME"
+        FIREBASE_IOS_API_KEY: "CHANGEME"
     scripts:
       - name: Enable Swift Package Manager
         script: flutter config --enable-swift-package-manager || true
@@ -98,10 +102,13 @@ workflows:
         script: |
           set -e
 
+          # A var still holding the CHANGEME placeholder counts as unset.
+          is_set() { [ -n "$1" ] && [ "$1" != "CHANGEME" ]; }
+
           # --- build number ------------------------------------------------
           # App Store Connect rejects a build number it has already seen, so
           # take the highest one TestFlight knows about and add one.
-          if [ -n "$APP_STORE_APP_ID" ]; then
+          if is_set "$APP_STORE_APP_ID"; then
             LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" || echo 0)
             BUILD_NUM=$(( LATEST + 1 ))
           else
@@ -112,13 +119,13 @@ workflows:
 
           # --- Firebase iOS identity ---------------------------------------
           DEFINES=""
-          if [ -n "$FIREBASE_IOS_APP_ID" ]; then
+          if is_set "$FIREBASE_IOS_APP_ID"; then
             DEFINES="$DEFINES --dart-define=FIREBASE_IOS_APP_ID=$FIREBASE_IOS_APP_ID"
           else
-            echo "WARNING: FIREBASE_IOS_APP_ID is empty. The app will start with the"
-            echo "         web Firebase app id and Firebase will fail to initialise."
+            echo "WARNING: FIREBASE_IOS_APP_ID is not set. The app will start with"
+            echo "         the web Firebase app id and fail to initialise."
           fi
-          if [ -n "$FIREBASE_IOS_API_KEY" ]; then
+          if is_set "$FIREBASE_IOS_API_KEY"; then
             DEFINES="$DEFINES --dart-define=FIREBASE_IOS_API_KEY=$FIREBASE_IOS_API_KEY"
           fi
 

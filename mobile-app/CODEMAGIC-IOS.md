@@ -66,8 +66,14 @@ Codemagic → avatar → **Teams / Personal Account** → **Integrations** →
    - SKU: anything unique, e.g. `kilos-001`
 3. Open the new app → **App Information** → copy the 10-digit **Apple ID**.
 
-Put that number into `codemagic.yaml` → `APP_STORE_APP_ID`. It is what makes
-each build auto-increment past the last one TestFlight saw.
+Put that number into `codemagic.yaml` → `APP_STORE_APP_ID`, replacing the
+`CHANGEME` placeholder. It is what makes each build auto-increment past the last
+one TestFlight saw.
+
+> Every var in `codemagic.yaml` ships with a literal `CHANGEME` value —
+> Codemagic's validator rejects empty strings, so blanks aren't an option. The
+> build script treats `CHANGEME` as "not set yet" and carries on with a fallback,
+> which is why an unconfigured release build still runs instead of erroring.
 
 ## Step 5 — Register the iOS app in Firebase (required)
 
@@ -81,8 +87,8 @@ app launches straight into a crash.
 3. From **Project settings → Your apps → the iOS app**, copy:
    - **App ID** — looks like `1:1042216377771:ios:abcdef123456`
    - **API key**
-4. Paste both into `codemagic.yaml` → `FIREBASE_IOS_APP_ID` and
-   `FIREBASE_IOS_API_KEY`.
+4. Paste both into `codemagic.yaml`, over the `CHANGEME` placeholders in
+   `FIREBASE_IOS_APP_ID` and `FIREBASE_IOS_API_KEY`.
 
 They are not secrets — they ship inside every copy of the app — so keeping them
 in the YAML is fine, and it is where `lib/firebase_options.dart` now looks for
@@ -161,5 +167,5 @@ Pick one:
 | `No profiles for 'com.devloft.kilos' were found` | Bundle ID not registered (step 4), or the API key lacks App Manager access. |
 | Invalid App Store Connect integration name | The `integrations.app_store_connect` value doesn't match the key name from step 3. |
 | Upload rejected for an invalid build number | Build number reused. Set `APP_STORE_APP_ID` so it auto-increments. |
-| App installs, then crashes instantly on launch | `FIREBASE_IOS_APP_ID` is empty — step 5. |
+| App installs, then crashes instantly on launch | `FIREBASE_IOS_APP_ID` is still `CHANGEME` — step 5. |
 | `Missing Compliance` on every TestFlight build | `ITSAppUsesNonExemptEncryption` didn't make it into the build. |
