@@ -95,10 +95,17 @@ workflows:
       - name: Install Shorebird CLI
         script: |
           curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash
-          echo "export PATH=\"$HOME/.shorebird/bin:$PATH\"" >> $CM_ENV
+          # $CM_ENV is parsed as plain KEY=value lines — an `export` prefix makes
+          # the line invalid and the PATH change is silently dropped.
+          echo "PATH=$HOME/.shorebird/bin:$PATH" >> $CM_ENV
+          "$HOME/.shorebird/bin/shorebird" --version
       - name: Build signed .ipa via Shorebird
         script: |
           set -e
+
+          # Belt and braces: re-add it here so this step never depends on the
+          # previous step's $CM_ENV write having taken effect.
+          export PATH="$HOME/.shorebird/bin:$PATH"
 
           is_set() { [ -n "$1" ] && [ "$1" != "CHANGEME" ]; }
 
