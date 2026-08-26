@@ -66,6 +66,22 @@ jobs:
           mkdir -p "$PROFILES"
           echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > "$PROFILES/kilos_appstore.mobileprovision"
 
+      # Shorebird refuses to patch when Assets.car differs, and the Xcode
+      # version alone changes that file's binary encoding. The release was cut
+      # on Codemagic with Xcode 26.4.1; this runner defaults to 26.6, which is
+      # what produced UnpatchableChangeException. Keep the two in step --
+      # codemagic.yaml pins the same version.
+      - name: Match the Xcode version used for the release
+        working-directory: .
+        run: |
+          echo "Available:"; ls -d /Applications/Xcode*.app
+          if [ -d "/Applications/Xcode_26.4.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_26.4.1.app
+          else
+            echo "WARNING: Xcode 26.4.1 is not on this runner image."
+          fi
+          xcodebuild -version
+
       - uses: shorebirdtech/setup-shorebird@v1
 
       # Switches Runner.xcodeproj to manual signing and points it at the profile

@@ -67,7 +67,10 @@ workflows:
       app_store_connect: Kilos App Store Connect
     environment:
       flutter: stable
-      xcode: latest
+      # Pinned, not `latest`: a Shorebird patch is rejected when the Xcode that
+      # builds it differs from the one that built the release, so this has to
+      # stay in step with .github/workflows/mobile-ota.yml.
+      xcode: 26.4.1
       cocoapods: default
       ios_signing:
         distribution_type: app_store
