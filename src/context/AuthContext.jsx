@@ -168,17 +168,13 @@ export function AuthProvider({ children }) {
                 if (today > end) { planBlocked = true; blockReason = 'plan_expired'; }
               }
 
-              if (planBlocked) {
-                localStorage.setItem('kilos_plan_block', JSON.stringify({
-                  reason: blockReason,
-                  gymName: activeGym.name || '',
-                  endDate: activeGym.planEndDate || '',
-                  startDate: activeGym.planStartDate || '',
-                }));
-                await signOut(auth);
-                window.location.href = '/subscription-ended';
-                return;
-              }
+              // Keep the session alive. Signing an expired gym out locks the
+              // admin out of the one page they need — /subscription requires a
+              // Firebase ID token to start a payment, so a signed-out admin
+              // could never renew themselves. RoleRoute confines them to the
+              // subscription page until planEndDate moves.
+              setIsPlanBlocked(planBlocked);
+              setGymBlockReason(planBlocked ? blockReason : null);
 
               setGymData(activeGym);
               setInactiveGymError(false);
