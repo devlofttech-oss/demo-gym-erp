@@ -77,6 +77,19 @@ export default function PaymentReturn() {
     </Link>
   );
 
+  // After a successful payment the in-memory isPlanBlocked flag is still true,
+  // so a client-side navigation would bounce straight back here. A full reload
+  // re-runs AuthContext against the new planEndDate and clears the block.
+  const continueToDashboard = (
+    <button
+      type="button"
+      onClick={() => { window.location.href = '/'; }}
+      className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-on-primary font-medium text-sm"
+    >
+      Continue to dashboard
+    </button>
+  );
+
   if (state === 'CHECKING') {
     return shell(
       'progress_activity',
@@ -94,7 +107,7 @@ export default function PaymentReturn() {
       planEndDate
         ? `Your subscription now runs until ${planEndDate}.`
         : 'Your subscription has been extended.',
-      backToDashboard,
+      continueToDashboard,
     );
   }
 
