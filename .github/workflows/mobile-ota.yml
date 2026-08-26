@@ -49,10 +49,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Installs Flutter + the Shorebird CLI. macOS runner needed because
-      # Shorebird compiles the Dart patch for the iOS target — no Apple signing
-      # required for a patch (only the initial shorebird release ios needs that).
+      # `shorebird patch ios` runs `flutter build ipa --release` under the hood
+      # to compile the Dart and diff it against the release, so this runner
+      # needs a real signing identity — exactly like any archive build.
+      # Without it the build dies with "No valid code signing certificates".
+      - name: Import Apple distribution certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12 }}
+          p12-password: ${{ secrets.IOS_CERT_PASSWORD }}
+
+      - name: Install provisioning profile
+        working-directory: .
+        run: |
+          PROFILES="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES"
+          echo "${{ secrets.IOS_PROVISION_PROFILE }}" | base64 --decode > "$PROFILES/kilos_appstore.mobileprovision"
+
       - uses: shorebirdtech/setup-shorebird@v1
+
+      # Switches Runner.xcodeproj to manual signing and points it at the profile
+      # installed above. This is the same tool Codemagic runs for the release
+      # build; the certificate alone is not enough.
+      - name: Apply provisioning profile to Xcode project
+        run: |
+          pip3 install --quiet codemagic-cli-tools             || pip3 install --quiet --break-system-packages codemagic-cli-tools
+          xcode-project use-profiles
 
       - name: Push OTA patch to iOS
         env:
