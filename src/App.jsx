@@ -43,6 +43,8 @@ import TrialList from './pages/super-admin/TrialList';
 import SubscriptionPlans from './pages/super-admin/SubscriptionPlans';
 import RegisterPage from './pages/RegisterPage';
 import SubscriptionEnded from './pages/SubscriptionEnded';
+import SubscribePage from './pages/subscription/SubscribePage';
+import PaymentReturn from './pages/subscription/PaymentReturn';
 
 function RoleRedirect() {
   const { role } = useAuth();
@@ -94,6 +96,10 @@ export default function App() {
         <Route index element={<RoleRedirect />} />
 
         {/* Admin-only */}
+        {/* Subscription: admin buys/renews; PhonePe returns to /subscription/return */}
+        <Route path="subscription"        element={<RoleRoute allowedRoles={ADMIN}><SubscribePage /></RoleRoute>} />
+        <Route path="subscription/return" element={<RoleRoute allowedRoles={ADMIN}><PaymentReturn /></RoleRoute>} />
+
         <Route path="members"            element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
         <Route path="members/add"        element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
         <Route path="members/:id"        element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />

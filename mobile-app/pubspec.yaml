@@ -54,6 +54,8 @@ dependencies:
   firebase_messaging: ^16.0.0
   flutter_local_notifications: ^17.0.0
   firebase_storage: ^13.4.6
+  # Pure Dart, so adding it does not break Shorebird patching.
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

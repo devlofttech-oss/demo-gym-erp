@@ -79,4 +79,18 @@ class MSym {
   static const IconData visibility = IconData(0xe8f4, fontFamily: _f);
   static const IconData visibilityOff = IconData(0xe8f5, fontFamily: _f);
   static const IconData warning = IconData(0xf083, fontFamily: _f);
+
+  // Added for the subscription plan feature list — the icon names come from
+  // appConfig/subscriptionFeatures in Firestore, so every name used there must
+  // resolve here too or the Flutter app falls back to a generic tick.
+  static const IconData backup = IconData(0xe864, fontFamily: _f);
+  static const IconData barChart = IconData(0xe26b, fontFamily: _f);
+  static const IconData check = IconData(0xe668, fontFamily: _f);
+  static const IconData cloudDone = IconData(0xe2bf, fontFamily: _f);
+  static const IconData devices = IconData(0xe326, fontFamily: _f);
+  static const IconData pictureAsPdf = IconData(0xe415, fontFamily: _f);
+  static const IconData shoppingCart = IconData(0xe8cc, fontFamily: _f);
+  static const IconData store = IconData(0xe8d1, fontFamily: _f);
+  static const IconData supportAgent = IconData(0xf0e2, fontFamily: _f);
+  static const IconData workspacePremium = IconData(0xe7af, fontFamily: _f);
 }

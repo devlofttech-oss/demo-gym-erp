@@ -116,6 +116,17 @@ class AuthProvider extends ChangeNotifier {
     await _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
+  /// Re-reads the active gym doc. Called after a subscription payment lands so
+  /// planEndDate updates without making the user sign out and back in.
+  Future<void> refreshGym() async {
+    final id = gymId;
+    if (id == null) return;
+    final fresh = await TenantDb.getTopDocument('gyms', id);
+    if (fresh == null) return;
+    gymData = fresh;
+    notifyListeners();
+  }
+
   Future<void> logout() => _auth.signOut();
 
   Future<void> switchBranch(String newGymId) async {

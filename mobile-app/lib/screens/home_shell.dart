@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/subscription.dart';
+import 'subscription/subscription_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -202,6 +204,11 @@ class _ProfileMenu extends StatelessWidget {
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
       onSelected: (v) {
+        if (v == 'subscription') {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+          );
+        }
         if (v == 'logout') auth.logout();
         if (v == 'delete') showDeleteAccountDialog(context);
       },
@@ -215,6 +222,28 @@ class _ProfileMenu extends StatelessWidget {
               Text(auth.currentUser?.email ?? '', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
             ],
           ),
+        ),
+        const PopupMenuDivider(),
+        // Subscription sits here rather than in the bottom bar: it is a
+        // once-a-year action, and the bar is for daily work. The days-left chip
+        // means an admin sees they are close to lapsing without opening it.
+        PopupMenuItem(
+          value: 'subscription',
+          child: Builder(builder: (_) {
+            final left = daysLeft(auth.gymData?['planEndDate'] as String?);
+            final (String label, Color tone) = switch (left) {
+              null => ('No plan', TW.rose600),
+              final d when d < 0 => ('Expired', TW.rose600),
+              final d when d <= 14 => ('${d}d left', TW.amber600),
+              final d => ('${d}d left', TW.emerald600),
+            };
+            return Row(children: [
+              Sym(MSym.workspacePremium, size: 18, color: c.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Subscription', style: TextStyle(color: c.onSurface))),
+              Pill(label, bg: tone.withValues(alpha: 0.12), fg: tone),
+            ]);
+          }),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
