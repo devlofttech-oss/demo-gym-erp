@@ -26,6 +26,17 @@ export default async function handler(req, res) {
 
   const body = typeof req.body === 'string' ? safeJson(req.body) : req.body || {};
   const payload = body.payload || {};
+
+  // Only act on checkout events. Refund webhooks (pg.refund.*) also carry
+  // payload.state "COMPLETED"; they name the order in originalMerchantOrderId
+  // rather than merchantOrderId, so today they would fall through harmlessly —
+  // but that is an accident of field naming, not a decision. Gate on the event
+  // so ticking the refund events in the dashboard can never grant a plan.
+  const event = String(body.event || '');
+  if (event && !event.startsWith('checkout.order.')) {
+    return res.status(200).json({ ok: true, ignored: `event=${event}` });
+  }
+
   const merchantOrderId = payload.merchantOrderId;
   if (!merchantOrderId) return res.status(200).json({ ok: true, ignored: 'no merchantOrderId' });
 
