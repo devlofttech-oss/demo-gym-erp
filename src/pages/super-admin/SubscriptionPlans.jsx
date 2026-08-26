@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { getCollection, createDocument, updateDocument, deleteDocument } from '../../firebase/db';
 
-const EMPTY_FORM = { name: '', durationDays: '', description: '' };
+const EMPTY_FORM = { name: '', durationDays: '', priceInr: '', description: '' };
 
 export default function SubscriptionPlans() {
   const [plans, setPlans] = useState([]);
@@ -40,6 +40,7 @@ export default function SubscriptionPlans() {
     setForm({
       name: plan.name || '',
       durationDays: plan.durationDays != null ? String(plan.durationDays) : '',
+      priceInr: plan.priceInr != null ? String(plan.priceInr) : '',
       description: plan.description || '',
     });
     setShowForm(true);
@@ -59,6 +60,9 @@ export default function SubscriptionPlans() {
       const payload = {
         name: form.name.trim(),
         durationDays: form.durationDays ? Number(form.durationDays) : null,
+        // Rupees, not paise. The checkout endpoint reads this from Firestore and
+        // converts — the client never gets to name its own price.
+        priceInr: form.priceInr ? Number(form.priceInr) : null,
         description: form.description.trim(),
       };
       if (editingId) {
@@ -140,6 +144,18 @@ export default function SubscriptionPlans() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
+                <label className={labelCls}>Price (₹)</label>
+                <input
+                  type="number"
+                  name="priceInr"
+                  value={form.priceInr}
+                  onChange={handle}
+                  placeholder="e.g. 1999"
+                  min="1"
+                  className={inputCls}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <label className={labelCls}>Description</label>
                 <input
                   name="description"
@@ -174,18 +190,18 @@ export default function SubscriptionPlans() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Plan Name', 'Duration', 'Description', 'Actions'].map(h => (
+                {['Plan Name', 'Duration', 'Price', 'Description', 'Actions'].map(h => (
                   <th key={h} className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="p-10 text-center text-on-surface-variant">
+                <tr><td colSpan={5} className="p-10 text-center text-on-surface-variant">
                   <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span> Loading…
                 </td></tr>
               ) : plans.length === 0 ? (
-                <tr><td colSpan={4} className="p-12 text-center">
+                <tr><td colSpan={5} className="p-12 text-center">
                   <div className="flex flex-col items-center gap-3 text-on-surface-variant">
                     <span className="material-symbols-outlined text-5xl opacity-30">loyalty</span>
                     <p className="font-medium">No plans yet</p>
@@ -200,6 +216,9 @@ export default function SubscriptionPlans() {
                   <td className="p-4 font-semibold text-on-surface">{plan.name}</td>
                   <td className="p-4 text-on-surface-variant">
                     {plan.durationDays ? `${plan.durationDays} days` : '—'}
+                  </td>
+                  <td className="p-4 text-on-surface-variant">
+                    {plan.priceInr != null ? `₹${Number(plan.priceInr).toLocaleString('en-IN')}` : '—'}
                   </td>
                   <td className="p-4 text-on-surface-variant">{plan.description || '—'}</td>
                   <td className="p-4">

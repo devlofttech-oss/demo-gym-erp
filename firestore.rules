@@ -113,13 +113,27 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin();
     }
 
+    // ── Subscription orders (server-written) ──────────────────────
+    // Firestore ORs all matching rules, so `allow write: if false` here would
+    // not override the generic /gyms/{gymId}/{collection} grant below — that
+    // rule excludes this collection explicitly instead. An admin forging an
+    // order could not extend their own plan (only the Admin SDK writes
+    // gyms/{gymId}), but the ledger should be read-only history regardless.
+    match /gyms/{gymId}/subscriptionOrders/{orderId} {
+      allow read: if isSuperAdmin() || isAdminOf(gymId);
+      allow write: if false; // api/phonepe/* only, via the Admin SDK
+    }
+
     // ── Gym tenant data ───────────────────────────────────────────
     match /gyms/{gymId}/{collection}/{docId} {
       // Public trial registration seeds the gym settings doc
       allow create: if !isSignedIn() && collection == 'settings' && docId == 'general';
 
-      // Superadmin and gym admin: full access
-      allow read, write: if isSuperAdmin() || isAdminOf(gymId);
+      // Superadmin and gym admin: full access, except the server-written
+      // subscription ledger (see the explicit match above).
+      allow read: if isSuperAdmin() || isAdminOf(gymId);
+      allow write: if (isSuperAdmin() || isAdminOf(gymId))
+                   && collection != 'subscriptionOrders';
 
       // Staff: read members/staff/attendance (check-in lookup) + measurements
       allow read: if isStaffOf(gymId) && collection in ['members', 'staff', 'attendance', 'staffAttendance', 'measurements'];
