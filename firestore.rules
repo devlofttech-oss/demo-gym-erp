@@ -101,6 +101,20 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ── Subscription add-ons (superadmin CRUD, public read) ───────
+    match /subscriptionAddOns/{addOnId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // ── App config: plan feature copy, shared by web + Flutter ────
+    // Public read for the same reason subscriptionPlans is: the pricing page
+    // renders before anyone signs in.
+    match /appConfig/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
     // ── Public receipts ──────────────────────────────────────────
     match /receipts/{receiptId} {
       allow read: if true;
