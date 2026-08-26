@@ -11,10 +11,13 @@ import 'package:http/http.dart' as http;
 library;
 
 /// Base URL of the Vercel deployment that serves /api/phonepe/*.
+///
+/// This is the APP host, not the marketing site: kilos.devlofttech.com is a
+/// separate Vercel project from a separate repo and has no /api functions.
 /// Overridable per build: --dart-define=KILOS_API_BASE=https://staging.example.com
 const kApiBase = String.fromEnvironment(
   'KILOS_API_BASE',
-  defaultValue: 'https://kilos.devlofttech.com',
+  defaultValue: 'https://app-kilos.devlofttech.com',
 );
 
 class SubscriptionPlan {
