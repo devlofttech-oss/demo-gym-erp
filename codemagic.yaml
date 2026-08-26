@@ -30,7 +30,7 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default
+      cocoapods: 1.16.2
     scripts:
       - name: Toolchain versions
         script: |
@@ -71,7 +71,7 @@ workflows:
       # builds it differs from the one that built the release, so this has to
       # stay in step with .github/workflows/mobile-ota.yml.
       xcode: 26.4.1
-      cocoapods: default
+      cocoapods: 1.16.2
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.devloft.kilos

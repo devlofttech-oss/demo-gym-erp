@@ -82,6 +82,17 @@ jobs:
           fi
           xcodebuild -version
 
+      # The release was built on Codemagic with CocoaPods 1.16.2; this runner
+      # ships 1.17.0, and the version is recorded in Podfile.lock, so the locks
+      # differ and Shorebird rejects the patch as a native change. Force the
+      # same version -- codemagic.yaml pins it too.
+      - name: Match the CocoaPods version used for the release
+        working-directory: .
+        run: |
+          sudo gem uninstall cocoapods --all --executables --force >/dev/null 2>&1 || true
+          sudo gem install cocoapods -v 1.16.2 --no-document
+          pod --version
+
       - uses: shorebirdtech/setup-shorebird@v1
 
       # Switches Runner.xcodeproj to manual signing and points it at the profile
