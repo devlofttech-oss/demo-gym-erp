@@ -96,7 +96,7 @@ them (via `--dart-define`, with the old web values as the fallback).
 
 ## Step 6 — Ship it
 
-Codemagic → **Start new build** → workflow **`iOS · TestFlight release`**.
+Codemagic → **Start new build** → workflow **`iOS · TestFlight release (Shorebird)`**.
 
 Codemagic creates the distribution certificate and provisioning profile for you
 (that is the `ios_signing` block), builds the `.ipa`, and uploads it to
@@ -141,21 +141,54 @@ Left alone on purpose:
 
 ---
 
-## Heads-up: Codemagic vs. the Shorebird OTA pipeline
+## Shorebird OTA — how a change reaches a phone
 
-[`CICD-SETUP.md`](CICD-SETUP.md) describes a GitHub Actions + Shorebird setup
-where Dart-only changes go out over the air. Shorebird patches only apply on top
-of a build produced by `shorebird release ios`. **`codemagic.yaml` uses plain
-`flutter build ipa`, so builds it produces cannot receive Shorebird patches.**
+Both platforms are wired for over-the-air patching, so a Dart-only change
+reaches installed phones without an App Store round trip.
 
-Pick one:
+```
+Dart-only change   →  git push main  →  mobile-ota.yml  →  live on next launch
+Native change      →  Codemagic ios-release  →  App Store review  →  user updates
+```
 
-- **Codemagic only** (what is wired up here) — every change ships as a normal
-  App Store update. Simple, no extra token.
-- **Codemagic + Shorebird** — install the Shorebird CLI in the release workflow,
-  add `SHOREBIRD_TOKEN` as an encrypted variable, and swap the build step for
-  `shorebird release ios`. Then `mobile-ota.yml` can patch it.
-  See <https://docs.shorebird.dev/ci/codemagic/>.
+"Native" means anything outside Dart: a new plugin, a permission string, a
+deployment-target bump, an icon. Everything else — screens, logic, Firestore
+queries — patches.
+
+Two pieces make that work:
+
+- **`codemagic.yaml` → `ios-release`** builds with `shorebird release ios`, not
+  plain `flutter build ipa`. That registers the build with Shorebird as a
+  *baseline*; patches can only attach to a baseline. Needs `SHOREBIRD_TOKEN` in
+  a Codemagic environment variable **group named `shorebird`** — Codemagic only
+  injects team variables when the workflow names their group, which is why the
+  `groups:` key is there.
+- **`.github/workflows/mobile-ota.yml`** runs `shorebird patch` for Android and
+  iOS on every push touching `mobile-app/**`.
+
+The iOS patch job needs Apple signing, because `shorebird patch ios` runs a full
+`flutter build ipa --release` internally to compile the Dart and diff it against
+the baseline. Three repo secrets cover it: `IOS_DIST_CERT_P12`,
+`IOS_CERT_PASSWORD`, `IOS_PROVISION_PROFILE`.
+
+### Why the toolchain is pinned — do not "modernise" this
+
+Shorebird refuses to apply a patch if anything outside Dart differs from the
+release. Two build machines are involved (Codemagic cuts the release, GitHub
+Actions builds the patch), so they have to agree exactly:
+
+| Pinned | Value | Breaks with |
+|--------|-------|-------------|
+| Xcode | `26.4.1` | `UnpatchableChangeException` on `Assets.car` — a different Xcode re-encodes the asset catalogue byte-differently even when no asset changed |
+| CocoaPods | `1.16.2` | `Your ios/Podfile.lock is different from the one used to build the release` — the version is recorded in the lock file |
+| Pod versions | `ios/Podfile.lock`, committed | same as above; without the lock each machine resolves independently |
+
+All three are set in **both** `codemagic.yaml` and `mobile-ota.yml`. Changing
+one without the other silently breaks OTA — the release still ships fine, so
+you only find out when a patch fails days later.
+
+To move to a newer Xcode or CocoaPods: bump both files together, then cut a
+**new** release. Existing releases stay tied to the toolchain that built them.
 
 ---
 
@@ -169,3 +202,19 @@ Pick one:
 | Upload rejected for an invalid build number | Build number reused. Set `APP_STORE_APP_ID` so it auto-increments. |
 | App installs, then crashes instantly on launch | `FIREBASE_IOS_APP_ID` is still `CHANGEME` — step 5. |
 | `Missing Compliance` on every TestFlight build | `ITSAppUsesNonExemptEncryption` didn't make it into the build. |
+| `You must upload a screenshot for 13-inch iPad displays` | `TARGETED_DEVICE_FAMILY` is back to `"1,2"`. It should be `"1"` — the UI is phone-only. |
+
+## When an OTA patch goes red
+
+| Symptom | Cause |
+|---------|-------|
+| `shorebird: command not found` (exit 127) | The PATH never reached the next step. `$CM_ENV` takes bare `KEY=value` lines — an `export` prefix is silently dropped. |
+| `No valid code signing certificates were found` | The three `IOS_*` repo secrets are missing or expired. `shorebird patch ios` archives the app, so it needs a real identity. |
+| `UnpatchableChangeException` naming `Assets.car` | Xcode version drift between the two pipelines. |
+| `Your ios/Podfile.lock is different...` | CocoaPods version drift, or `ios/Podfile.lock` went missing from the repo. |
+| Patch succeeds but nothing changes on the phone | Expected for a commit with no Dart changes. Also: Shorebird applies on the launch *after* it downloads — relaunch twice. |
+| `No release found` / patch has nothing to attach to | The installed build came from a plain `flutter build ipa`, not `shorebird release ios`. Only Shorebird-built releases are patchable. |
+
+> `error: exportArchive No Team Found in Archive` in the patch log is harmless.
+> Shorebird only needs the `.xcarchive`; the IPA export step it triggers isn't
+> used, and the patch continues past it.
