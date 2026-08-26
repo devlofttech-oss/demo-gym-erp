@@ -96,3 +96,14 @@ jobs:
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         run: yes | shorebird patch ios --release-version=latest
+
+      # ios/Podfile.lock is not in the repo, so every machine resolves pods on
+      # its own and Shorebird reads the difference as a native change. Surface
+      # the lock this run generated so it can be committed and pinned.
+      - name: Upload the generated Podfile.lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-podfile-lock
+          path: mobile-app/ios/Podfile.lock
+          if-no-files-found: warn
