@@ -122,7 +122,7 @@ The `ios/` folder had never been through a real build. These were all blockers:
 | `ios/Runner.xcodeproj` deployment target **13.0 → 15.0** | `firebase_core` 4.x pulls Firebase iOS SDK 12.x, which requires iOS 15. At 13.0 dependency resolution fails outright. |
 | Added **`ios/Podfile`** | The project had none. Any plugin without Swift Package Manager support (`flutter_local_notifications`, `printing`, …) needs CocoaPods. Pins `platform :ios, '15.0'` and forces every pod target up to 15.0. |
 | `ios/Flutter/{Debug,Release}.xcconfig` now `#include?` the Pods xcconfig | Without it the Pods build settings never reach the Runner target and linking fails. `#include?` is optional, so it is a no-op when CocoaPods isn't used. |
-| `Info.plist`: added `NSPhotoLibraryUsageDescription` and `NSPhotoLibraryAddUsageDescription` | `image_picker` links PhotoKit. Missing purpose strings mean a crash on use and an App Store rejection. |
+| `Info.plist`: added `NSPhotoLibraryUsageDescription` and `NSPhotoLibraryAddUsageDescription` | `image_picker` linked PhotoKit at the time. The plugin has since been dropped (it was never imported, and its Android manifest tripped Google Play's photo/video permissions policy), so these strings are now inert — harmless, and needed again the moment a picker returns. |
 | `Info.plist`: added `ITSAppUsesNonExemptEncryption = false` | Otherwise every upload stops and asks the export-compliance question by hand. |
 | `lib/firebase_options.dart`: iOS app id and API key overridable via `--dart-define` | See step 5. |
 
@@ -135,9 +135,14 @@ Left alone on purpose:
 - **`PrivacyInfo.xcprivacy`.** The Flutter engine and the plugins ship their own
   privacy manifests. If App Store Connect emails an `ITMS-91053` warning after
   the first upload, add an app-level manifest then.
-- **`image_picker`, `firebase_storage`, `flutter_local_notifications`** are
-  declared but never imported. They still get compiled and reviewed — dropping
-  them from `pubspec.yaml` would shrink both the binary and the review surface.
+- **`firebase_storage` and `flutter_local_notifications`** are declared but
+  never imported. They still get compiled and reviewed. `image_picker` was in
+  this list until Google Play rejected the release over the
+  `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` permissions its manifest declares —
+  unused plugins are not free. Dropping the other two is tempting, but
+  `flutter_local_notifications` is the only CocoaPods dependency left, so
+  removing it changes `Podfile.lock` and invalidates Shorebird patching against
+  existing releases. Do it when you next cut a release, not between patches.
 
 ---
 
