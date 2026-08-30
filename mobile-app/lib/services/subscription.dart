@@ -1,14 +1,14 @@
-import 'dart:convert';
-
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
-
 /// Subscription plans, features and PhonePe checkout.
 ///
 /// Prices are never sent from here — the app posts a `planId` and the server
 /// looks the amount up in Firestore. Anything else and a decompiled build could
 /// buy a year for a rupee.
 library;
+
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 
 /// Base URL of the Vercel deployment that serves /api/phonepe/*.
 ///
