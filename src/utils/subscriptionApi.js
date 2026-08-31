@@ -37,3 +37,13 @@ export function createSubscriptionOrder({ gymId, planId }) {
 export function checkSubscriptionOrder({ gymId, merchantOrderId }) {
   return post('/api/phonepe/status', { gymId, merchantOrderId });
 }
+
+/** Starts a PhonePe checkout for 1 000 WA credits at ₹100. */
+export function createWaCreditsOrder({ gymId }) {
+  return post('/api/phonepe/create-wa-order', { gymId });
+}
+
+/** Polls the status of a WA credits order and grants credits if paid. */
+export function checkWaCreditsOrder({ gymId, merchantOrderId }) {
+  return post('/api/phonepe/status', { gymId, merchantOrderId });
+}

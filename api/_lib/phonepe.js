@@ -92,6 +92,16 @@ export function gymIdFromMerchantOrderId(merchantOrderId) {
   return m ? m[1] : null;
 }
 
+export function buildWaOrderId(gymId) {
+  const suffix = crypto.randomBytes(8).toString('hex');
+  return `KILOWA-${gymId}-${suffix}`;
+}
+
+export function gymIdFromWaOrderId(merchantOrderId) {
+  const m = /^KILOWA-([A-Za-z0-9]+)-[0-9a-f]{16}$/.exec(merchantOrderId || '');
+  return m ? m[1] : null;
+}
+
 // ── API calls ───────────────────────────────────────────────────────────────
 
 /**

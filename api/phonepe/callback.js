@@ -13,8 +13,8 @@
 // Always answers 200 once the caller is authenticated. A non-2xx makes PhonePe
 // retry, and retrying will not fix an order we cannot resolve — the row is
 // recorded and the status endpoint reconciles it later.
-import { gymIdFromMerchantOrderId, verifyWebhookAuth } from '../_lib/phonepe.js';
-import { grantPaidOrder, markOrderFailed } from '../_lib/subscription.js';
+import { gymIdFromMerchantOrderId, gymIdFromWaOrderId, verifyWebhookAuth } from '../_lib/phonepe.js';
+import { grantPaidOrder, grantWaCredits, markOrderFailed, markWaOrderFailed } from '../_lib/subscription.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -40,16 +40,25 @@ export default async function handler(req, res) {
   const merchantOrderId = payload.merchantOrderId;
   if (!merchantOrderId) return res.status(200).json({ ok: true, ignored: 'no merchantOrderId' });
 
-  // The webhook only carries the order id, so the gym is recovered from it —
-  // see buildMerchantOrderId(). udf1 is a cross-check for when both are present.
-  const gymId = gymIdFromMerchantOrderId(merchantOrderId) || payload.metaInfo?.udf1 || null;
+  const isWaOrder = String(merchantOrderId).startsWith('KILOWA-');
+  const gymId = isWaOrder
+    ? (gymIdFromWaOrderId(merchantOrderId) || payload.metaInfo?.udf1 || null)
+    : (gymIdFromMerchantOrderId(merchantOrderId) || payload.metaInfo?.udf1 || null);
   if (!gymId) return res.status(200).json({ ok: true, ignored: 'unresolvable gym' });
 
-  // Read state from the root payload, not the deprecated `type` field.
   const state = payload.state;
 
   try {
     if (state === 'COMPLETED') {
+      if (isWaOrder) {
+        const result = await grantWaCredits({
+          gymId,
+          merchantOrderId,
+          paidAmountPaise: payload.amount,
+          phonePeOrderId: payload.orderId,
+        });
+        return res.status(200).json({ ok: true, ...result });
+      }
       const result = await grantPaidOrder({
         gymId,
         merchantOrderId,
@@ -60,7 +69,11 @@ export default async function handler(req, res) {
     }
 
     if (state === 'FAILED') {
-      await markOrderFailed(gymId, merchantOrderId, payload.errorCode || 'FAILED');
+      if (isWaOrder) {
+        await markWaOrderFailed(gymId, merchantOrderId, payload.errorCode || 'FAILED');
+      } else {
+        await markOrderFailed(gymId, merchantOrderId, payload.errorCode || 'FAILED');
+      }
       return res.status(200).json({ ok: true, applied: false, reason: 'failed' });
     }
 

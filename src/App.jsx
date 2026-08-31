@@ -45,6 +45,8 @@ import RegisterPage from './pages/RegisterPage';
 import SubscriptionEnded from './pages/SubscriptionEnded';
 import SubscribePage from './pages/subscription/SubscribePage';
 import PaymentReturn from './pages/subscription/PaymentReturn';
+import WACreditsPage from './pages/communication/WACreditsPage';
+import WACreditsReturn from './pages/communication/WACreditsReturn';
 
 function RoleRedirect() {
   const { role } = useAuth();
@@ -97,8 +99,10 @@ export default function App() {
 
         {/* Admin-only */}
         {/* Subscription: admin buys/renews; PhonePe returns to /subscription/return */}
-        <Route path="subscription"        element={<RoleRoute allowedRoles={ADMIN}><SubscribePage /></RoleRoute>} />
-        <Route path="subscription/return" element={<RoleRoute allowedRoles={ADMIN}><PaymentReturn /></RoleRoute>} />
+        <Route path="subscription"               element={<RoleRoute allowedRoles={ADMIN}><SubscribePage /></RoleRoute>} />
+        <Route path="subscription/return"        element={<RoleRoute allowedRoles={ADMIN}><PaymentReturn /></RoleRoute>} />
+        <Route path="whatsapp-credits"           element={<RoleRoute allowedRoles={ADMIN}><WACreditsPage /></RoleRoute>} />
+        <Route path="whatsapp-credits/return"    element={<RoleRoute allowedRoles={ADMIN}><WACreditsReturn /></RoleRoute>} />
 
         <Route path="members"            element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
         <Route path="members/add"        element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />

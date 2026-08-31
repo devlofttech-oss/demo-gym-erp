@@ -13,7 +13,7 @@
 // Returns: { state, applied, planEndDate? }
 import { getDb, verifyIdToken } from '../_lib/firebaseAdmin.js';
 import { getOrderStatus } from '../_lib/phonepe.js';
-import { grantPaidOrder, markOrderFailed } from '../_lib/subscription.js';
+import { grantPaidOrder, grantWaCredits, markOrderFailed, markWaOrderFailed } from '../_lib/subscription.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -51,13 +51,23 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Could not reach PhonePe', detail: e.message });
   }
 
+  const isWaOrder = String(merchantOrderId).startsWith('KILOWA-');
+
   if (state === 'COMPLETED') {
+    if (isWaOrder) {
+      const result = await grantWaCredits({ gymId, merchantOrderId, paidAmountPaise: amount });
+      return res.status(200).json({ state, ...result });
+    }
     const result = await grantPaidOrder({ gymId, merchantOrderId, paidAmountPaise: amount });
     return res.status(200).json({ state, ...result });
   }
 
   if (state === 'FAILED') {
-    await markOrderFailed(gymId, merchantOrderId, 'FAILED');
+    if (isWaOrder) {
+      await markWaOrderFailed(gymId, merchantOrderId, 'FAILED');
+    } else {
+      await markOrderFailed(gymId, merchantOrderId, 'FAILED');
+    }
     return res.status(200).json({ state, applied: false });
   }
 

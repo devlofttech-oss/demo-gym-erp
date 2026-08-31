@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: `Authorization check failed: ${e.message}` });
   }
 
-  // ── Load gym (for gym name in templates) ─────────────────────────────────
+  // ── Load gym (for gym name + WA credit balance) ──────────────────────────
   let gym = { id: gymId };
   try {
     const gymSnap = await db.doc(`gyms/${gymId}`).get();
@@ -65,6 +65,16 @@ export default async function handler(req, res) {
   } catch { /* fall back to id-only gym */ }
 
   const ids = [...new Set(memberIds)].slice(0, MAX_RECIPIENTS);
+
+  // ── WA credit gate ────────────────────────────────────────────────────────
+  const waCredits = typeof gym.waCredits === 'number' ? gym.waCredits : 0;
+  if (waCredits < ids.length) {
+    return res.status(402).json({
+      error: `Not enough WhatsApp credits. Balance: ${waCredits}, required: ${ids.length}. Buy more credits to continue.`,
+      waCredits,
+    });
+  }
+
   const results = [];
 
   for (let i = 0; i < ids.length; i += CHUNK) {
@@ -76,7 +86,17 @@ export default async function handler(req, res) {
   }
 
   const sent = results.filter((r) => r.status === 'sent').length;
-  return res.status(200).json({ sent, failed: results.length - sent, results });
+
+  // Deduct only actually-sent messages so a failed send doesn't consume credits.
+  if (sent > 0) {
+    try {
+      await db.doc(`gyms/${gymId}`).update({ waCredits: FieldValue.increment(-sent) });
+    } catch (e) {
+      console.error('waCredits deduct failed', gymId, e.message);
+    }
+  }
+
+  return res.status(200).json({ sent, failed: results.length - sent, results, waCreditsUsed: sent });
 }
 
 async function sendToMember({ db, gymId, gym, memberId, type, extra, uid }) {

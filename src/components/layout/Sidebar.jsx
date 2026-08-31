@@ -229,6 +229,10 @@ export default function Sidebar() {
       to: '/subscription',
     },
     {
+      icon: 'mark_chat_read', label: 'WhatsApp Credits', fill: false,
+      to: '/whatsapp-credits',
+    },
+    {
       icon: 'open_in_new', label: 'Access Web App', fill: false,
       href: 'https://app-kilos.devlofttech.com',
     },
