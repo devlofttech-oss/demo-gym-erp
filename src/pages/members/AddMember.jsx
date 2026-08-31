@@ -5,7 +5,7 @@ import { getTenantDocument, getTenantCollection, createTenantDocument, updateTen
 import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 import MemberQRModal from '../../components/ui/MemberQRModal';
-import { uploadMemberPhoto } from '../../utils/imagekit';
+import { uploadMemberPhoto, uploadMemberDocument } from '../../utils/imagekit';
 
 const TYPE_LABELS = {
   'gym': 'Gym',
@@ -29,6 +29,7 @@ function addMonths(dateStr, months) {
 }
 
 const FITNESS_GOALS = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina', 'Flexibility', 'Rehabilitation'];
+const BATCHES = ['Morning', 'Noon', 'Evening', 'Night'];
 
 export default function AddMember() {
   const navigate = useNavigate();
@@ -39,10 +40,13 @@ export default function AddMember() {
   const [loading, setLoading] = useState(false);
   const [createdMember, setCreatedMember] = useState(null); // triggers the QR share modal
   const [loadingMember, setLoadingMember] = useState(isEdit);
-  const [photoUrl, setPhotoUrl] = useState('');        // existing photo (edit mode) or after save
-  const [photoFile, setPhotoFile] = useState(null);    // newly picked file, uploaded only on save
-  const [photoPreview, setPhotoPreview] = useState(''); // local object URL for instant preview
-  const [existingCredit, setExistingCredit] = useState(0); // paidFees already on account
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [existingCredit, setExistingCredit] = useState(0);
+  const [docFile, setDocFile] = useState(null);
+  const [docName, setDocName] = useState('');
+  const [docUrl, setDocUrl] = useState('');
 
   // Deferred photo handling — the file is NOT uploaded to ImageKit until the member is
   // actually saved, so abandoning the form never leaves an orphaned image.
@@ -83,6 +87,8 @@ export default function AddMember() {
     emergencyContact: '',
     fitnessGoal: '',
     healthNotes: '',
+    gender: '',
+    batch: '',
   });
 
   const basePlanFees    = Number(formData.totalFees || 0);
@@ -138,6 +144,8 @@ export default function AddMember() {
       .then(member => {
         if (!member) { toast.error('Member not found'); return; }
         setPhotoUrl(member.photoUrl || '');
+        setDocUrl(member.documentUrl || '');
+        setDocName(member.documentName || '');
         setExistingCredit(Number(member.paidFees || 0));
         setFormData(prev => ({
           ...prev,
@@ -152,6 +160,8 @@ export default function AddMember() {
           emergencyContact: member.emergencyContact || '',
           fitnessGoal:      member.fitnessGoal || '',
           healthNotes:      member.healthNotes || '',
+          gender:           member.gender || '',
+          batch:            member.batch || '',
           // Don't pre-fill fees — admin will pick new plan or keep existing
         }));
       })
@@ -212,8 +222,6 @@ export default function AddMember() {
     try {
       setLoading(true);
 
-      // Upload the photo now (only if one was picked) — deferred so an abandoned
-      // form never creates an orphaned ImageKit file.
       let finalPhotoUrl = photoUrl;
       if (photoFile) {
         try {
@@ -222,6 +230,28 @@ export default function AddMember() {
           toast.error(err?.message ? `Photo upload failed: ${err.message}` : 'Photo upload failed');
           setLoading(false);
           return;
+        }
+      }
+
+      let finalDocUrl = docUrl;
+      if (docFile) {
+        try {
+          finalDocUrl = await uploadMemberDocument(docFile);
+        } catch (err) {
+          toast.error(err?.message ? `Document upload failed: ${err.message}` : 'Document upload failed');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Auto-generate memberId for new members (MEM001, MEM002, ...)
+      let memberId_field;
+      if (!isEdit) {
+        try {
+          const existing = await getTenantCollection(gymId, 'members');
+          memberId_field = `MEM${String(existing.length + 1).padStart(3, '0')}`;
+        } catch {
+          memberId_field = `MEM${Date.now().toString().slice(-4)}`;
         }
       }
 
@@ -238,13 +268,17 @@ export default function AddMember() {
         totalFees,
         paidFees:         newPaidFees,
         balanceFees:      balance,
+        ...(memberId_field && { memberId: memberId_field }),
         ...(joiningFees > 0 && { joiningFees }),
         ...(discountAmtSubmit > 0 && { discountAmount: discountAmtSubmit, discountPercent: discountPctSubmit }),
         ...(nextPaymentDate && { nextPaymentDate }),
         ...(finalPhotoUrl && { photoUrl: finalPhotoUrl }),
+        ...(finalDocUrl && { documentUrl: finalDocUrl, documentName: docName || docFile?.name || 'Document' }),
         ...(formData.emergencyContact && { emergencyContact: formData.emergencyContact }),
         ...(formData.fitnessGoal && { fitnessGoal: formData.fitnessGoal }),
         ...(formData.healthNotes && { healthNotes: formData.healthNotes }),
+        ...(formData.gender && { gender: formData.gender }),
+        ...(formData.batch && { batch: formData.batch }),
       };
 
       let memberId = editId;
@@ -410,6 +444,24 @@ export default function AddMember() {
                   placeholder="Name & phone of emergency contact" className={inp} />
               </div>
               <div className="flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleChange}
+                  className={inp + ' appearance-none'}>
+                  <option value="">Select gender...</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Batch</label>
+                <select name="batch" value={formData.batch} onChange={handleChange}
+                  className={inp + ' appearance-none'}>
+                  <option value="">Select batch...</option>
+                  {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
                 <label className="font-medium text-sm text-on-surface">Fitness Goal</label>
                 <select name="fitnessGoal" value={formData.fitnessGoal} onChange={handleChange}
                   className={inp + ' appearance-none'}>
@@ -421,6 +473,34 @@ export default function AddMember() {
                 <label className="font-medium text-sm text-on-surface">Health Notes (optional)</label>
                 <input name="healthNotes" value={formData.healthNotes} onChange={handleChange}
                   placeholder="Any health conditions, injuries, or special requirements..." className={inp} />
+              </div>
+              {/* Document upload */}
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="font-medium text-sm text-on-surface">Member Document (optional)</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-outline-variant/30 rounded-lg cursor-pointer hover:bg-surface-container-high transition-colors text-sm text-on-surface">
+                    <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                    {docFile ? docFile.name : (docUrl ? 'Replace document' : 'Upload document')}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) { setDocFile(f); setDocName(f.name); }
+                        e.target.value = '';
+                      }} />
+                  </label>
+                  {docUrl && !docFile && (
+                    <a href={docUrl} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-sm text-primary underline">
+                      <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                      View existing
+                    </a>
+                  )}
+                  {(docFile || docUrl) && (
+                    <button type="button" onClick={() => { setDocFile(null); setDocName(''); setDocUrl(''); }}
+                      className="text-xs text-rose-500 hover:text-rose-600 transition-colors">Remove</button>
+                  )}
+                </div>
+                <p className="text-xs text-on-surface-variant">ID proof, medical certificate, etc. PDF or image up to 10 MB</p>
               </div>
             </div>
           </div>

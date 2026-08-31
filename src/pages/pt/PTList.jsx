@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getTenantCollection,
   deleteTenantDocument,
+  updateTenantDocument,
 } from '../../firebase/tenantDb';
 import PTPackageForm from './PTPackageForm';
 import PTSessionForm from './PTSessionForm';
@@ -50,17 +51,39 @@ function formatTime(timeStr) {
   }
 }
 
-function SessionStatusBadge({ status }) {
+function SessionStatusBadge({ status, sessionId, gymId, onUpdated }) {
+  const [saving, setSaving] = useState(false);
   const map = {
-    Scheduled: 'bg-blue-50 text-blue-700',
+    Scheduled: 'bg-blue-50 text-blue-700 hover:bg-emerald-50 hover:text-emerald-700',
     Completed: 'bg-emerald-50 text-emerald-700',
     Cancelled: 'bg-rose-50 text-rose-700',
   };
   const cls = map[status] ?? 'bg-surface-container text-on-surface-variant';
+  const canClick = status === 'Scheduled';
+
+  async function markComplete() {
+    if (!canClick || saving) return;
+    setSaving(true);
+    try {
+      await updateTenantDocument(gymId, 'ptSessions', sessionId, { status: 'Completed' });
+      onUpdated?.();
+    } catch {
+      toast.error('Failed to update status');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
-      {status}
-    </span>
+    <button
+      type="button"
+      onClick={markComplete}
+      disabled={!canClick || saving}
+      title={canClick ? 'Click to mark as Completed' : undefined}
+      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${cls} ${canClick ? 'cursor-pointer' : 'cursor-default'}`}
+    >
+      {saving ? '...' : status}
+    </button>
   );
 }
 
@@ -399,7 +422,7 @@ function SessionsTab({ gymId }) {
                       <td className="px-4 py-3 text-on-surface-variant">{session.trainerName || '—'}</td>
                       <td className="px-4 py-3 text-on-surface font-medium">{session.memberName || '—'}</td>
                       <td className="px-4 py-3 text-on-surface-variant">{pkg ? pkg.name : session.packageId ? '—' : 'None'}</td>
-                      <td className="px-4 py-3"><SessionStatusBadge status={session.status} /></td>
+                      <td className="px-4 py-3"><SessionStatusBadge status={session.status} sessionId={session.id} gymId={gymId} onUpdated={fetchAll} /></td>
                       <td className="px-4 py-3 text-on-surface-variant max-w-45 truncate">{session.notes || '—'}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">

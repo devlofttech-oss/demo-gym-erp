@@ -46,3 +46,28 @@ export function uploadGymLogo(file) {
 export function uploadMemberPhoto(file) {
   return uploadToImageKit(file, { folder: '/gym-erp/members', prefix: 'member' });
 }
+
+export async function uploadMemberDocument(file) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const fileName = `doc-${Date.now()}-${safeName}`;
+
+  const authRes = await fetch('/api/imagekit-auth');
+  if (!authRes.ok) throw new Error('Failed to get upload token');
+  const { token, expire, signature } = await authRes.json();
+
+  const formData = new FormData();
+  formData.append('file', file, fileName);
+  formData.append('fileName', fileName);
+  formData.append('publicKey', import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY);
+  formData.append('signature', signature);
+  formData.append('expire', String(expire));
+  formData.append('token', token);
+  formData.append('folder', '/gym-erp/documents');
+
+  const res = await fetch('https://upload.imagekit.io/api/v1/files/upload', { method: 'POST', body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Document upload failed');
+  }
+  return (await res.json()).url;
+}
