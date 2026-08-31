@@ -225,7 +225,7 @@ export default function Sidebar() {
   // Other section items
   const otherItems = [
     {
-      icon: 'shopping_cart', label: 'WhatsApp Credits', fill: false,
+      icon: 'shopping_cart', label: 'Buy / Renew Plan', fill: false,
       to: '/subscription',
     },
     {
