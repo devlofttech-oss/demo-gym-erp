@@ -91,6 +91,11 @@ class TenantDb {
     if (!snap.exists) return null;
     return {'id': snap.id, ...?snap.data()};
   }
+
+  /// Write to a root collection with a specific doc ID (e.g. `receipts/{memberId}`).
+  static Future<void> setRootDocument(
+      String collection, String id, Map<String, dynamic> data) =>
+      _db.collection(collection).doc(id).set(data);
 }
 
 class Cond {

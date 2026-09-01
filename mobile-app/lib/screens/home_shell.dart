@@ -9,12 +9,14 @@ import '../theme/app_icons.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/delete_account.dart';
+import '../widgets/notification_panel.dart';
 import '../widgets/update_banner.dart';
+import 'attendance/attendance_screen.dart';
+import 'checkin/checkin_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'members/members_screen.dart';
+import 'more/more_screen.dart';
 import 'payments/payments_screen.dart';
-import 'checkin/checkin_screen.dart';
-import 'attendance/attendance_screen.dart';
 
 class _NavItem {
   final IconData icon;
@@ -45,6 +47,7 @@ class _HomeShellState extends State<HomeShell> {
       _NavItem(MSym.accountBalanceWallet, 'Payments', PaymentsScreen()),
       _NavItem(MSym.howToReg, 'Check-in', CheckinScreen()),
       _NavItem(MSym.eventAvailable, 'Attendance', AttendanceScreen()),
+      _NavItem(MSym.gridView, 'More', MoreScreen()),
     ];
   }
 
@@ -148,6 +151,7 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
           icon: Sym(theme.isDark ? MSym.lightMode : MSym.darkMode, size: 22, color: c.onSurfaceVariant),
           tooltip: theme.isDark ? 'Light mode' : 'Dark mode',
         ),
+        const NotificationBell(),
         _ProfileMenu(auth: auth),
         const SizedBox(width: 6),
       ],

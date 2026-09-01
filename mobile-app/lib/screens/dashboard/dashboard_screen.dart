@@ -9,8 +9,10 @@ import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../checkin/checkin_screen.dart';
 import '../members/add_member_screen.dart';
 import '../payments/payment_screen.dart';
+import '../renewals/renewals_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -182,6 +184,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }),
         _qa(MSym.payments, 'Record Payment', onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentScreen()));
+        }),
+        _qa(MSym.qrCodeScanner, 'Check-in', onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckinScreen()));
+        }),
+        _qa(MSym.autorenew, 'Renewals', onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const RenewalsScreen()));
         }),
       ],
     );

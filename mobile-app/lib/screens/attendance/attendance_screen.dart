@@ -22,6 +22,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   bool _loading = true;
   String _dateFilter = 'today';
   String _customDate = todayStr();
+  String? _selectedDay;
   String _search = '';
   int _page = 1;
   final _searchCtrl = TextEditingController();
@@ -54,21 +55,46 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final today = todayStr();
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7)).toIso8601String().split('T').first;
-    final monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1).toIso8601String().split('T').first;
+    final now = DateTime.now();
+    final weekStart = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: (now.weekday - 1) % 7))
+        .toIso8601String().split('T').first;
+    final monthStart = DateTime(now.year, now.month, 1).toIso8601String().split('T').first;
     final term = _search.toLowerCase();
     return _records.where((a) {
       final d = recordDate(a);
       if (d == null) return false;
       var matchDate = true;
       if (_dateFilter == 'today') matchDate = d == today;
-      else if (_dateFilter == 'week') matchDate = d.compareTo(weekAgo) >= 0;
+      else if (_dateFilter == 'week') matchDate = d.compareTo(weekStart) >= 0 && d.compareTo(today) <= 0;
       else if (_dateFilter == 'month') matchDate = d.compareTo(monthStart) >= 0;
       else if (_dateFilter == 'custom') matchDate = d == _customDate;
+      if (matchDate && _selectedDay != null) matchDate = d == _selectedDay;
       final matchTerm = term.isEmpty || ((a['memberName'] as String?)?.toLowerCase().contains(term) ?? false);
       return matchDate && matchTerm;
     }).toList();
   }
+
+  List<String> _weekDays() {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: (now.weekday - 1) % 7));
+    return List.generate(7, (i) {
+      final d = monday.add(Duration(days: i));
+      return d.toIso8601String().split('T').first;
+    });
+  }
+
+  List<String> _monthDays() {
+    final now = DateTime.now();
+    return List.generate(now.day, (i) {
+      final d = DateTime(now.year, now.month, i + 1);
+      return d.toIso8601String().split('T').first;
+    });
+  }
+
+  int _countForDay(String isoDay) =>
+      _records.where((a) => recordDate(a) == isoDay).length;
 
   int get _totalToday => _records.where((a) => recordDate(a) == todayStr()).length;
   int get _totalMonth {
@@ -110,6 +136,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _kpi('Total Records', '${_records.length}', MSym.eventAvailable, TW.violet600, TW.violet50),
           const SizedBox(height: 16),
           _dateTabs(),
+          if (_dateFilter == 'week' || _dateFilter == 'month') ...[
+            const SizedBox(height: 8),
+            _dayChips(),
+          ],
           const SizedBox(height: 12),
           _searchBar(),
           const SizedBox(height: 16),
@@ -157,7 +187,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 final picked = await showDatePicker(context: context, initialDate: DateTime.tryParse(_customDate) ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
                 if (picked != null) _customDate = picked.toIso8601String().split('T').first;
               }
-              setState(() { _dateFilter = f.$1; _page = 1; });
+              setState(() { _dateFilter = f.$1; _selectedDay = null; _page = 1; });
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -167,6 +197,55 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
           );
         }).toList()),
+      ),
+    );
+  }
+
+  Widget _dayChips() {
+    final c = context.c;
+    final days = _dateFilter == 'week' ? _weekDays() : _monthDays();
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: days.map((iso) {
+          final d = DateTime.tryParse(iso);
+          if (d == null) return const SizedBox.shrink();
+          final count = _countForDay(iso);
+          final isSelected = _selectedDay == iso;
+          final dayLabel = DateFormat('E').format(d).substring(0, 1);
+          final dateNum = d.day.toString();
+          return GestureDetector(
+            onTap: () => setState(() {
+              _selectedDay = isSelected ? null : iso;
+              _page = 1;
+            }),
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? c.primary : c.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isSelected ? c.primary : c.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(dayLabel, style: TextStyle(color: isSelected ? c.onPrimary : c.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600)),
+                Text(dateNum, style: TextStyle(color: isSelected ? c.onPrimary : c.onSurface, fontSize: 14, fontWeight: FontWeight.w700)),
+                if (count > 0)
+                  Container(
+                    margin: const EdgeInsets.only(top: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isSelected ? c.onPrimary.withValues(alpha: 0.25) : c.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('$count', style: TextStyle(color: isSelected ? c.onPrimary : c.primary, fontSize: 10, fontWeight: FontWeight.w700)),
+                  )
+                else
+                  const SizedBox(height: 14),
+              ]),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

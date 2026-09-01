@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+6
+version: 1.0.4+7
 
 environment:
   sdk: ^3.12.2
@@ -53,8 +53,13 @@ dependencies:
   firebase_messaging: ^16.0.0
   flutter_local_notifications: ^17.0.0
   firebase_storage: ^13.4.6
+  qr_flutter: ^4.1.0
   # Pure Dart, so adding it does not break Shorebird patching.
   http: ^1.2.2
+  # Member photo upload. On Android 13+ it uses the system Photo Picker, so the
+  # broad READ_MEDIA_IMAGES/READ_MEDIA_VIDEO permissions its manifest declares
+  # are stripped via tools:node="remove" in AndroidManifest.xml (Play policy).
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

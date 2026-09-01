@@ -1,9 +1,15 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <!-- firebase_messaging: show notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- image_picker (member photos) uses Android's system Photo Picker on API
+         33+, so the broad media permissions its plugin manifest declares are
+         unnecessary and rejected by Play policy. Strip them from the merge. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
     <application
         android:label="Kilos"
         android:name="${applicationName}"

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
@@ -7,7 +8,7 @@ import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import '../../widgets/whatsapp_sheet.dart';
+import '../../widgets/whatsapp_api_sheet.dart';
 import '../members/member_detail_screen.dart';
 import 'payment_screen.dart';
 
@@ -25,6 +26,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   bool _loading = true;
   int _tab = 0; // 0 payments, 1 dues
   String _search = '';
+  String? _filterMonth; // 'YYYY-MM'
   final _searchCtrl = TextEditingController();
 
   @override
@@ -63,6 +65,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   List<Map<String, dynamic>> get _filteredPayments {
     final term = _search.toLowerCase();
     return _payments.where((p) {
+      if (_filterMonth != null) {
+        final d = toDate(p['date']);
+        if (d == null) return false;
+        final mStr = '${d.year}-${d.month.toString().padLeft(2, '0')}';
+        if (mStr != _filterMonth) return false;
+      }
       if (term.isEmpty) return true;
       return ((p['memberName'] as String?)?.toLowerCase().contains(term) ?? false) ||
           ((p['planName'] as String?)?.toLowerCase().contains(term) ?? false) ||
@@ -136,7 +144,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () { setState(() { _tab = i; _search = ''; _searchCtrl.clear(); }); },
+            onTap: () { setState(() { _tab = i; _search = ''; _filterMonth = null; _searchCtrl.clear(); }); },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               alignment: Alignment.center,
@@ -182,12 +190,57 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         ),
       ),
       const SizedBox(height: 12),
+      _monthFilter(),
+      const SizedBox(height: 12),
       _searchBar('Search by member, plan, mode...'),
       const SizedBox(height: 12),
       if (_loading) const KLoading()
       else if (filtered.isEmpty) const KEmpty(icon: MSym.receiptLong, message: 'No payments found')
       else ...filtered.map(_paymentCard),
     ];
+  }
+
+  Widget _monthFilter() {
+    final c = context.c;
+    final now = DateTime.now();
+    final months = List.generate(12, (i) {
+      final d = DateTime(now.year, now.month - i, 1);
+      return '${d.year}-${d.month.toString().padLeft(2, '0')}';
+    });
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _monthChip(c, null, 'All'),
+          ...months.map((m) {
+            final d = DateTime.tryParse('$m-01');
+            final label = d != null ? DateFormat('MMM yyyy').format(d) : m;
+            return _monthChip(c, m, label);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _monthChip(AppColors c, String? value, String label) {
+    final active = _filterMonth == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filterMonth = value),
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? c.primary : c.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: active ? c.primary : c.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Text(label, style: TextStyle(
+          color: active ? c.onPrimary : c.onSurface,
+          fontWeight: FontWeight.w500,
+          fontSize: 13,
+        )),
+      ),
+    );
   }
 
   Widget _summaryItem(String label, String value, Color color) {
@@ -319,10 +372,17 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             if (phone != null && phone.isNotEmpty) ...[
               Expanded(child: FilledButton.icon(
                 style: FilledButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary),
-                onPressed: () => showWhatsAppSheet(context, phone: phone, recipientLabel: '${m['name']} · $phone',
-                    defaultMessage: m['expiryDate'] != null
-                        ? 'Hi ${m['name']}! Your membership expired on ${m['expiryDate']}. Please renew to continue your fitness journey. Visit us today!'
-                        : 'Hi ${m['name']}! This is a reminder that your membership payment is due. Please clear your dues at the earliest.'),
+                onPressed: () {
+                  final auth = context.read<AuthProvider>();
+                  final exp = m['expiryDate'] as String?;
+                  final expired = exp != null && (DateTime.tryParse(exp)?.isBefore(DateTime.now()) ?? false);
+                  showWhatsAppApiSheet(context,
+                      gymId: auth.gymId ?? '',
+                      gymName: auth.gymName,
+                      type: expired ? 'renewal' : 'payment',
+                      recipients: [m],
+                      recipientLabel: '${m['name']} · $phone');
+                },
                 icon: const Sym(MSym.sms, size: 14),
                 label: const Text('WhatsApp'),
               )),

@@ -79,18 +79,30 @@ class MSym {
   static const IconData visibility = IconData(0xe8f4, fontFamily: _f);
   static const IconData visibilityOff = IconData(0xe8f5, fontFamily: _f);
   static const IconData warning = IconData(0xf083, fontFamily: _f);
-
-  // Added for the subscription plan feature list — the icon names come from
-  // appConfig/subscriptionFeatures in Firestore, so every name used there must
-  // resolve here too or the Flutter app falls back to a generic tick.
+  // Subscription plan feature icons
   static const IconData backup = IconData(0xe864, fontFamily: _f);
   static const IconData barChart = IconData(0xe26b, fontFamily: _f);
   static const IconData check = IconData(0xe668, fontFamily: _f);
   static const IconData cloudDone = IconData(0xe2bf, fontFamily: _f);
   static const IconData devices = IconData(0xe326, fontFamily: _f);
   static const IconData pictureAsPdf = IconData(0xe415, fontFamily: _f);
-  static const IconData shoppingCart = IconData(0xe8cc, fontFamily: _f);
   static const IconData store = IconData(0xe8d1, fontFamily: _f);
   static const IconData supportAgent = IconData(0xf0e2, fontFamily: _f);
   static const IconData workspacePremium = IconData(0xe7af, fontFamily: _f);
+  // Phase 6/7 additions
+  static const IconData addAPhoto = IconData(0xe439, fontFamily: _f);
+  static const IconData qrCode2 = IconData(0xe00a, fontFamily: _f);
+  static const IconData deleteOutline = IconData(0xe92e, fontFamily: _f);
+  // Phase 2/3/4/5 additions
+  static const IconData alarm = IconData(0xe855, fontFamily: _f);
+  static const IconData build = IconData(0xe869, fontFamily: _f);
+  static const IconData restaurant = IconData(0xe56c, fontFamily: _f);
+  static const IconData moreHoriz = IconData(0xe5d3, fontFamily: _f);
+  static const IconData pauseCircle = IconData(0xe030, fontFamily: _f);
+  static const IconData playCircle = IconData(0xe1c4, fontFamily: _f);
+  static const IconData repeat = IconData(0xe040, fontFamily: _f);
+  static const IconData sell = IconData(0xf05b, fontFamily: _f);
+  static const IconData shoppingCart = IconData(0xe8cc, fontFamily: _f);
+  static const IconData trophy = IconData(0xef97, fontFamily: _f);
+  static const IconData tune = IconData(0xe429, fontFamily: _f);
 }

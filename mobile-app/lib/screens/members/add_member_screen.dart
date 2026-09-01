@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
@@ -13,7 +17,9 @@ const _fitnessGoals = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina
 const _payModes = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque'];
 
 class AddMemberScreen extends StatefulWidget {
-  const AddMemberScreen({super.key});
+  final String? prefillName;
+  final String? prefillPhone;
+  const AddMemberScreen({super.key, this.prefillName, this.prefillPhone});
   @override
   State<AddMemberScreen> createState() => _AddMemberScreenState();
 }
@@ -24,6 +30,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   final _email = TextEditingController();
   final _emergency = TextEditingController();
   final _health = TextEditingController();
+  final _joiningFees = TextEditingController();
   final _discount = TextEditingController();
   final _nextDays = TextEditingController();
   final _paidNow = TextEditingController();
@@ -35,10 +42,12 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   num _totalFees = 0;
   String _paymentMode = 'Cash';
   String? _fitnessGoal;
+  String _dob = '';
   late String _joinDate;
   late String _planActiveFrom;
   late String _expiryDate;
   bool _saving = false;
+  File? _photoFile;
 
   @override
   void initState() {
@@ -46,12 +55,14 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     _joinDate = todayStr();
     _planActiveFrom = todayStr();
     _expiryDate = addDays(todayStr(), 30);
+    if (widget.prefillName != null) _name.text = widget.prefillName!;
+    if (widget.prefillPhone != null) _phone.text = widget.prefillPhone!;
     _loadPlans();
   }
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _emergency, _health, _discount, _nextDays, _paidNow]) {
+    for (final c in [_name, _phone, _email, _emergency, _health, _joiningFees, _discount, _nextDays, _paidNow]) {
       c.dispose();
     }
     super.dispose();
@@ -73,6 +84,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     _planName = (p['name'] as String?) ?? '';
     _durationMonths = months > 0 ? months : 1;
     _totalFees = asNum(p['price']);
+    _joiningFees.clear();
     _discount.clear();
     _paidNow.clear();
     _recalcExpiry();
@@ -86,19 +98,81 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   num get _discountPct => (num.tryParse(_discount.text) ?? 0).clamp(0, 100);
   num get _discountedTotal => (_totalFees * (1 - _discountPct / 100)).round();
+  num get _joiningFeesAmt => num.tryParse(_joiningFees.text) ?? 0;
+  num get _finalTotal => _discountedTotal + _joiningFeesAmt;
   num get _paidNum => num.tryParse(_paidNow.text) ?? 0;
-  num get _balance => (_discountedTotal - _paidNum).clamp(0, double.infinity);
+  num get _balance => (_finalTotal - _paidNum).clamp(0, double.infinity);
 
   Future<void> _pickDate(String which) async {
-    final init = DateTime.tryParse(which == 'join' ? _joinDate : which == 'active' ? _planActiveFrom : _expiryDate) ?? DateTime.now();
-    final picked = await showDatePicker(context: context, initialDate: init, firstDate: DateTime(2020), lastDate: DateTime(2100));
+    DateTime? init;
+    DateTime firstDate = DateTime(2020);
+    DateTime lastDate = DateTime(2100);
+    if (which == 'dob') {
+      init = _dob.isEmpty ? DateTime.now().subtract(const Duration(days: 365 * 25)) : DateTime.tryParse(_dob);
+      firstDate = DateTime(1940);
+      lastDate = DateTime.now();
+    } else {
+      init = DateTime.tryParse(which == 'join' ? _joinDate : which == 'active' ? _planActiveFrom : _expiryDate) ?? DateTime.now();
+    }
+    final picked = await showDatePicker(context: context, initialDate: init ?? DateTime.now(), firstDate: firstDate, lastDate: lastDate);
     if (picked == null) return;
     final iso = picked.toIso8601String().split('T').first;
     setState(() {
       if (which == 'join') _joinDate = iso;
       else if (which == 'active') { _planActiveFrom = iso; _recalcExpiry(); }
+      else if (which == 'dob') _dob = iso;
       else _expiryDate = iso;
     });
+  }
+
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final picked = await showModalBottomSheet<XFile?>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take photo'),
+              onTap: () async {
+                final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 70, maxWidth: 600);
+                if (ctx.mounted) Navigator.pop(ctx, f);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () async {
+                final f = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 600);
+                if (ctx.mounted) Navigator.pop(ctx, f);
+              },
+            ),
+            if (_photoFile != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                onTap: () => Navigator.pop(ctx),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      setState(() => _photoFile = File(picked.path));
+    }
+  }
+
+  Future<String?> _uploadPhoto(String gymId, String memberId) async {
+    if (_photoFile == null) return null;
+    try {
+      final ref = FirebaseStorage.instance.ref('gyms/$gymId/members/$memberId/photo.jpg');
+      await ref.putFile(_photoFile!);
+      return await ref.getDownloadURL();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _submit() async {
@@ -108,7 +182,8 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     }
     final gymId = context.read<AuthProvider>().gymId!;
     final discount = _discountPct;
-    final totalFees = (_totalFees * (1 - discount / 100)).round();
+    final joiningFees = _joiningFeesAmt;
+    final totalFees = (_totalFees * (1 - discount / 100)).round() + joiningFees;
     final paid = _paidNum;
     final balance = (totalFees - paid).clamp(0, double.infinity);
     final nextPaymentDate = _nextDays.text.isNotEmpty ? addDays(_joinDate, int.tryParse(_nextDays.text) ?? 0) : null;
@@ -127,12 +202,21 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         'totalFees': totalFees,
         'paidFees': paid,
         'balanceFees': balance,
+        if (joiningFees > 0) 'joiningFees': joiningFees,
         if (discount > 0) 'discountPercent': discount,
         if (nextPaymentDate != null) 'nextPaymentDate': nextPaymentDate,
         if (_emergency.text.isNotEmpty) 'emergencyContact': _emergency.text.trim(),
         if (_fitnessGoal != null) 'fitnessGoal': _fitnessGoal,
         if (_health.text.isNotEmpty) 'healthNotes': _health.text.trim(),
+        if (_dob.isNotEmpty) 'dateOfBirth': _dob,
       });
+      if (_photoFile != null) {
+        final memberId = member['id'] as String? ?? '';
+        final url = await _uploadPhoto(gymId, memberId);
+        if (url != null && memberId.isNotEmpty) {
+          await TenantDb.updateDocument(gymId, 'members', memberId, {'photoUrl': url});
+        }
+      }
       await TenantDb.createDocument(gymId, 'payments', {
         'memberId': member['id'],
         'memberName': _name.text.trim(),
@@ -184,9 +268,12 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
               children: [
                 _sectionTitle(MSym.person, 'Personal Details'),
                 const SizedBox(height: 16),
+                _photoPicker(),
+                const SizedBox(height: 16),
                 _field('Full Name *', _name, hint: 'e.g. Rahul Sharma'),
                 _field('Phone Number *', _phone, hint: 'e.g. 9876543210', keyboard: TextInputType.phone),
                 _field('Email (optional)', _email, hint: 'e.g. rahul@email.com', keyboard: TextInputType.emailAddress),
+                _dateField('Date of Birth', _dob.isEmpty ? '' : _dob, () => _pickDate('dob'), allowEmpty: true),
                 _dateField('Date of Joining', _joinDate, () => _pickDate('join')),
                 _field('Emergency Contact', _emergency, hint: 'Name & phone'),
                 _dropdown<String?>('Fitness Goal', _fitnessGoal, [
@@ -198,6 +285,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                 _sectionTitle(MSym.cardMembership, 'Plan & Payment'),
                 const SizedBox(height: 16),
                 _planDropdown(),
+                _field('Joining Fees (₹)', _joiningFees, hint: '0', keyboard: TextInputType.number, onChanged: (_) => setState(() {}), numbersOnly: true),
                 Row(children: [
                   Expanded(child: _field('Discount (%)', _discount, hint: '0', keyboard: TextInputType.number, onChanged: (_) => setState(() {}), numbersOnly: true)),
                   const SizedBox(width: 12),
@@ -232,6 +320,40 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     );
   }
 
+  Widget _photoPicker() {
+    final c = context.c;
+    return GestureDetector(
+      onTap: _pickPhoto,
+      child: Center(
+        child: Stack(
+          children: [
+            CircleAvatar(
+              radius: 44,
+              backgroundColor: c.primaryContainer,
+              backgroundImage: _photoFile != null ? FileImage(_photoFile!) : null,
+              child: _photoFile == null
+                  ? Sym(MSym.addAPhoto, size: 28, color: c.primary)
+                  : null,
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                    color: c.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: c.surface, width: 2)),
+                child: const Sym(MSym.edit, size: 13, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sectionTitle(IconData icon, String t) {
     final c = context.c;
     return Row(children: [
@@ -260,8 +382,9 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     );
   }
 
-  Widget _dateField(String label, String value, VoidCallback onTap) {
+  Widget _dateField(String label, String value, VoidCallback onTap, {bool allowEmpty = false}) {
     final c = context.c;
+    final isEmpty = value.isEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -273,7 +396,10 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3))),
             child: Row(children: [
-              Text(value, style: TextStyle(color: c.onSurface)),
+              Text(
+                isEmpty && allowEmpty ? 'Optional' : value,
+                style: TextStyle(color: isEmpty && allowEmpty ? c.onSurfaceVariant.withValues(alpha: 0.5) : c.onSurface),
+              ),
               const Spacer(),
               Sym(MSym.calendarMonth, size: 18, color: c.onSurfaceVariant),
             ]),
@@ -359,7 +485,15 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        box('Total (₹)', _readonlyBox(_discountedTotal > 0 ? rupees(_discountedTotal) : '—', c.surfaceContainer, c.onSurfaceVariant), _discountPct > 0 ? 'After ${_discountPct.toInt()}%' : 'Plan price'),
+        box(
+          'Grand Total (₹)',
+          _readonlyBox(_finalTotal > 0 ? rupees(_finalTotal) : '—', c.surfaceContainer, c.onSurfaceVariant),
+          _joiningFeesAmt > 0
+              ? 'Plan ${rupees(_discountedTotal)} + Joining ${rupees(_joiningFeesAmt)}'
+              : _discountPct > 0
+                  ? 'After ${_discountPct.toInt()}% discount'
+                  : 'Plan price',
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -407,7 +541,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
             Text('Payment Summary', style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 6),
             Wrap(spacing: 16, runSpacing: 4, children: [
-              _sumItem('Total', rupees(_discountedTotal), c.onSurface),
+              _sumItem('Total', rupees(_finalTotal), c.onSurface),
               _sumItem('Paying', rupees(_paidNum), c.primary),
               _sumItem('Balance', rupees(_balance), _balance > 0 ? TW.rose500 : TW.green600),
             ]),

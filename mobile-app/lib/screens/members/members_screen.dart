@@ -8,6 +8,7 @@ import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/whatsapp_sheet.dart';
+import '../../widgets/whatsapp_api_sheet.dart';
 import 'add_member_screen.dart';
 import 'member_detail_screen.dart';
 
@@ -106,6 +107,7 @@ class _MembersScreenState extends State<MembersScreen> {
       else if (_status == 'Expired') matchStatus = !isFrozen && days != null && days < 0;
       else if (_status == 'Expiring') matchStatus = !isFrozen && days != null && days >= 0 && days <= 7;
       else if (_status == 'Frozen') matchStatus = isFrozen;
+      else if (_status == 'Balance Due') matchStatus = asNum(m['balanceFees']) > 0;
       return matchSearch && matchStatus && _matchesCategory(m, _category);
     }).toList();
   }
@@ -299,7 +301,7 @@ class _MembersScreenState extends State<MembersScreen> {
   Widget _statusFilters() {
     const filters = [
       ('All', 'All'), ('Active', 'Active'), ('Expiring', 'Expiring Soon'),
-      ('Expired', 'Expired'), ('Frozen', 'Frozen'), ('Absentees', 'Absentees'),
+      ('Expired', 'Expired'), ('Frozen', 'Frozen'), ('Balance Due', 'Balance Due'), ('Absentees', 'Absentees'),
     ];
     final c = context.c;
     return SingleChildScrollView(
@@ -309,6 +311,7 @@ class _MembersScreenState extends State<MembersScreen> {
           final active = _status == f.$1;
           Color activeBg = c.primary;
           if (f.$1 == 'Expiring') activeBg = TW.amber500;
+          if (f.$1 == 'Balance Due') activeBg = TW.rose600;
           if (f.$1 == 'Absentees') activeBg = TW.orange500;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -391,10 +394,15 @@ class _MembersScreenState extends State<MembersScreen> {
                 width: double.infinity,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary),
-                  onPressed: () => showWhatsAppSheet(context,
-                      phone: phone,
-                      recipientLabel: '${m['name']} · $phone',
-                      defaultMessage: 'Hi ${m['name']}! Your membership expires on ${m['expiryDate']}. Renew now to continue your fitness journey!'),
+                  onPressed: () {
+                    final auth = context.read<AuthProvider>();
+                    showWhatsAppApiSheet(context,
+                        gymId: auth.gymId ?? '',
+                        gymName: auth.gymName,
+                        type: 'renewal',
+                        recipients: [m],
+                        recipientLabel: '${m['name']} · $phone');
+                  },
                   icon: const Sym(MSym.sms, size: 14),
                   label: const Text('Remind'),
                 ),
