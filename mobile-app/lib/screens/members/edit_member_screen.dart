@@ -20,6 +20,8 @@ const _fitnessGoals = [
   'Flexibility',
   'Rehabilitation'
 ];
+const _editGenders = ['Male', 'Female', 'Other'];
+const _editBatches = ['Morning', 'Noon', 'Evening', 'Night'];
 
 class EditMemberScreen extends StatefulWidget {
   final Map<String, dynamic> member;
@@ -37,6 +39,8 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
   final _health = TextEditingController();
 
   String? _fitnessGoal;
+  String? _gender;
+  String? _batch;
   File? _photoFile;
   bool _saving = false;
 
@@ -51,6 +55,8 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
     _emergency.text = m['emergencyContact'] as String? ?? '';
     _health.text = m['healthNotes'] as String? ?? '';
     _fitnessGoal = m['fitnessGoal'] as String?;
+    _gender = m['gender'] as String?;
+    _batch = m['batch'] as String?;
   }
 
   @override
@@ -151,6 +157,8 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
         'healthNotes': _health.text.trim(),
         if (_dob.text.isNotEmpty) 'dateOfBirth': _dob.text,
         if (_fitnessGoal != null) 'fitnessGoal': _fitnessGoal,
+        if (_gender != null) 'gender': _gender,
+        if (_batch != null) 'batch': _batch,
       };
       if (_photoFile != null) {
         final url = await _uploadPhoto(gymId, memberId);
@@ -255,9 +263,17 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                 _field('Full Name *', _name, c),
                 _field('Phone *', _phone, c, type: TextInputType.phone),
                 _field('Email', _email, c, type: TextInputType.emailAddress),
+                _editDropdown<String?>('Gender', _gender, [
+                  const DropdownMenuItem(value: null, child: Text('Select gender...')),
+                  ..._editGenders.map((g) => DropdownMenuItem(value: g, child: Text(g))),
+                ], (v) => setState(() => _gender = v), c),
                 _dateTapField('Date of Birth', _dob.text, _pickDob, c),
                 _field('Emergency Contact', _emergency, c,
                     hint: 'Name & phone'),
+                _editDropdown<String?>('Batch', _batch, [
+                  const DropdownMenuItem(value: null, child: Text('Select batch...')),
+                  ..._editBatches.map((b) => DropdownMenuItem(value: b, child: Text(b))),
+                ], (v) => setState(() => _batch = v), c),
                 _dropdown(c),
                 _field('Health Notes', _health, c,
                     hint: 'Conditions, injuries...', maxLines: 3),
@@ -333,6 +349,34 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
               const Spacer(),
               Sym(MSym.calendarMonth, size: 18, color: c.onSurfaceVariant),
             ]),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _editDropdown<T>(String label, T value, List<DropdownMenuItem<T>> items, ValueChanged<T?> onChanged, AppColors c) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: c.surfaceContainer,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              dropdownColor: c.surfaceContainerLowest,
+              style: TextStyle(color: c.onSurface, fontFamily: 'PlusJakartaSans', fontSize: 14),
+              items: items,
+              onChanged: onChanged,
+            ),
           ),
         ),
       ]),

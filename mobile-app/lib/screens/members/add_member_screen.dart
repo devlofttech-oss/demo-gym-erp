@@ -15,6 +15,8 @@ import '../../widgets/common.dart';
 
 const _fitnessGoals = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina', 'Flexibility', 'Rehabilitation'];
 const _payModes = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque'];
+const _genders = ['Male', 'Female', 'Other'];
+const _batches = ['Morning', 'Noon', 'Evening', 'Night'];
 
 class AddMemberScreen extends StatefulWidget {
   final String? prefillName;
@@ -32,6 +34,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   final _health = TextEditingController();
   final _joiningFees = TextEditingController();
   final _discount = TextEditingController();
+  final _discountAmt = TextEditingController();
   final _nextDays = TextEditingController();
   final _paidNow = TextEditingController();
 
@@ -42,6 +45,9 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   num _totalFees = 0;
   String _paymentMode = 'Cash';
   String? _fitnessGoal;
+  String? _gender;
+  String? _batch;
+  bool _syncingDiscount = false;
   String _dob = '';
   late String _joinDate;
   late String _planActiveFrom;
@@ -62,7 +68,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _emergency, _health, _joiningFees, _discount, _nextDays, _paidNow]) {
+    for (final c in [_name, _phone, _email, _emergency, _health, _joiningFees, _discount, _discountAmt, _nextDays, _paidNow]) {
       c.dispose();
     }
     super.dispose();
@@ -86,6 +92,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     _totalFees = asNum(p['price']);
     _joiningFees.clear();
     _discount.clear();
+    _discountAmt.clear();
     _paidNow.clear();
     _recalcExpiry();
   }
@@ -94,6 +101,30 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     setState(() {
       _expiryDate = _durationMonths > 0 ? addMonthsEnd(_planActiveFrom, _durationMonths) : addDays(_planActiveFrom, 30);
     });
+  }
+
+  void _onDiscountPctChanged(String v) {
+    if (_syncingDiscount) return;
+    _syncingDiscount = true;
+    final pct = (num.tryParse(v) ?? 0).clamp(0, 100);
+    if (_totalFees > 0) {
+      final amt = (_totalFees * pct / 100).round();
+      _discountAmt.text = amt > 0 ? amt.toString() : '';
+    }
+    _syncingDiscount = false;
+    setState(() {});
+  }
+
+  void _onDiscountAmtChanged(String v) {
+    if (_syncingDiscount) return;
+    _syncingDiscount = true;
+    final amt = num.tryParse(v) ?? 0;
+    if (_totalFees > 0) {
+      final pct = (amt * 100 / _totalFees).clamp(0, 100).round();
+      _discount.text = pct > 0 ? pct.toString() : '';
+    }
+    _syncingDiscount = false;
+    setState(() {});
   }
 
   num get _discountPct => (num.tryParse(_discount.text) ?? 0).clamp(0, 100);
@@ -207,6 +238,8 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         if (nextPaymentDate != null) 'nextPaymentDate': nextPaymentDate,
         if (_emergency.text.isNotEmpty) 'emergencyContact': _emergency.text.trim(),
         if (_fitnessGoal != null) 'fitnessGoal': _fitnessGoal,
+        if (_gender != null) 'gender': _gender,
+        if (_batch != null) 'batch': _batch,
         if (_health.text.isNotEmpty) 'healthNotes': _health.text.trim(),
         if (_dob.isNotEmpty) 'dateOfBirth': _dob,
       });
@@ -273,6 +306,10 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                 _field('Full Name *', _name, hint: 'e.g. Rahul Sharma'),
                 _field('Phone Number *', _phone, hint: 'e.g. 9876543210', keyboard: TextInputType.phone),
                 _field('Email (optional)', _email, hint: 'e.g. rahul@email.com', keyboard: TextInputType.emailAddress),
+                _dropdown<String?>('Gender', _gender, [
+                  const DropdownMenuItem(value: null, child: Text('Select gender...')),
+                  ..._genders.map((g) => DropdownMenuItem(value: g, child: Text(g))),
+                ], (v) => setState(() => _gender = v)),
                 _dateField('Date of Birth', _dob.isEmpty ? '' : _dob, () => _pickDate('dob'), allowEmpty: true),
                 _dateField('Date of Joining', _joinDate, () => _pickDate('join')),
                 _field('Emergency Contact', _emergency, hint: 'Name & phone'),
@@ -280,6 +317,10 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                   const DropdownMenuItem(value: null, child: Text('Select goal...')),
                   ..._fitnessGoals.map((g) => DropdownMenuItem(value: g, child: Text(g))),
                 ], (v) => setState(() => _fitnessGoal = v)),
+                _dropdown<String?>('Batch', _batch, [
+                  const DropdownMenuItem(value: null, child: Text('Select batch...')),
+                  ..._batches.map((b) => DropdownMenuItem(value: b, child: Text(b))),
+                ], (v) => setState(() => _batch = v)),
                 _field('Health Notes (optional)', _health, hint: 'Conditions, injuries...'),
                 const Divider(height: 32),
                 _sectionTitle(MSym.cardMembership, 'Plan & Payment'),
@@ -287,10 +328,11 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                 _planDropdown(),
                 _field('Joining Fees (₹)', _joiningFees, hint: '0', keyboard: TextInputType.number, onChanged: (_) => setState(() {}), numbersOnly: true),
                 Row(children: [
-                  Expanded(child: _field('Discount (%)', _discount, hint: '0', keyboard: TextInputType.number, onChanged: (_) => setState(() {}), numbersOnly: true)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _field('Next Payment (days)', _nextDays, hint: 'e.g. 30', keyboard: TextInputType.number, numbersOnly: true)),
+                  Expanded(child: _field('Discount (%)', _discount, hint: '0', keyboard: TextInputType.number, onChanged: _onDiscountPctChanged, numbersOnly: true)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _field('Discount (₹)', _discountAmt, hint: '0', keyboard: TextInputType.number, onChanged: _onDiscountAmtChanged, numbersOnly: true)),
                 ]),
+                _field('Next Payment (days)', _nextDays, hint: 'e.g. 30', keyboard: TextInputType.number, numbersOnly: true),
                 _feesRow(),
                 Row(children: [
                   Expanded(child: _dateField('Active From', _planActiveFrom, () => _pickDate('active'))),

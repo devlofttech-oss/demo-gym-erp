@@ -388,6 +388,13 @@ class _MembersScreenState extends State<MembersScreen> {
                 ]),
               ),
             ]),
+            if (asNum(m['balanceFees']) > 0) ...[
+              const SizedBox(height: 4),
+              Row(children: [
+                SizedBox(width: 70, child: Text('Balance', style: TextStyle(color: c.onSurfaceVariant, fontSize: 14))),
+                Text(rupees(asNum(m['balanceFees'])), style: const TextStyle(color: TW.rose600, fontWeight: FontWeight.w600, fontSize: 14)),
+              ]),
+            ],
             if (isExpiring && phone != null && phone.isNotEmpty) ...[
               const SizedBox(height: 12),
               SizedBox(
@@ -405,6 +412,25 @@ class _MembersScreenState extends State<MembersScreen> {
                   },
                   icon: const Sym(MSym.sms, size: 14),
                   label: const Text('Remind'),
+                ),
+              ),
+            ] else if (!isExpiring && !isExpired && asNum(m['balanceFees']) > 0 && phone != null && phone.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: TW.amber600, foregroundColor: Colors.white),
+                  onPressed: () {
+                    final auth = context.read<AuthProvider>();
+                    showWhatsAppApiSheet(context,
+                        gymId: auth.gymId ?? '',
+                        gymName: auth.gymName,
+                        type: 'payment',
+                        recipients: [m],
+                        recipientLabel: '${m['name']} · $phone');
+                  },
+                  icon: const Sym(MSym.sms, size: 14),
+                  label: const Text('Payment Reminder'),
                 ),
               ),
             ],
@@ -510,7 +536,7 @@ class _MembersScreenState extends State<MembersScreen> {
             onPressed: _page > 1 ? () => setState(() => _page--) : null,
             icon: Sym(MSym.chevronLeft, size: 20, color: c.onSurfaceVariant),
           ),
-          Text('Page $_page of $totalPages', style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
+          Text('Page $_page of $totalPages  ($total members)', style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
           IconButton(
             onPressed: _page < totalPages ? () => setState(() => _page++) : null,
             icon: Sym(MSym.chevronRight, size: 20, color: c.onSurfaceVariant),

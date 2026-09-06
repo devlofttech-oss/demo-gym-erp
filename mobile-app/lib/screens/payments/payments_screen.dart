@@ -371,7 +371,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           Row(children: [
             if (phone != null && phone.isNotEmpty) ...[
               Expanded(child: FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary),
+                style: FilledButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary, padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: () {
                   final auth = context.read<AuthProvider>();
                   final exp = m['expiryDate'] as String?;
@@ -384,25 +384,28 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                       recipientLabel: '${m['name']} · $phone');
                 },
                 icon: const Sym(MSym.sms, size: 14),
-                label: const Text('WhatsApp'),
+                label: const Text('WhatsApp', maxLines: 1, overflow: TextOverflow.ellipsis),
               )),
               const SizedBox(width: 8),
             ],
             Expanded(child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: TW.emerald600, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: TW.emerald600, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 8)),
               onPressed: () async {
                 await Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(memberId: m['id'] as String?)));
                 setState(() => _loading = true);
                 _fetch();
               },
               icon: const Sym(MSym.payments, size: 14),
-              label: const Text('Renew'),
+              label: const Text('Renew', maxLines: 1, overflow: TextOverflow.ellipsis),
             )),
             const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MemberDetailScreen(member: m))),
-              style: OutlinedButton.styleFrom(foregroundColor: c.primary, side: BorderSide(color: c.primary.withValues(alpha: 0.3))),
-              child: const Text('View'),
+            SizedBox(
+              width: 72,
+              child: OutlinedButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MemberDetailScreen(member: m))),
+                style: OutlinedButton.styleFrom(foregroundColor: c.primary, side: BorderSide(color: c.primary.withValues(alpha: 0.3)), padding: EdgeInsets.zero),
+                child: const Text('View'),
+              ),
             ),
           ]),
         ]),

@@ -470,7 +470,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       ('Balance', rupees(asNum(_m['balanceFees']))),
       ('Joined', (_m['joinDate'] as String?) ?? '—'),
       if (_m['email'] != null && (_m['email'] as String).isNotEmpty) ('Email', _m['email'] as String),
+      if (_m['gender'] != null && (_m['gender'] as String).isNotEmpty) ('Gender', _m['gender'] as String),
+      if (_m['batch'] != null && (_m['batch'] as String).isNotEmpty) ('Batch', _m['batch'] as String),
       if (_m['fitnessGoal'] != null) ('Goal', _m['fitnessGoal'] as String),
+      if (_m['emergencyContact'] != null && (_m['emergencyContact'] as String).isNotEmpty) ('Emergency', _m['emergencyContact'] as String),
     ];
     final c = context.c;
     return Column(

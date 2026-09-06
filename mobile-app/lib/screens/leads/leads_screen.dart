@@ -33,6 +33,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
   bool _loading = true;
   int _tab = 0;
   String _search = '';
+  String _timeRange = 'All'; // 'All', 'Today', 'This Week', 'This Month'
   final _searchCtrl = TextEditingController();
 
   @override
@@ -67,6 +68,17 @@ class _LeadsScreenState extends State<LeadsScreen> {
     if (_tab > 0) {
       final s = _statuses[_tab];
       list = list.where((l) => (l['status'] ?? '') == s).toList();
+    }
+    if (_timeRange != 'All') {
+      final now = DateTime.now();
+      list = list.where((l) {
+        final dt = toDate(l['createdAt']);
+        if (dt == null) return false;
+        if (_timeRange == 'Today') return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+        if (_timeRange == 'This Week') return now.difference(dt).inDays <= 7;
+        if (_timeRange == 'This Month') return dt.year == now.year && dt.month == now.month;
+        return true;
+      }).toList();
     }
     if (_search.isNotEmpty) {
       final term = _search.toLowerCase();
@@ -215,6 +227,27 @@ class _LeadsScreenState extends State<LeadsScreen> {
                     onSelected: (_) => setState(() => _tab = i),
                     showCheckmark: false,
                   ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  itemCount: const ['All', 'Today', 'This Week', 'This Month'].length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    const ranges = ['All', 'Today', 'This Week', 'This Month'];
+                    return FilterChip(
+                      label: Text(ranges[i], style: const TextStyle(fontSize: 12)),
+                      selected: _timeRange == ranges[i],
+                      onSelected: (_) => setState(() => _timeRange = ranges[i]),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                    );
+                  },
                 ),
               ),
             ),
