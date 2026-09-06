@@ -532,6 +532,7 @@ export default function MemberProfile() {
           <div className="flex flex-col gap-0.5 min-w-0">
             <h1 className="font-bold text-lg text-on-surface truncate">{member.name}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-on-surface-variant text-sm">
+              {member.memberId && <span className="inline-flex items-center gap-1 bg-surface-container text-on-surface-variant px-2 py-0.5 rounded text-xs font-mono font-semibold">{member.memberId}</span>}
               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span>{member.phone}</span>
               {member.joinDate && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_month</span>Joined {member.joinDate}</span>}
               {member.birthday && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cake</span>{member.birthday}</span>}

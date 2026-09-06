@@ -221,7 +221,20 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
     setState(() => _saving = true);
     try {
+      final existingMembers = await TenantDb.getCollection(gymId, 'members');
+      int maxNum = 0;
+      for (final m in existingMembers) {
+        final mid = m['memberId'] as String?;
+        if (mid != null && mid.startsWith('MEM')) {
+          final n = int.tryParse(mid.substring(3));
+          if (n != null && n > maxNum) maxNum = n;
+        }
+      }
+      if (maxNum == 0) maxNum = existingMembers.length;
+      final generatedId = 'MEM${(maxNum + 1).toString().padLeft(3, '0')}';
+
       final member = await TenantDb.createDocument(gymId, 'members', {
+        'memberId': generatedId,
         'name': _name.text.trim(),
         'phone': _phone.text.trim(),
         'email': _email.text.trim(),

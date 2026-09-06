@@ -28,7 +28,6 @@ import MeasurementList from './pages/measurements/MeasurementList';
 import WorkoutList from './pages/workouts/WorkoutList';
 import PTList from './pages/pt/PTList';
 // import DietList from './pages/diet/DietList'; // Diet module on hold
-import CommunicationHub from './pages/communication/CommunicationHub';
 import RenewalsList from './pages/renewals/RenewalsList';
 import MemberQRPage from './pages/public/MemberQRPage';
 import ReceiptPage from './pages/public/ReceiptPage';
@@ -45,8 +44,6 @@ import RegisterPage from './pages/RegisterPage';
 import SubscriptionEnded from './pages/SubscriptionEnded';
 import SubscribePage from './pages/subscription/SubscribePage';
 import PaymentReturn from './pages/subscription/PaymentReturn';
-import WACreditsPage from './pages/communication/WACreditsPage';
-import WACreditsReturn from './pages/communication/WACreditsReturn';
 
 function RoleRedirect() {
   const { role } = useAuth();
@@ -101,10 +98,7 @@ export default function App() {
         {/* Subscription: admin buys/renews; PhonePe returns to /subscription/return */}
         <Route path="subscription"               element={<RoleRoute allowedRoles={ADMIN}><SubscribePage /></RoleRoute>} />
         <Route path="subscription/return"        element={<RoleRoute allowedRoles={ADMIN}><PaymentReturn /></RoleRoute>} />
-        <Route path="whatsapp-credits"           element={<RoleRoute allowedRoles={ADMIN}><WACreditsPage /></RoleRoute>} />
-        <Route path="whatsapp-credits/return"    element={<RoleRoute allowedRoles={ADMIN}><WACreditsReturn /></RoleRoute>} />
-
-        <Route path="members"            element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
+<Route path="members"            element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
         <Route path="members/add"        element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
         <Route path="members/:id"        element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />
         <Route path="members/:id/edit"   element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
@@ -125,8 +119,7 @@ export default function App() {
         <Route path="workouts"          element={<RoleRoute allowedRoles={ADMIN}><WorkoutList /></RoleRoute>} />
         <Route path="pt"                element={<RoleRoute allowedRoles={ADMIN}><PTList /></RoleRoute>} />
         {/* <Route path="diet" element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} /> */} {/* Diet module on hold */}
-        <Route path="communication"     element={<RoleRoute allowedRoles={ADMIN}><CommunicationHub /></RoleRoute>} />
-        <Route path="renewals"          element={<RoleRoute allowedRoles={ADMIN}><RenewalsList /></RoleRoute>} />
+<Route path="renewals"          element={<RoleRoute allowedRoles={ADMIN}><RenewalsList /></RoleRoute>} />
         <Route path="reports/monthly"   element={<RoleRoute allowedRoles={ADMIN}><MonthlyReport /></RoleRoute>} />
         <Route path="settings"          element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
 

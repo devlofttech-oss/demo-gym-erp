@@ -31,7 +31,6 @@ const MANAGEMENT = [
   { to: '/expenses',       icon: 'receipt',                label: 'Expenses',          fill: true  },
   { to: '/renewals',       icon: 'autorenew',              label: 'Renewals',          fill: false },
   { to: '/supplements',    icon: 'medication',             label: 'Supplements',       fill: true  },
-  { to: '/communication',  icon: 'campaign',               label: 'Communication',     fill: true  },
 ];
 
 const ADMIN_SECTIONS = [

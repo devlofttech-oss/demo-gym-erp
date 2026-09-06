@@ -369,7 +369,10 @@ class _MembersScreenState extends State<MembersScreen> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text((m['name'] as String?) ?? '—', style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600)),
-                  Text(phone ?? '', style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
+                  Text(
+                    m['memberId'] != null ? '${m['memberId']} · $phone' : (phone ?? ''),
+                    style: TextStyle(color: c.onSurfaceVariant, fontSize: 13),
+                  ),
                 ]),
               ),
               _statusBadge(isFrozen ? 'Frozen' : isExpired ? 'Expired' : 'Active'),

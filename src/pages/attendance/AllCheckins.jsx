@@ -145,10 +145,10 @@ export default function AllCheckins() {
       const db = b.checkInTime || b.timestamp || b.date || 0;
       return new Date(da) - new Date(db);
     }).map(a => {
-      const d = getRecordDate(a);
+      const d = getRecordDate(a) || (a.checkInTime ? new Date(a.checkInTime).toISOString().split('T')[0] : '');
       return [
         a.memberName || 'Unknown',
-        d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        d,
         formatTime(a.checkInTime || a.timestamp),
         a.checkOutTime ? formatTime(a.checkOutTime) : 'Active',
         a.duration ? formatDuration(a.duration) : '',

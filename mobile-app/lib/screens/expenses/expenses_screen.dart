@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/helpers.dart';
@@ -104,6 +108,36 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     setState(() => _month = DateTime(_month.year, _month.month + 1));
   }
 
+  Future<void> _exportCsv() async {
+    final data = _filtered;
+    if (data.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No expenses to export')));
+      return;
+    }
+    final label = DateFormat('MMMM yyyy').format(_month);
+    final buf = StringBuffer();
+    buf.writeln('Date,Category,Description,Amount,Payment Mode,Recurring');
+    for (final e in data) {
+      final fields = [
+        e['date'] ?? '',
+        e['category'] ?? '',
+        '"${((e['description'] ?? '') as String).replaceAll('"', '""')}"',
+        asNum(e['amount']).toString(),
+        e['paymentMode'] ?? '',
+        e['isRecurring'] == true ? 'Yes' : 'No',
+      ];
+      buf.writeln(fields.join(','));
+    }
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/expenses_${DateFormat('yyyy-MM').format(_month)}.csv');
+      await file.writeAsString(buf.toString());
+      await Share.shareXFiles([XFile(file.path)], text: 'Expenses — $label');
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export failed')));
+    }
+  }
+
   void _showForm([Map<String, dynamic>? expense]) {
     showModalBottomSheet(
       context: context,
@@ -160,6 +194,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
         title: Text('Expenses', style: KText.h3.copyWith(color: c.onSurface)),
         actions: [
+          IconButton(
+            icon: Sym(MSym.share, color: c.onSurfaceVariant),
+            onPressed: _loading ? null : _exportCsv,
+            tooltip: 'Export CSV',
+          ),
           IconButton(
             icon: Sym(MSym.add, color: c.primary),
             onPressed: () => _showForm(),

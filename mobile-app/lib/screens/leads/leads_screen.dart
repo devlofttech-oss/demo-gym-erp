@@ -33,7 +33,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
   bool _loading = true;
   int _tab = 0;
   String _search = '';
-  String _timeRange = 'All'; // 'All', 'Today', 'This Week', 'This Month'
+  String _timeRange = 'All';
+  String _source = 'All';
   final _searchCtrl = TextEditingController();
 
   @override
@@ -79,6 +80,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
         if (_timeRange == 'This Month') return dt.year == now.year && dt.month == now.month;
         return true;
       }).toList();
+    }
+    if (_source != 'All') {
+      list = list.where((l) => (l['source'] ?? '') == _source).toList();
     }
     if (_search.isNotEmpty) {
       final term = _search.toLowerCase();
@@ -244,6 +248,27 @@ class _LeadsScreenState extends State<LeadsScreen> {
                       label: Text(ranges[i], style: const TextStyle(fontSize: 12)),
                       selected: _timeRange == ranges[i],
                       onSelected: (_) => setState(() => _timeRange = ranges[i]),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                    );
+                  },
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  itemCount: _sources.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final src = i == 0 ? 'All' : _sources[i - 1];
+                    return FilterChip(
+                      label: Text(src, style: const TextStyle(fontSize: 12)),
+                      selected: _source == src,
+                      onSelected: (_) => setState(() => _source = src),
                       showCheckmark: false,
                       visualDensity: VisualDensity.compact,
                     );

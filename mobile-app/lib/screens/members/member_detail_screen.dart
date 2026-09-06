@@ -463,6 +463,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   Widget _infoGrid() {
     final items = [
+      if (_m['memberId'] != null && (_m['memberId'] as String).isNotEmpty) ('Member ID', _m['memberId'] as String),
       ('Plan', (_m['planName'] as String?) ?? '—'),
       ('Expiry', (_m['expiryDate'] as String?) ?? '—'),
       ('Total Fees', rupees(asNum(_m['totalFees']))),

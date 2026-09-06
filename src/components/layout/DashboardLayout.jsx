@@ -18,7 +18,6 @@ const ADMIN_NAV_ALL = [
   { to: '/leads',         icon: 'person_search',          label: 'Leads & CRM',    fill: true               },
   { to: '/workouts',      icon: 'exercise',               label: 'Workouts',       fill: true               },
   { to: '/pt',            icon: 'sports_martial_arts',    label: 'Personal Trng',  fill: true               },
-  { to: '/communication', icon: 'campaign',               label: 'Communication',  fill: true               },
   { to: '/expenses',      icon: 'receipt',                label: 'Expenses',       fill: true               },
   { to: '/reports/monthly',icon: 'insert_chart',          label: 'Reports',        fill: true               },
   { to: '/settings',      icon: 'settings',               label: 'Settings',       fill: true               },
@@ -47,7 +46,7 @@ const DRAWER_GROUPS = [
   },
   {
     label: 'Manage',
-    items: ['/staff', '/communication', '/settings'],
+    items: ['/staff', '/settings'],
   },
 ];
 
