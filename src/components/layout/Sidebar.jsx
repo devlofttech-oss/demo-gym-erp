@@ -142,6 +142,10 @@ export default function Sidebar() {
   // Other section items
   const otherItems = [
     {
+      icon: 'upload_file', label: 'Bulk Import Members', fill: false,
+      to: '/members/import',
+    },
+    {
       icon: 'shopping_cart', label: 'Buy / Renew Plan', fill: false,
       to: '/subscription',
     },

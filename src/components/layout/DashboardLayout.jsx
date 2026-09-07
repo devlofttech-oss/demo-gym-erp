@@ -220,6 +220,20 @@ export default function DashboardLayout() {
                 })}
               </div>
 
+              {/* Tools */}
+              <div className="mt-8">
+                <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.15em] mb-3">
+                  Tools
+                </p>
+                <NavLink
+                  to="/members/import"
+                  className="flex items-center gap-3 py-3 px-4 rounded-2xl bg-white/8 border border-white/5 active:bg-white/15 transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[20px] text-white/80">upload_file</span>
+                  <span className="text-[13px] font-medium text-white/80">Bulk Import Members</span>
+                </NavLink>
+              </div>
+
               {/* Support footer — Contact Us + Request a Feature */}
               <div className="mt-8 pt-6 border-t border-white/10">
                 <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.15em] mb-3">
