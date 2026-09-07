@@ -77,6 +77,9 @@ workflows:
         bundle_identifier: com.devloft.kilos
       vars:
         BUNDLE_ID: "com.devloft.kilos"
+        # No longer used to pick a build number (pubspec.yaml does that now);
+        # kept because the publishing block and any future App Store Connect
+        # CLI calls identify the app by it.
         APP_STORE_APP_ID: "6804961729"
         FIREBASE_IOS_APP_ID: "1:1042216377771:ios:95344c3054e0f8417e46ee"
         FIREBASE_IOS_API_KEY: "AIzaSyDN2kYkL8GzaTfKG6md7CJs_m3p--1UT9U"
@@ -113,13 +116,19 @@ workflows:
           is_set() { [ -n "$1" ] && [ "$1" != "CHANGEME" ]; }
 
           # --- build number ------------------------------------------------
-          if is_set "$APP_STORE_APP_ID"; then
-            LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" || echo 0)
-            BUILD_NUM=$(( LATEST + 1 ))
-          else
-            BUILD_NUM=$PROJECT_BUILD_NUMBER
-          fi
-          echo "Building build number $BUILD_NUM"
+          # Deliberately NOT auto-incremented from TestFlight any more.
+          # Shorebird identifies a release as "<version>+<build number>", and the
+          # Android baseline (mobile-release.yml) takes both straight from
+          # pubspec.yaml. Overriding the build number here made iOS register a
+          # different release version to Android, so one --release-version in
+          # mobile-ota.yml could never match both: iOS patches failed every time
+          # while Android succeeded.
+          #
+          # pubspec.yaml is now the single source of truth for both platforms.
+          # Bump `version:` there before cutting a release -- App Store Connect
+          # rejects a build number it has already seen for the same version.
+          echo "Build number comes from pubspec.yaml:"
+          grep '^version:' pubspec.yaml
 
           # --- Firebase iOS identity ---------------------------------------
           DEFINES=""
@@ -135,7 +144,6 @@ workflows:
           # Flutter args go after `--`.
           yes | shorebird release ios \
             -- \
-            --build-number="$BUILD_NUM" \
             $DEFINES \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:

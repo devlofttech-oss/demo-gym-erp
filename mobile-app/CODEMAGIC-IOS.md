@@ -67,8 +67,14 @@ Codemagic → avatar → **Teams / Personal Account** → **Integrations** →
 3. Open the new app → **App Information** → copy the 10-digit **Apple ID**.
 
 Put that number into `codemagic.yaml` → `APP_STORE_APP_ID`, replacing the
-`CHANGEME` placeholder. It is what makes each build auto-increment past the last
-one TestFlight saw.
+`CHANGEME` placeholder.
+
+> Build numbers are **not** auto-incremented from TestFlight. Shorebird keys a
+> release on `<version>+<build number>`, and the Android baseline takes both from
+> `pubspec.yaml` — so letting Codemagic pick a different number for iOS meant no
+> single `--release-version` in `mobile-ota.yml` could match both platforms, and
+> iOS patches failed every time while Android worked. Bump `version:` in
+> `pubspec.yaml` before each release instead.
 
 > Every var in `codemagic.yaml` ships with a literal `CHANGEME` value —
 > Codemagic's validator rejects empty strings, so blanks aren't an option. The
