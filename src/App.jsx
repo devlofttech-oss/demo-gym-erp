@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import MemberList from './pages/members/MemberList';
 import AddMember from './pages/members/AddMember';
 import MemberProfile from './pages/members/MemberProfile';
+import BulkImportMembers from './pages/members/BulkImportMembers';
 import PaymentsList from './pages/payments/PaymentsList';
 import PaymentPage from './pages/payments/PaymentPage';
 import CheckinScreen from './pages/attendance/CheckinScreen';
@@ -40,6 +41,7 @@ import GymForm from './pages/super-admin/GymForm';
 import SetupSuperAdmin from './pages/super-admin/SetupSuperAdmin';
 import TrialList from './pages/super-admin/TrialList';
 import SubscriptionPlans from './pages/super-admin/SubscriptionPlans';
+import FeatureRequests from './pages/super-admin/FeatureRequests';
 import RegisterPage from './pages/RegisterPage';
 import SubscriptionEnded from './pages/SubscriptionEnded';
 import SubscribePage from './pages/subscription/SubscribePage';
@@ -84,6 +86,7 @@ export default function App() {
         <Route path="gyms/:id/edit" element={<GymForm />} />
         <Route path="trials" element={<TrialList />} />
         <Route path="plans" element={<SubscriptionPlans />} />
+        <Route path="feature-requests" element={<FeatureRequests />} />
       </Route>
 
       {/* Gym ERP (admin + staff) */}
@@ -99,6 +102,7 @@ export default function App() {
         <Route path="subscription"               element={<RoleRoute allowedRoles={ADMIN}><SubscribePage /></RoleRoute>} />
         <Route path="subscription/return"        element={<RoleRoute allowedRoles={ADMIN}><PaymentReturn /></RoleRoute>} />
 <Route path="members"            element={<RoleRoute allowedRoles={ADMIN}><MemberList /></RoleRoute>} />
+        <Route path="members/import"     element={<RoleRoute allowedRoles={ADMIN}><BulkImportMembers /></RoleRoute>} />
         <Route path="members/add"        element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />
         <Route path="members/:id"        element={<RoleRoute allowedRoles={ADMIN}><MemberProfile /></RoleRoute>} />
         <Route path="members/:id/edit"   element={<RoleRoute allowedRoles={ADMIN}><AddMember /></RoleRoute>} />

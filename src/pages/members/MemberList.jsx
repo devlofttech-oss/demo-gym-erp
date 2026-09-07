@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 const PAGE_SIZE = 25;
 
@@ -12,10 +12,9 @@ function paginationPages(page, total) {
   return pages;
 }
 import { useAuth } from '../../context/AuthContext';
-import { getTenantCollection, createTenantDocument } from '../../firebase/tenantDb';
+import { getTenantCollection } from '../../firebase/tenantDb';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import WhatsAppLinkModal from '../../components/messaging/WhatsAppLinkModal';
 
@@ -36,14 +35,10 @@ export default function MemberList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
-  const [importing, setImporting] = useState(false);
-  const [importPreview, setImportPreview] = useState(null);
   const [remindMember, setRemindMember] = useState(null);
   const [remindType, setRemindType] = useState('renewal');
   const [absenceMember, setAbsenceMember] = useState(null);
   const [page, setPage] = useState(1);
-  const fileInputRef = useRef(null);
-
   const [absentees, setAbsentees] = useState([]);
   const [absenteesLoading, setAbsenteesLoading] = useState(false);
   const [absenteesLoaded, setAbsenteesLoaded] = useState(false);
@@ -116,119 +111,6 @@ export default function MemberList() {
     }
   };
 
-  // ── Excel Import ──────────────────────────────────────────────────────────
-
-  // Converts Excel serial numbers and common string formats → YYYY-MM-DD
-  function parseDate(val) {
-    if (val === null || val === undefined || val === '') return '';
-    if (typeof val === 'number') {
-      // Excel date serial (days since 1900-01-01, with leap-year bug offset)
-      const d = new Date(Math.round((val - 25569) * 864e5));
-      return d.toISOString().split('T')[0];
-    }
-    const s = String(val).trim();
-    if (!s) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // already YYYY-MM-DD
-    // DD-MM-YYYY or DD/MM/YYYY
-    const dmy = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
-    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-    // MM-DD-YYYY fallback via native Date
-    const parsed = new Date(s);
-    if (!isNaN(parsed)) return parsed.toISOString().split('T')[0];
-    return s;
-  }
-
-  // Case-insensitive column lookup — tries each key variant
-  function col(row, ...keys) {
-    for (const k of keys) {
-      for (const attempt of [k, k.toLowerCase(), k.toUpperCase()]) {
-        if (row[attempt] !== undefined && row[attempt] !== '') return row[attempt];
-      }
-    }
-    return '';
-  }
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const wb = XLSX.read(evt.target.result, { type: 'binary' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        if (rows.length === 0) { toast.error('No data found in the file.'); return; }
-        setImportPreview({ rows, fileName: file.name });
-      } catch (err) {
-        toast.error('Failed to read Excel file. Please use .xlsx or .xls format.');
-        console.error(err);
-      }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = '';
-  };
-
-  const handleImportConfirm = async () => {
-    if (!importPreview) return;
-    setImporting(true);
-    let success = 0, failed = 0;
-    try {
-      for (const row of importPreview.rows) {
-        try {
-          const name       = col(row, 'NAME', 'Name', 'Member Name', 'name');
-          const phone      = String(col(row, 'MOBILE NUMBER', 'Mobile Number', 'Phone', 'Mobile', 'phone') || '');
-          const admDate    = parseDate(col(row, 'ADMISSION DATE', 'Admission Date', 'Join Date', 'joinDate', 'Active From', 'Start Date'));
-          const dueDate    = parseDate(col(row, 'DUE DATE', 'Due Date', 'Expiry Date', 'Expiry', 'expiryDate'));
-          const membership = col(row, 'MEMBERSHIP', 'Membership', 'Plan', 'Plan Name', 'planName');
-          const totalFees  = Number(col(row, 'Total fees', 'Total Fees', 'TOTAL FEES', 'totalFees'))  || 0;
-          const paidFees   = Number(col(row, 'Fees paid', 'Fees Paid', 'FEES PAID', 'paidFees'))      || 0;
-          const balFees    = Number(col(row, 'Balance fees', 'Balance Fees', 'BALANCE FEES', 'balanceFees')) || 0;
-          const payMode    = col(row, 'Payment mode', 'Payment Mode', 'PAYMENT MODE', 'paymentMode') || 'Cash';
-          const statusRaw  = col(row, 'STATUS', 'Status', 'status');
-          const email      = col(row, 'Email', 'EMAIL', 'email');
-
-          if (!name) { failed++; continue; }
-
-          // Prefix with "Gym - " since these are gym-category members
-          const planName = membership ? `Gym - ${String(membership).trim()}` : '';
-
-          // Derive status from due date if not explicitly set
-          const effectiveStatus = dueDate && new Date(dueDate) < new Date()
-            ? 'Expired'
-            : (statusRaw ? String(statusRaw).trim() : 'Active');
-
-          await createTenantDocument(gymId, 'members', {
-            name: String(name).trim(),
-            phone: String(phone).trim(),
-            email: String(email).trim(),
-            planName,
-            joinDate: admDate,
-            planActiveFrom: admDate,
-            expiryDate: dueDate,
-            totalFees,
-            paidFees,
-            balanceFees: balFees,
-            paymentMode: String(payMode).trim(),
-            status: effectiveStatus,
-            importedAt: new Date().toISOString(),
-          });
-          success++;
-        } catch {
-          failed++;
-        }
-      }
-      toast.success(`Imported ${success} member${success !== 1 ? 's' : ''}${failed > 0 ? ` (${failed} skipped)` : ''}!`);
-      setImportPreview(null);
-      fetchMembers();
-    } catch (err) {
-      toast.error('Import failed. Please try again.');
-      console.error(err);
-    } finally {
-      setImporting(false);
-    }
-  };
-  // ─────────────────────────────────────────────────────────────────────────
 
   const getStatusBadge = (status) => {
     if (status === 'Frozen') {
@@ -301,23 +183,6 @@ export default function MemberList() {
           <p className="font-body-lg text-body-lg text-on-surface-variant">Manage your gym members, plans, and statuses.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Import Excel */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium border border-outline-variant/40 bg-surface-container-lowest hover:bg-surface-container text-on-surface transition-colors shadow-sm text-sm"
-            title="Import members from Excel (.xlsx / .xls)"
-          >
-            <span className="material-symbols-outlined text-[18px] text-emerald-600">upload_file</span>
-            Import Excel
-          </button>
-
           <Link
             to="/members/add"
             className="bg-primary text-on-primary px-4 py-2.5 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
@@ -339,94 +204,6 @@ export default function MemberList() {
             </span>{' '}
             button in their row.
           </p>
-        </div>
-      )}
-
-      {/* ── Import Preview Modal ── */}
-      {importPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between p-6 border-b border-outline-variant/20">
-              <div>
-                <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-500">upload_file</span>
-                  Import Preview
-                </h2>
-                <p className="text-sm text-on-surface-variant mt-1">{importPreview.fileName} — {importPreview.rows.length} records found</p>
-              </div>
-              <button onClick={() => setImportPreview(null)} className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant">
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-4">
-              <p className="text-sm text-on-surface-variant mb-3">
-                The following members will be added. Existing members will not be duplicated automatically — please verify before confirming.
-              </p>
-              <div className="overflow-x-auto rounded-xl border border-outline-variant/20">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-surface-container-low/60">
-                    <tr>
-                      {['Name', 'Mobile', 'Membership', 'Admission', 'Due Date', 'Total', 'Paid', 'Balance', 'Status'].map(h => (
-                        <th key={h} className="p-3 font-semibold text-on-surface-variant text-xs uppercase tracking-wider whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importPreview.rows.slice(0, 10).map((row, i) => {
-                      const name       = col(row, 'NAME', 'Name', 'Member Name') || '';
-                      const phone      = col(row, 'MOBILE NUMBER', 'Mobile Number', 'Phone', 'Mobile') || '';
-                      const membership = col(row, 'MEMBERSHIP', 'Membership', 'Plan', 'Plan Name') || '';
-                      const admDate    = parseDate(col(row, 'ADMISSION DATE', 'Admission Date', 'Join Date'));
-                      const dueDate    = parseDate(col(row, 'DUE DATE', 'Due Date', 'Expiry Date', 'Expiry'));
-                      const totalF     = col(row, 'Total fees', 'Total Fees', 'TOTAL FEES') || '—';
-                      const paidF      = col(row, 'Fees paid', 'Fees Paid', 'FEES PAID') || '—';
-                      const balF       = col(row, 'Balance fees', 'Balance Fees', 'BALANCE FEES') || '—';
-                      const status     = col(row, 'STATUS', 'Status') || '';
-                      return (
-                        <tr key={i} className="border-t border-outline-variant/10 hover:bg-surface-container/30">
-                          <td className="p-3 font-medium text-on-surface">{name || <em className="text-rose-400">Missing</em>}</td>
-                          <td className="p-3 text-on-surface-variant">{String(phone)}</td>
-                          <td className="p-3 text-on-surface-variant">{String(membership)}</td>
-                          <td className="p-3 text-on-surface-variant">{admDate}</td>
-                          <td className="p-3 text-on-surface-variant">{dueDate}</td>
-                          <td className="p-3 text-on-surface-variant">{String(totalF)}</td>
-                          <td className="p-3 text-on-surface-variant">{String(paidF)}</td>
-                          <td className="p-3 text-on-surface-variant">{String(balF)}</td>
-                          <td className="p-3 text-on-surface-variant">{String(status)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {importPreview.rows.length > 10 && (
-                <p className="text-xs text-on-surface-variant mt-2 text-center">
-                  Showing 10 of {importPreview.rows.length} records.
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 p-5 border-t border-outline-variant/20">
-              <button
-                onClick={() => setImportPreview(null)}
-                className="px-4 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleImportConfirm}
-                disabled={importing}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
-              >
-                {importing ? (
-                  <><span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span> Importing...</>
-                ) : (
-                  <><span className="material-symbols-outlined text-[16px]">upload</span> Import {importPreview.rows.length} Members</>
-                )}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

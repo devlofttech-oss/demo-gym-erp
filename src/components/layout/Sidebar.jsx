@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useDarkMode } from '../../hooks/useDarkMode';
 import { useAuth } from '../../context/AuthContext';
-import { createTenantDocument } from '../../firebase/tenantDb';
-import toast from 'react-hot-toast';
+import { RequestFeatureModal, ContactModal } from '../support/SupportModals';
 import logoImage from '../../assets/kilos_logo.png';
 
 // ── Nav sections ──────────────────────────────────────────────────────────────
@@ -92,87 +91,6 @@ function HowToModal({ onClose }) {
             <button onClick={() => setPlatform(null)} className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">← Back</button>
           </>
         )}
-      </div>
-    </div>
-  );
-}
-
-function RequestFeatureModal({ gymId, onClose }) {
-  const [message, setMessage] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  async function submit() {
-    if (!message.trim()) return;
-    setSaving(true);
-    try {
-      await createTenantDocument(gymId, 'featureRequests', {
-        message: message.trim(),
-        createdAt: new Date().toISOString(),
-      });
-      toast.success('Feature request sent!');
-      onClose();
-    } catch {
-      toast.error('Failed to send request');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-200 flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <p className="font-bold text-on-surface text-lg">Request a Feature</p>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant">
-            <span className="material-symbols-outlined text-[18px]">close</span>
-          </button>
-        </div>
-        <textarea
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder="Describe the feature you'd like to see in Kilos..."
-          rows={4}
-          className="w-full px-4 py-3 bg-surface-container border border-outline-variant/30 rounded-xl text-on-surface text-sm resize-none outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-        />
-        <button
-          onClick={submit}
-          disabled={saving || !message.trim()}
-          className="w-full py-2.5 bg-primary text-on-primary rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          {saving && <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>}
-          Request
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ContactModal({ gymData, onClose }) {
-  const phone = gymData?.phone || '';
-  const waNum = phone.replace(/\D/g, '');
-  const waLink = waNum ? `https://wa.me/${waNum.length === 10 ? '91' + waNum : waNum}` : 'https://wa.me/';
-  return (
-    <div className="fixed inset-0 z-200 flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <p className="font-bold text-on-surface text-lg">Contact Us</p>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant">
-            <span className="material-symbols-outlined text-[18px]">close</span>
-          </button>
-        </div>
-        <p className="text-sm text-on-surface-variant">Reach out to Kilos support:</p>
-        <div className="flex gap-3">
-          <a href="tel:+918880000000"
-            className="flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border border-outline-variant/30 hover:bg-surface-container transition-colors text-on-surface">
-            <span className="material-symbols-outlined text-primary text-[28px]">call</span>
-            <span className="text-sm font-medium">Call</span>
-          </a>
-          <a href={waLink} target="_blank" rel="noopener noreferrer"
-            className="flex-1 flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">
-            <span className="material-symbols-outlined text-[28px]">chat</span>
-            <span className="text-sm font-semibold">WhatsApp</span>
-          </a>
-        </div>
       </div>
     </div>
   );
@@ -346,8 +264,8 @@ export default function Sidebar() {
 
       {/* Modals */}
       {modal === 'howto'   && <HowToModal onClose={() => setModal(null)} />}
-      {modal === 'feature' && <RequestFeatureModal gymId={gymId} onClose={() => setModal(null)} />}
-      {modal === 'contact' && <ContactModal gymData={gymData} onClose={() => setModal(null)} />}
+      {modal === 'feature' && <RequestFeatureModal gymId={gymId} gymName={gymData?.name} onClose={() => setModal(null)} />}
+      {modal === 'contact' && <ContactModal onClose={() => setModal(null)} />}
     </>
   );
 }

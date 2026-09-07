@@ -96,6 +96,19 @@ class TenantDb {
   static Future<void> setRootDocument(
       String collection, String id, Map<String, dynamic> data) =>
       _db.collection(collection).doc(id).set(data);
+
+  /// Add a document to a root (non-tenant) collection, auto-ID + timestamps.
+  /// Used for platform-wide collections the Super Admin reads (e.g. featureRequests).
+  static Future<Map<String, dynamic>> createRootDocument(
+      String collection, Map<String, dynamic> data) async {
+    final payload = {
+      ...data,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    final ref = await _db.collection(collection).add(payload);
+    return {'id': ref.id, ...data};
+  }
 }
 
 class Cond {

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { useAuth } from '../../context/AuthContext';
+import { RequestFeatureModal, ContactModal } from '../support/SupportModals';
 
 const ADMIN_NAV_ALL = [
   { to: '/',              icon: 'monitoring',             label: 'Dashboard',      fill: true,  end: true  },
@@ -58,7 +59,8 @@ const STAFF_NAV = [
 
 export default function DashboardLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
-  const { isImpersonating, gymData, exitGym, role } = useAuth();
+  const [supportModal, setSupportModal] = useState(null); // 'feature' | 'contact'
+  const { isImpersonating, gymData, gymId, exitGym, role } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -217,10 +219,41 @@ export default function DashboardLayout() {
                   );
                 })}
               </div>
+
+              {/* Support footer — Contact Us + Request a Feature */}
+              <div className="mt-8 pt-6 border-t border-white/10">
+                <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.15em] mb-3">
+                  Support
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setSupportModal('contact')}
+                    className="flex items-center gap-3 py-3 px-4 rounded-2xl bg-white/8 border border-white/5 active:bg-white/15 transition-all active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[20px] text-white/80">support_agent</span>
+                    <span className="text-[13px] font-medium text-white/80">Contact Us</span>
+                  </button>
+                  <button
+                    onClick={() => setSupportModal('feature')}
+                    className="flex items-center gap-3 py-3 px-4 rounded-2xl bg-white/8 border border-white/5 active:bg-white/15 transition-all active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[20px] text-white/80">star</span>
+                    <span className="text-[13px] font-medium text-white/80">Request a Feature</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Support modals (mobile footer) */}
+      {supportModal === 'feature' && (
+        <RequestFeatureModal gymId={gymId} gymName={gymData?.name} onClose={() => setSupportModal(null)} />
+      )}
+      {supportModal === 'contact' && (
+        <ContactModal onClose={() => setSupportModal(null)} />
+      )}
     </div>
   );
 }

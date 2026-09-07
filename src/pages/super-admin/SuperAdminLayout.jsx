@@ -9,6 +9,7 @@ const NAV = [
   { to: '/super-admin/gyms',    label: 'Gyms',      icon: 'fitness_center', end: false },
   { to: '/super-admin/plans',   label: 'Plans',     icon: 'loyalty',        end: false },
   { to: '/super-admin/trials',  label: 'Trials',    icon: 'timer',          end: false },
+  { to: '/super-admin/feature-requests', label: 'Feature Requests', icon: 'star', end: false },
 ];
 
 export default function SuperAdminLayout() {

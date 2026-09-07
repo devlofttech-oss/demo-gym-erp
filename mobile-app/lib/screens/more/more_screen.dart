@@ -63,6 +63,16 @@ class _MoreScreenState extends State<MoreScreen> {
     );
   }
 
+  void _showBulkImport() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BulkImportSheet(onLaunch: _launch),
+    );
+  }
+
   void _showRequestFeature() {
     showModalBottomSheet(
       context: context,
@@ -120,6 +130,8 @@ class _MoreScreenState extends State<MoreScreen> {
           child: Column(
             children: [
               _LinkTile(MSym.language, 'Access Web App', 'Manage your gym on desktop', TW.blue600, () => _launch(_webAppUrl)),
+              _divider(c),
+              _LinkTile(MSym.upload, 'Bulk Import Members', 'Import members from a spreadsheet', TW.emerald600, _showBulkImport),
               _divider(c),
               _LinkTile(MSym.payment, 'Purchase WhatsApp Credits', 'Buy credits via web', TW.emerald600, () => _launch(_waCreditsUrl)),
               _divider(c),
@@ -239,6 +251,104 @@ class _ContactSheet extends StatelessWidget {
   }
 }
 
+class _BulkImportSheet extends StatelessWidget {
+  final Future<void> Function(String) onLaunch;
+  const _BulkImportSheet({required this.onLaunch});
+
+  static const _importUrl = 'https://app.kilos.devlofttech.com/members/import';
+
+  static const _cols = <(IconData, String, bool)>[
+    (MSym.person, 'Name', true),
+    (MSym.sms, 'Phone number', true),
+    (MSym.calendarToday, 'Date of joining', false),
+    (MSym.today, 'Date of birth', false),
+    (MSym.howToReg, 'Gender', false),
+    (MSym.loyalty, 'Membership / Plan', false),
+    (MSym.calendarMonth, 'Due / Expiry date', false),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      maxChildSize: 0.92,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (_, ctrl) => Container(
+        decoration: BoxDecoration(color: c.surfaceContainerLowest, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+        child: Column(children: [
+          const SizedBox(height: 12),
+          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: c.outlineVariant, borderRadius: BorderRadius.circular(2)))),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Upload members sheet', style: KText.h2.copyWith(color: c.onSurface)),
+                const SizedBox(height: 4),
+                Text('Import your gym\'s member list from a spreadsheet.', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+              ])),
+            ]),
+          ),
+          Expanded(
+            child: ListView(controller: ctrl, padding: const EdgeInsets.all(20), children: [
+              // Columns expected
+              Text('COLUMNS EXPECTED', style: KText.labelCaps.copyWith(color: c.onSurfaceVariant, letterSpacing: 1.2)),
+              const SizedBox(height: 10),
+              KCard(
+                padding: EdgeInsets.zero,
+                child: Column(children: _cols.asMap().entries.map((e) {
+                  final i = e.key;
+                  final col = e.value;
+                  final isRequired = col.$3;
+                  return Column(children: [
+                    if (i > 0) Divider(height: 1, color: c.outlineVariant.withValues(alpha: 0.25)),
+                    Container(
+                      color: isRequired ? TW.blue600.withValues(alpha: 0.06) : null,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(children: [
+                        Sym(col.$1, size: 18, color: isRequired ? TW.blue600 : c.onSurfaceVariant),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(col.$2, style: TextStyle(color: isRequired ? TW.blue700 : c.onSurface, fontWeight: FontWeight.w500, fontSize: 14))),
+                        isRequired
+                          ? Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), decoration: BoxDecoration(color: TW.blue100, borderRadius: BorderRadius.circular(999)), child: const Text('Required', style: TextStyle(color: TW.blue600, fontSize: 11, fontWeight: FontWeight.w600)))
+                          : Text('Optional', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+                      ]),
+                    ),
+                  ]);
+                }).toList()),
+              ),
+              const SizedBox(height: 16),
+              // Paid users note
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: TW.amber50, borderRadius: BorderRadius.circular(12), border: Border.all(color: TW.amber200)),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Sym(MSym.workspacePremium, size: 18, color: TW.amber600),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('Bulk import is available for paid plan subscribers only.', style: const TextStyle(color: TW.amber800, fontSize: 13, fontWeight: FontWeight.w500))),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton.icon(
+                  onPressed: () { Navigator.pop(context); onLaunch(_importUrl); },
+                  icon: const Sym(MSym.upload, size: 18),
+                  label: const Text('Open Web App to Upload'),
+                  style: FilledButton.styleFrom(backgroundColor: TW.emerald600, foregroundColor: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 class _FeatureRequestSheet extends StatefulWidget {
   final String gymId;
   final String gymName;
@@ -263,11 +373,11 @@ class _FeatureRequestSheetState extends State<_FeatureRequestSheet> {
     if (text.isEmpty) return;
     setState(() => _sending = true);
     try {
-      await TenantDb.createDocument(widget.gymId, 'featureRequests', {
+      await TenantDb.createRootDocument('featureRequests', {
         'gymId': widget.gymId,
         'gymName': widget.gymName,
-        'request': text,
-        'submittedAt': DateTime.now().toIso8601String(),
+        'message': text,
+        'source': 'mobile',
         'status': 'pending',
       });
       if (mounted) {
