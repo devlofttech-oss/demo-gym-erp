@@ -38,7 +38,7 @@ jobs:
         # `yes` auto-answers Shorebird's confirmation prompt. Patches the latest
         # Android release (the baseline). No keystore needed — a patch is a code
         # diff matched by app_id + release version, not a distributable signed build.
-        run: yes | shorebird patch android --release-version=latest
+        run: yes | shorebird patch android --release-version=1.0.4+7
 
   ios-patch:
     name: OTA patch → iOS phones
@@ -106,7 +106,7 @@ jobs:
       - name: Push OTA patch to iOS
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
-        run: yes | shorebird patch ios --release-version=latest
+        run: yes | shorebird patch ios --release-version=1.0.4+7
 
       # ios/Podfile.lock is not in the repo, so every machine resolves pods on
       # its own and Shorebird reads the difference as a native change. Surface
