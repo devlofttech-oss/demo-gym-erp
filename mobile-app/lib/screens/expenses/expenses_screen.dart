@@ -195,7 +195,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         title: Text('Expenses', style: KText.h3.copyWith(color: c.onSurface)),
         actions: [
           IconButton(
-            icon: Sym(MSym.share, color: c.onSurfaceVariant),
+            icon: Sym(MSym.uploadFile, color: c.onSurfaceVariant),
             onPressed: _loading ? null : _exportCsv,
             tooltip: 'Export CSV',
           ),

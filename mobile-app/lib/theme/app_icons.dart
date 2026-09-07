@@ -105,16 +105,4 @@ class MSym {
   static const IconData shoppingCart = IconData(0xe8cc, fontFamily: _f);
   static const IconData trophy = IconData(0xef97, fontFamily: _f);
   static const IconData tune = IconData(0xe429, fontFamily: _f);
-  static const IconData share = IconData(0xe80d, fontFamily: _f);
-  static const IconData download = IconData(0xf090, fontFamily: _f);
-  static const IconData contactPhone = IconData(0xe0cf, fontFamily: _f);
-  static const IconData helpOutline = IconData(0xe8fd, fontFamily: _f);
-  static const IconData feedbackOutlined = IconData(0xe87f, fontFamily: _f);
-  static const IconData openInBrowser = IconData(0xe89d, fontFamily: _f);
-  static const IconData appleAlt = IconData(0xea80, fontFamily: _f);
-  static const IconData phoneIphone = IconData(0xe32c, fontFamily: _f);
-  static const IconData whatsapp = IconData(0xea93, fontFamily: _f);
-  static const IconData email = IconData(0xe0be, fontFamily: _f);
-  static const IconData creditCard = IconData(0xe870, fontFamily: _f);
-  static const IconData badgeOutline = IconData(0xf0a3, fontFamily: _f);
 }
