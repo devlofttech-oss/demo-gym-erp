@@ -127,6 +127,16 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin();
     }
 
+    // ── Feature requests (gym owners → superadmin inbox) ──────────
+    // Any signed-in gym user (admin/staff, web or Flutter) can submit one;
+    // only the superadmin reads the inbox and marks items done.
+    match /featureRequests/{reqId} {
+      allow create: if isSignedIn()
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0;
+      allow read, update, delete: if isSuperAdmin();
+    }
+
     // ── Subscription orders (server-written) ──────────────────────
     // Firestore ORs all matching rules, so `allow write: if false` here would
     // not override the generic /gyms/{gymId}/{collection} grant below — that
