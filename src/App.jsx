@@ -30,6 +30,8 @@ import WorkoutList from './pages/workouts/WorkoutList';
 import PTList from './pages/pt/PTList';
 // import DietList from './pages/diet/DietList'; // Diet module on hold
 import RenewalsList from './pages/renewals/RenewalsList';
+import WACreditsPage from './pages/communication/WACreditsPage';
+import WACreditsReturn from './pages/communication/WACreditsReturn';
 import MemberQRPage from './pages/public/MemberQRPage';
 import ReceiptPage from './pages/public/ReceiptPage';
 
@@ -124,6 +126,8 @@ export default function App() {
         <Route path="pt"                element={<RoleRoute allowedRoles={ADMIN}><PTList /></RoleRoute>} />
         {/* <Route path="diet" element={<RoleRoute allowedRoles={ADMIN}><DietList /></RoleRoute>} /> */} {/* Diet module on hold */}
 <Route path="renewals"          element={<RoleRoute allowedRoles={ADMIN}><RenewalsList /></RoleRoute>} />
+        <Route path="whatsapp-credits"        element={<RoleRoute allowedRoles={ADMIN}><WACreditsPage /></RoleRoute>} />
+        <Route path="whatsapp-credits/return" element={<RoleRoute allowedRoles={ADMIN}><WACreditsReturn /></RoleRoute>} />
         <Route path="reports/monthly"   element={<RoleRoute allowedRoles={ADMIN}><MonthlyReport /></RoleRoute>} />
         <Route path="settings"          element={<RoleRoute allowedRoles={ADMIN}><Settings /></RoleRoute>} />
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
+import { getTenantDocument, getTenantCollection, createTenantDocument, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import toast from 'react-hot-toast';
 import { QRCodeSVG } from 'qrcode.react';
 import PhotoUpload from '../../components/ui/PhotoUpload';
@@ -10,6 +10,7 @@ import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import MeasurementForm from '../measurements/MeasurementForm';
 import { shareQrOnWhatsApp } from '../../utils/memberQr';
 import { publishReceipt, openReceiptWhatsApp } from '../../utils/receiptShare';
+import { openWhatsApp } from '../../utils/whatsapp';
 
 // ── Attendance Calendar ─────────────────────────────────────────────────────
 function AttendanceCalendar({ attendance }) {
@@ -146,6 +147,14 @@ export default function MemberProfile() {
   const [showMeasurementForm, setShowMeasurementForm] = useState(false);
   const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [photoLightbox, setPhotoLightbox] = useState(false);
+
+  // ── Opportunities (upsell tracking) ──
+  const [opportunities, setOpportunities] = useState([]);
+  const [showOppModal, setShowOppModal] = useState(false);
+  const [editingOpp, setEditingOpp] = useState(null); // full opportunity object when editing
+  const [oppForm, setOppForm] = useState({ type: 'PT Package', title: '', amount: '', status: 'Open', notes: '' });
+  const [savingOpp, setSavingOpp] = useState(false);
+  const [deletingOppId, setDeletingOppId] = useState(null);
 
   const downloadQR = () => {
     const svg = qrRef.current?.querySelector('svg');
@@ -321,6 +330,9 @@ export default function MemberProfile() {
 
         const measureData = await getTenantCollection(gymId, 'measurements', [{ field: 'memberId', op: '==', value: id }]);
         setMeasurements(measureData.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
+
+        const oppData = await getTenantCollection(gymId, 'opportunities', [{ field: 'memberId', op: '==', value: id }]);
+        setOpportunities(oppData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
       } catch (error) {
         console.error('Error fetching data', error);
       } finally {
@@ -443,6 +455,75 @@ export default function MemberProfile() {
     } catch { toast.error('Failed to delete'); }
   };
 
+  // ── Opportunity handlers ─────────────────────────────────────────────────
+
+  const refreshOpportunities = async () => {
+    const data = await getTenantCollection(gymId, 'opportunities', [{ field: 'memberId', op: '==', value: id }]);
+    setOpportunities(data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+  };
+
+  const openAddOpp = () => {
+    setEditingOpp(null);
+    setOppForm({ type: 'PT Package', title: '', amount: '', status: 'Open', notes: '' });
+    setShowOppModal(true);
+  };
+
+  const openEditOpp = (opp) => {
+    setEditingOpp(opp);
+    setOppForm({
+      type: opp.type || 'PT Package',
+      title: opp.title || '',
+      amount: opp.amount ?? '',
+      status: opp.status || 'Open',
+      notes: opp.notes || '',
+    });
+    setShowOppModal(true);
+  };
+
+  const handleSaveOpp = async (e) => {
+    e.preventDefault();
+    setSavingOpp(true);
+    try {
+      const type = oppForm.type || 'Other';
+      const payload = {
+        memberId: id,
+        memberName: member.name,
+        type,
+        title: (oppForm.title || '').trim() || type,
+        amount: Number(oppForm.amount) || 0,
+        notes: oppForm.notes || '',
+        status: oppForm.status || 'Open',
+      };
+      if (editingOpp) {
+        await updateTenantDocument(gymId, 'opportunities', editingOpp.id, payload);
+        toast.success('Opportunity updated!');
+      } else {
+        await createTenantDocument(gymId, 'opportunities', { ...payload, createdAt: new Date().toISOString() });
+        toast.success('Opportunity added!');
+      }
+      setShowOppModal(false);
+      setEditingOpp(null);
+      await refreshOpportunities();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save opportunity.');
+    } finally {
+      setSavingOpp(false);
+    }
+  };
+
+  const handleDeleteOpp = async () => {
+    try {
+      await deleteTenantDocument(gymId, 'opportunities', deletingOppId);
+      setDeletingOppId(null);
+      toast.success('Opportunity deleted.');
+      await refreshOpportunities();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete opportunity.');
+    }
+  };
+
   // ── Attendance handlers ──────────────────────────────────────────────────
 
   const handleDeleteAttendance = async () => {
@@ -535,7 +616,7 @@ export default function MemberProfile() {
               {member.memberId && <span className="inline-flex items-center gap-1 bg-surface-container text-on-surface-variant px-2 py-0.5 rounded text-xs font-mono font-semibold">{member.memberId}</span>}
               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">call</span>{member.phone}</span>
               {member.joinDate && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_month</span>Joined {member.joinDate}</span>}
-              {member.birthday && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cake</span>{member.birthday}</span>}
+              {(member.birthday || member.dateOfBirth) && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cake</span>{member.birthday || member.dateOfBirth}</span>}
             </div>
             <div className="mt-1">
               {isFrozen ? (
@@ -560,6 +641,12 @@ export default function MemberProfile() {
             <span className="material-symbols-outlined text-[16px]">payments</span>
             Collect Payment
           </Link>
+          {member.phone && (
+            <button onClick={() => openWhatsApp(member.phone, `Hi ${member.name}!`)} className="flex-1 md:flex-none bg-[#25D366] hover:bg-[#20b558] text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
+              <span className="material-symbols-outlined text-[16px]">chat</span>
+              Chat
+            </button>
+          )}
           <button onClick={downloadReceipt} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 text-sm">
             <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
             View Receipt
@@ -747,6 +834,70 @@ export default function MemberProfile() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Opportunities (upsell tracking) ── */}
+          <div className="bg-surface-container-lowest p-card-padding rounded-2xl shadow-[0_10px_30px_rgba(207,196,255,0.15)]">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">trending_up</span>
+                <h3 className="font-h3 text-h3 text-on-surface">Opportunities</h3>
+                {opportunities.length > 0 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{opportunities.length}</span>}
+              </div>
+              <button onClick={openAddOpp}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+                <span className="material-symbols-outlined text-[16px]">add</span>
+                Add
+              </button>
+            </div>
+
+            {opportunities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-on-surface-variant">
+                <span className="material-symbols-outlined text-4xl opacity-40 mb-2">lightbulb</span>
+                <p className="text-sm">No upsell opportunities tracked yet.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {opportunities.map(opp => {
+                  const statusClass = opp.status === 'Won'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : opp.status === 'Lost'
+                      ? 'bg-rose-50 text-rose-600'
+                      : 'bg-amber-50 text-amber-600';
+                  return (
+                    <div key={opp.id} className="flex items-center justify-between p-4 rounded-xl bg-surface-container border border-outline-variant/30 gap-3">
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-on-surface truncate">{opp.title}</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide bg-primary/10 text-primary px-2 py-0.5 rounded-full">{opp.type}</span>
+                          <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${statusClass}`}>{opp.status}</span>
+                        </div>
+                        {opp.notes && <span className="text-xs text-on-surface-variant italic">{opp.notes}</span>}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="font-bold text-on-surface text-lg">₹{Number(opp.amount || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button
+                          onClick={() => openEditOpp(opp)}
+                          title="Edit opportunity"
+                          className="w-8 h-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button
+                          onClick={() => setDeletingOppId(opp.id)}
+                          title="Delete opportunity"
+                          className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -953,6 +1104,78 @@ export default function MemberProfile() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── Add / Edit Opportunity Modal ── */}
+      {showOppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-outline-variant/20">
+              <h2 className="text-xl font-bold text-on-surface">{editingOpp ? 'Edit Opportunity' : 'Add Opportunity'}</h2>
+              <button onClick={() => { setShowOppModal(false); setEditingOpp(null); }} className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSaveOpp} className="p-6 flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-on-surface">Type</label>
+                  <select value={oppForm.type} onChange={e => setOppForm(p => ({ ...p, type: e.target.value }))}
+                    className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm appearance-none">
+                    <option value="PT Package">PT Package</option>
+                    <option value="Plan Upgrade">Plan Upgrade</option>
+                    <option value="Supplement">Supplement</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-on-surface">Status</label>
+                  <select value={oppForm.status} onChange={e => setOppForm(p => ({ ...p, status: e.target.value }))}
+                    className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm appearance-none">
+                    <option value="Open">Open</option>
+                    <option value="Won">Won</option>
+                    <option value="Lost">Lost</option>
+                  </select>
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-sm font-medium text-on-surface">Title</label>
+                  <input value={oppForm.title} onChange={e => setOppForm(p => ({ ...p, title: e.target.value }))}
+                    placeholder="Defaults to type if left blank"
+                    className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-sm font-medium text-on-surface">Amount (₹)</label>
+                  <input type="number" min="0" value={oppForm.amount} onChange={e => setOppForm(p => ({ ...p, amount: e.target.value }))}
+                    className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm" />
+                </div>
+                <div className="col-span-2 flex flex-col gap-1">
+                  <label className="text-sm font-medium text-on-surface">Notes (optional)</label>
+                  <textarea rows={3} value={oppForm.notes} onChange={e => setOppForm(p => ({ ...p, notes: e.target.value }))}
+                    placeholder="Any remarks..."
+                    className="px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary text-sm resize-none" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => { setShowOppModal(false); setEditingOpp(null); }} className="px-4 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container transition-colors text-sm">Cancel</button>
+                <button type="submit" disabled={savingOpp} className="px-5 py-2.5 bg-primary text-on-primary rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm text-sm disabled:opacity-60 flex items-center gap-2">
+                  {savingOpp && <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>}
+                  {editingOpp ? 'Save Changes' : 'Add Opportunity'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm: Delete Opportunity ── */}
+      {deletingOppId && (
+        <ConfirmModal
+          title="Delete Opportunity?"
+          message="This upsell opportunity will be permanently deleted."
+          confirmLabel="Delete"
+          onConfirm={handleDeleteOpp}
+          onCancel={() => setDeletingOppId(null)}
+        />
       )}
 
       {/* ── Confirm: Delete Member ── */}

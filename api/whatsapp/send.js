@@ -5,8 +5,8 @@
 // Auth: caller sends "Authorization: Bearer <firebase-id-token>". We verify it,
 // then confirm the user is a superadmin or an admin/staff of the requested gym.
 //
-// Body: { gymId, type, memberIds: string[], extra?: { body?, className?, amount? } }
-//   type ∈ 'renewal' | 'payment' | 'class' | 'announcement'
+// Body: { gymId, type, memberIds: string[], extra?: { amount? } }
+//   type ∈ 'renewal' | 'payment'
 //
 // Returns: { sent, failed, results: [{ memberId, status, error }] }
 import { FieldValue, getDb, verifyIdToken } from '../_lib/firebaseAdmin.js';
@@ -38,9 +38,6 @@ export default async function handler(req, res) {
   }
   if (!TEMPLATE_TYPES.includes(type)) {
     return res.status(400).json({ error: `Unknown type "${type}"` });
-  }
-  if (type === 'announcement' && !extra?.body?.trim()) {
-    return res.status(400).json({ error: 'Announcement requires a message body' });
   }
 
   const db = getDb();

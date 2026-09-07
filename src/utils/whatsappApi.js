@@ -3,9 +3,9 @@ import { auth } from '../firebase/config';
 // Calls the serverless WhatsApp send endpoint (api/whatsapp/send.js).
 // Sends via the Meta Cloud API using pre-approved templates.
 //
-//   type      'renewal' | 'payment' | 'class' | 'announcement'
+//   type      'renewal' | 'payment'
 //   memberIds array of member doc ids in gyms/{gymId}/members
-//   extra     optional { body, className, amount }
+//   extra     optional { amount }
 //
 // NOTE: this only works on the deployed Vercel site (or via `vercel dev`).
 // Under plain `npm run dev` (Vite) the /api function isn't served.

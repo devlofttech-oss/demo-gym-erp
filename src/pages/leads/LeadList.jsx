@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
+import { openWhatsApp } from '../../utils/whatsapp';
 import LeadForm from './LeadForm';
 
 const STATUS_FILTERS = [
@@ -307,6 +308,12 @@ export default function LeadList() {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
+                  {lead.phone && (
+                    <button onClick={() => openWhatsApp(lead.phone, `Hi ${lead.name}, thanks for your interest in our gym! We'd love to have you join us.`)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 transition-colors">
+                      <span className="material-symbols-outlined text-base">chat</span> WhatsApp
+                    </button>
+                  )}
                   <button onClick={() => openEdit(lead)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                     <span className="material-symbols-outlined text-base">edit</span> Edit
@@ -462,6 +469,15 @@ export default function LeadList() {
                             >
                               <span className="material-symbols-outlined text-[14px]">person_add</span>
                               Convert
+                            </button>
+                          )}
+                          {lead.phone && (
+                            <button
+                              onClick={() => openWhatsApp(lead.phone, `Hi ${lead.name}, thanks for your interest in our gym! We'd love to have you join us.`)}
+                              className="p-2 rounded-lg bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 transition-colors"
+                              title="WhatsApp lead"
+                            >
+                              <span className="material-symbols-outlined text-base">chat</span>
                             </button>
                           )}
                           <button

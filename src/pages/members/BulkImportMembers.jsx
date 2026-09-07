@@ -123,7 +123,7 @@ export default function BulkImportMembers() {
           name: String(name).trim(),
           phone: phone.trim(),
           email: String(email).trim(),
-          dob,
+          birthday: dob,
           gender: String(gender).trim(),
           planName,
           joinDate: admDate,

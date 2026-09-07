@@ -9,13 +9,14 @@ import {
 } from '../../utils/whatsappTemplatePreviews';
 
 // Approx per-message cost (India) for the pre-send estimate. Display only.
-const RATE = { utility: 0.14, marketing: 1.10 };
+// Both live templates are Utility category.
+const RATE = { utility: 0.14 };
 
-// Confirm + send a pre-approved WhatsApp template via the Cloud API.
+// Confirm + send a pre-approved WhatsApp template.
 //   gymId       tenant id
-//   type        'renewal' | 'payment' | 'class' | 'announcement'
+//   type        'renewal' | 'payment'
 //   recipients  [{ id, name, phone }]
-//   extra       optional { body, className, amount }
+//   extra       optional { amount }
 export default function SendWhatsAppModal({ gymId, type, recipients = [], extra = {}, recipientLabel = '', onClose }) {
   const { gymData } = useAuth();
   const [sending, setSending] = useState(false);
@@ -99,7 +100,7 @@ export default function SendWhatsAppModal({ gymId, type, recipients = [], extra 
 
               <div className="flex items-center justify-between px-4 py-3 bg-surface-container rounded-xl text-sm">
                 <span className="text-on-surface-variant">
-                  {valid.length} recipient{valid.length !== 1 ? 's' : ''} · {category === 'marketing' ? 'Marketing' : 'Utility'}
+                  {valid.length} recipient{valid.length !== 1 ? 's' : ''} · Utility
                 </span>
                 <span className="font-semibold text-on-surface">≈ ₹{estCost}</span>
               </div>

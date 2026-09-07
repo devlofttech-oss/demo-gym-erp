@@ -10,7 +10,7 @@
 
 const LANG = process.env.WHATSAPP_TEMPLATE_LANG || 'en_US';
 
-export const TEMPLATE_TYPES = ['renewal', 'payment', 'class', 'announcement'];
+export const TEMPLATE_TYPES = ['renewal', 'payment'];
 
 function tpl(envKey, fallback) {
   return process.env[envKey] || fallback;
@@ -58,28 +58,6 @@ export function buildTemplate(type, member, gym, extra = {}) {
         components: bodyParams([name, gymName, money(bal)]),
       };
     }
-
-    // class_reminder(en): "Hi {{1}}, we've missed you at {{2}}! Regular attendance
-    //   keeps you on track — see you at your next session. Stay consistent!"
-    case 'class':
-      return {
-        template: tpl('WA_TPL_CLASS', 'class_reminder'),
-        language: LANG,
-        // Meta classifies attendance/re-engagement reminders as Marketing.
-        category: 'marketing',
-        components: bodyParams([name, gymName]),
-      };
-
-    // announcement(en, MARKETING):
-    //   "Hi {{1}}, here's an update from {{2}}:\n\n{{3}}\n\nThank you for being a valued member!"
-    //   1=name, 2=gym name, 3=announcement message
-    case 'announcement':
-      return {
-        template: tpl('WA_TPL_ANNOUNCEMENT', 'announcement'),
-        language: LANG,
-        category: 'marketing',
-        components: bodyParams([name, gymName, extra?.body || '']),
-      };
 
     default:
       throw new Error(`Unknown WhatsApp message type: ${type}`);
