@@ -4,13 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { sendWhatsApp } from '../../utils/whatsappApi';
 import {
   WHATSAPP_TYPE_LABELS,
-  WHATSAPP_TYPE_CATEGORY,
   previewText,
 } from '../../utils/whatsappTemplatePreviews';
-
-// Approx per-message cost (India) for the pre-send estimate. Display only.
-// Both live templates are Utility category.
-const RATE = { utility: 0.14 };
 
 // Confirm + send a pre-approved WhatsApp template.
 //   gymId       tenant id
@@ -23,9 +18,7 @@ export default function SendWhatsAppModal({ gymId, type, recipients = [], extra 
   const [result, setResult] = useState(null);
 
   const valid = recipients.filter((r) => r?.id && r?.phone && String(r.phone).replace(/\D/g, '').length >= 10);
-  const category = WHATSAPP_TYPE_CATEGORY[type] || 'utility';
   const label = WHATSAPP_TYPE_LABELS[type] || 'WhatsApp message';
-  const estCost = (valid.length * (RATE[category] || 0)).toFixed(2);
 
   const preview = previewText(type, {
     name: valid[0]?.name,
@@ -98,12 +91,6 @@ export default function SendWhatsAppModal({ gymId, type, recipients = [], extra 
                 </p>
               </div>
 
-              <div className="flex items-center justify-between px-4 py-3 bg-surface-container rounded-xl text-sm">
-                <span className="text-on-surface-variant">
-                  {valid.length} recipient{valid.length !== 1 ? 's' : ''} · Utility
-                </span>
-                <span className="font-semibold text-on-surface">≈ ₹{estCost}</span>
-              </div>
             </>
           )}
 
@@ -139,7 +126,7 @@ export default function SendWhatsAppModal({ gymId, type, recipients = [], extra 
             >
               {sending
                 ? <><span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span> Sending…</>
-                : <>Send to {valid.length}</>}
+                : <>{valid.length === 1 ? 'Send message' : `Send to ${valid.length} members`}</>}
             </button>
           )}
         </div>
