@@ -57,8 +57,13 @@ export default function GymForm() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    getCollection('subscriptionPlans', [], { field: 'createdAt', direction: 'asc' })
-      .then(setAvailablePlans)
+    // Fetch all plans (no Firestore orderBy — it silently hides docs missing the
+    // field, which desynced this dropdown from the real plan list).
+    getCollection('subscriptionPlans')
+      .then(list => setAvailablePlans(
+        [...list].sort((a, b) =>
+          (a.sortOrder ?? 99) - (b.sortOrder ?? 99) ||
+          String(a.name || '').localeCompare(String(b.name || '')))))
       .catch(() => {});
   }, []);
 

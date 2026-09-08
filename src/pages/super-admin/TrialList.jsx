@@ -87,11 +87,14 @@ export default function TrialList() {
     setLoading(true);
     Promise.all([
       getCollection('trialRequests', [{ field: 'status', op: '==', value: 'pending' }]),
-      getCollection('subscriptionPlans', [], { field: 'createdAt', direction: 'asc' }),
+      // No Firestore orderBy — it hides plan docs missing the field.
+      getCollection('subscriptionPlans'),
     ])
       .then(([reqs, pl]) => {
         setRequests(reqs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
-        setPlans(pl);
+        setPlans([...pl].sort((a, b) =>
+          (a.sortOrder ?? 99) - (b.sortOrder ?? 99) ||
+          String(a.name || '').localeCompare(String(b.name || ''))));
       })
       .catch(() => toast.error('Failed to load requests'))
       .finally(() => setLoading(false));
