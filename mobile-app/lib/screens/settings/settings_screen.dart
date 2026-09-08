@@ -29,14 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _ikPublicKey = TextEditingController();
   final _ikUrlEndpoint = TextEditingController();
 
-  // WhatsApp Cloud API
-  final _waToken = TextEditingController();
-  final _waPhoneNumberId = TextEditingController();
-  final _waAccountId = TextEditingController();
-
   bool _loading = true;
   bool _saving = false;
-  bool _showWaToken = false;
   bool _showIkKey = false;
 
   @override
@@ -50,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     for (final c in [
       _gymName, _address, _phone, _email, _workingHours, _gracePeriod,
       _gstNumber, _website, _instagram,
-      _ikPublicKey, _ikUrlEndpoint, _waToken, _waPhoneNumberId, _waAccountId,
+      _ikPublicKey, _ikUrlEndpoint,
     ]) {
       c.dispose();
     }
@@ -79,9 +73,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _instagram.text = doc['instagram'] ?? '';
           _ikPublicKey.text = doc['imagekitPublicKey'] ?? '';
           _ikUrlEndpoint.text = doc['imagekitUrlEndpoint'] ?? '';
-          _waToken.text = doc['wapiToken'] ?? '';
-          _waPhoneNumberId.text = doc['wapiPhoneNumberId'] ?? '';
-          _waAccountId.text = doc['wapiAccountId'] ?? '';
         });
       }
     } catch (_) {}
@@ -104,9 +95,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'instagram': _instagram.text.trim(),
       'imagekitPublicKey': _ikPublicKey.text.trim(),
       'imagekitUrlEndpoint': _ikUrlEndpoint.text.trim(),
-      'wapiToken': _waToken.text.trim(),
-      'wapiPhoneNumberId': _waPhoneNumberId.text.trim(),
-      'wapiAccountId': _waAccountId.text.trim(),
     };
     try {
       await TenantDb.updateDocument('', 'gyms', gymId, data);
@@ -235,31 +223,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         toggleObscure: () => setState(() => _showIkKey = !_showIkKey),
                       ),
                       _field('URL Endpoint', _ikUrlEndpoint),
-                    ],
-                  ),
-                ),
-                _section('WhatsApp Cloud API'),
-                KCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          'Used for bulk messaging via Communication Hub. Get credentials from Meta Business.',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
-                        ),
-                      ),
-                      _field(
-                        'Access Token',
-                        _waToken,
-                        obscure: !_showWaToken,
-                        isObscured: !_showWaToken,
-                        toggleObscure: () =>
-                            setState(() => _showWaToken = !_showWaToken),
-                      ),
-                      _field('Phone Number ID', _waPhoneNumberId),
-                      _field('Account ID', _waAccountId),
                     ],
                   ),
                 ),

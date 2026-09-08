@@ -35,12 +35,18 @@ String addDays(String dateStr, int days) {
   return d.toIso8601String().split('T').first;
 }
 
-/// Last day of the Nth calendar month from start (mirrors addMonthsEnd).
-String addMonthsEnd(String dateStr, int months) {
+/// Add N months keeping the same day-of-month, clamping to the target month's
+/// last day on overflow (e.g. Jan 31 +1m -> Feb 28). Mirrors the web app's
+/// addMonths() exactly so both apps compute identical expiry dates.
+String addMonths(String dateStr, int months) {
   final d = DateTime.parse(dateStr);
-  // day 1, add months, then day 0 of following = last day of target month.
-  final target = DateTime(d.year, d.month + months + 1, 0);
-  return target.toIso8601String().split('T').first;
+  final firstOfTarget = DateTime(d.year, d.month + months, 1);
+  final lastDay = DateTime(firstOfTarget.year, firstOfTarget.month + 1, 0).day;
+  final day = d.day > lastDay ? lastDay : d.day;
+  return DateTime(firstOfTarget.year, firstOfTarget.month, day)
+      .toIso8601String()
+      .split('T')
+      .first;
 }
 
 /// Entry eligibility from the live expiry date (not the stale status field).

@@ -44,7 +44,8 @@ class _WhatsAppSheetState extends State<_WhatsAppSheet> {
     return n.length > 10 ? n.substring(n.length - 10) : n;
   }
 
-  bool get _valid => _clean.length >= 10;
+  bool get _shareMode => widget.phone.trim().isEmpty;
+  bool get _valid => _shareMode || _clean.length >= 10;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +79,7 @@ class _WhatsAppSheetState extends State<_WhatsAppSheet> {
               IconButton(onPressed: () => Navigator.pop(context), icon: Sym(MSym.close, size: 18, color: c.onSurfaceVariant)),
             ]),
             const SizedBox(height: 12),
-            if (!_valid)
+            if (!_shareMode && !_valid)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -107,11 +108,15 @@ class _WhatsAppSheetState extends State<_WhatsAppSheet> {
                 onPressed: !_valid || _ctrl.text.trim().isEmpty
                     ? null
                     : () {
-                        openWhatsApp(widget.phone, _ctrl.text);
+                        if (_shareMode) {
+                          openWhatsAppShare(_ctrl.text);
+                        } else {
+                          openWhatsApp(widget.phone, _ctrl.text);
+                        }
                         Navigator.pop(context);
                       },
                 icon: const Icon(Icons.chat, size: 18),
-                label: Text('Open WhatsApp · +91 $_clean'),
+                label: Text(_shareMode ? 'Open WhatsApp' : 'Open WhatsApp · +91 $_clean'),
               ),
             ),
             const SizedBox(height: 8),

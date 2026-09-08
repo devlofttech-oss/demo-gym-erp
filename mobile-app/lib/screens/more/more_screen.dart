@@ -23,6 +23,7 @@ import '../supplements/supplements_screen.dart';
 import '../workouts/workouts_screen.dart';
 
 const _webAppUrl = 'https://app.kilos.devlofttech.com';
+const _subscriptionUrl = '$_webAppUrl/subscription';
 const _waCreditsUrl = '$_webAppUrl/whatsapp-credits';
 const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym-management/id6739598737';
 const _youtubeUrl = 'https://www.youtube.com/@DevloftTechnologies';
@@ -132,6 +133,8 @@ class _MoreScreenState extends State<MoreScreen> {
               _LinkTile(MSym.language, 'Access Web App', 'Manage your gym on desktop', TW.blue600, () => _launch(_webAppUrl)),
               _divider(c),
               _LinkTile(MSym.upload, 'Bulk Import Members', 'Import members from a spreadsheet', TW.emerald600, _showBulkImport),
+              _divider(c),
+              _LinkTile(MSym.autorenew, 'Buy / Renew Plan', 'Manage your subscription on web', TW.violet600, () => _launch(_subscriptionUrl)),
               _divider(c),
               _LinkTile(MSym.payment, 'Purchase WhatsApp Credits', 'Buy credits via web', TW.emerald600, () => _launch(_waCreditsUrl)),
               _divider(c),

@@ -51,7 +51,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
     _name.text = m['name'] as String? ?? '';
     _phone.text = m['phone'] as String? ?? '';
     _email.text = m['email'] as String? ?? '';
-    _dob.text = m['dateOfBirth'] as String? ?? '';
+    _dob.text = (m['birthday'] ?? m['dateOfBirth']) as String? ?? '';
     _emergency.text = m['emergencyContact'] as String? ?? '';
     _health.text = m['healthNotes'] as String? ?? '';
     _fitnessGoal = m['fitnessGoal'] as String?;
@@ -155,7 +155,7 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
         'email': _email.text.trim(),
         'emergencyContact': _emergency.text.trim(),
         'healthNotes': _health.text.trim(),
-        if (_dob.text.isNotEmpty) 'dateOfBirth': _dob.text,
+        if (_dob.text.isNotEmpty) 'birthday': _dob.text,
         if (_fitnessGoal != null) 'fitnessGoal': _fitnessGoal,
         if (_gender != null) 'gender': _gender,
         if (_batch != null) 'batch': _batch,

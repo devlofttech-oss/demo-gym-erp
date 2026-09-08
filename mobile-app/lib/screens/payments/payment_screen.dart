@@ -81,7 +81,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _planName = (p['name'] as String?) ?? '';
     _durationMonths = months > 0 ? months : 1;
     _totalFees = asNum(p['price']);
-    _expiryDate = addMonthsEnd(_planActiveFrom, _durationMonths);
+    _expiryDate = addMonths(_planActiveFrom, _durationMonths);
     _paidNow.clear();
   }
 
@@ -106,7 +106,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         _planName = (m['planName'] as String?) ?? '';
       }
       _planActiveFrom = todayStr();
-      _expiryDate = addMonthsEnd(todayStr(), _durationMonths);
+      _expiryDate = addMonths(todayStr(), _durationMonths);
     }
     _paidNow.clear();
   }
@@ -117,7 +117,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (picked == null) return;
     final iso = picked.toIso8601String().split('T').first;
     setState(() {
-      if (which == 'active') { _planActiveFrom = iso; _expiryDate = addMonthsEnd(iso, _durationMonths); }
+      if (which == 'active') { _planActiveFrom = iso; _expiryDate = addMonths(iso, _durationMonths); }
       else _expiryDate = iso;
     });
   }

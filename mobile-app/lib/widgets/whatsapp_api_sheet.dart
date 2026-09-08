@@ -5,10 +5,9 @@ import '../theme/app_icons.dart';
 import '../theme/app_theme.dart';
 import 'common.dart';
 
-/// Confirm + send a Utility WhatsApp template via the Cloud API (renewal /
-/// payment). Mirrors the web SendWhatsAppModal: read-only template preview +
-/// a cost estimate + a Send button. For Marketing messages use the free
-/// wa.me sheet (whatsapp_sheet.dart) instead.
+/// Confirm + send a Utility WhatsApp template (renewal / payment). Mirrors the
+/// web SendWhatsAppModal: read-only template preview + a Send button. For free
+/// click-to-chat messages use the wa.me sheet (whatsapp_sheet.dart) instead.
 Future<void> showWhatsAppApiSheet(
   BuildContext context, {
   required String gymId,
@@ -100,7 +99,6 @@ class _WhatsAppApiSheetState extends State<_WhatsAppApiSheet> {
   Widget build(BuildContext context) {
     final c = context.c;
     final valid = _valid;
-    final estCost = (valid.length * 0.14).toStringAsFixed(2);
     final preview = _previewText(
       widget.type,
       widget.recipients.isNotEmpty ? widget.recipients.first : const {},
@@ -157,16 +155,6 @@ class _WhatsAppApiSheetState extends State<_WhatsAppApiSheet> {
           const SizedBox(height: 6),
           Text('Sent as an approved WhatsApp template — filled in per member.',
               style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(12)),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('${valid.length} recipient${valid.length == 1 ? '' : 's'} · Utility', style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
-              Text('≈ ₹$estCost', style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w700)),
-            ]),
-          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -176,7 +164,7 @@ class _WhatsAppApiSheetState extends State<_WhatsAppApiSheet> {
               icon: _sending
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.send, size: 18),
-              label: Text(_sending ? 'Sending…' : 'Send to ${valid.length}'),
+              label: Text(_sending ? 'Sending…' : (valid.length == 1 ? 'Send message' : 'Send to ${valid.length} members')),
             ),
           ),
           const SizedBox(height: 8),

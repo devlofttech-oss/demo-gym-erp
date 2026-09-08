@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../services/actions.dart';
 import '../../services/helpers.dart';
 import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
@@ -118,6 +119,83 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     }
   }
 
+  // ── Freeze / Unfreeze (mirrors web MemberProfile) ────────────────────────
+  Future<void> _toggleFreeze(bool isFrozen) async {
+    final gymId = context.read<AuthProvider>().gymId ?? '';
+    if (gymId.isEmpty) return;
+    if (isFrozen) {
+      await TenantDb.updateDocument(gymId, 'members', _m['id'], {
+        'status': 'Active', 'frozenOn': null, 'resumeDate': null,
+      });
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Membership resumed'), backgroundColor: TW.emerald600));
+      }
+      return;
+    }
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+      helpText: 'Select resume date',
+    );
+    if (picked == null) return;
+    final resume = picked.toIso8601String().split('T').first;
+    await TenantDb.updateDocument(gymId, 'members', _m['id'], {
+      'status': 'Frozen', 'frozenOn': todayStr(), 'resumeDate': resume,
+    });
+    await _load();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Membership frozen'), backgroundColor: TW.sky600));
+    }
+  }
+
+  // ── Delete member + cascade payments/attendance (mirrors web) ────────────
+  Future<void> _deleteMember() async {
+    final gymId = context.read<AuthProvider>().gymId ?? '';
+    if (gymId.isEmpty) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete member?'),
+        content: const Text(
+            'This permanently deletes the member and all their payments and attendance records. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: TW.rose600)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      final id = _m['id'] as String;
+      // Fetch the full sets (the on-screen lists are truncated) so nothing is orphaned.
+      final pays = await TenantDb.getCollection(gymId, 'payments', conditions: [Cond('memberId', '==', id)]);
+      final atts = await TenantDb.getCollection(gymId, 'attendance', conditions: [Cond('memberId', '==', id)]);
+      await TenantDb.deleteDocument(gymId, 'members', id);
+      await Future.wait([
+        ...pays.map((p) => TenantDb.deleteDocument(gymId, 'payments', p['id'] as String)),
+        ...atts.map((a) => TenantDb.deleteDocument(gymId, 'attendance', a['id'] as String)),
+      ]);
+      if (mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Member deleted'), backgroundColor: TW.rose600));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete member')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.c;
@@ -143,6 +221,25 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 MaterialPageRoute(builder: (_) => EditMemberScreen(member: _m)));
               if (updated == true) _load();
             },
+          ),
+          PopupMenuButton<String>(
+            icon: Sym(MSym.moreHoriz, size: 22, color: c.onSurface),
+            onSelected: (v) {
+              if (v == 'freeze') _toggleFreeze(isFrozen);
+              else if (v == 'delete') _deleteMember();
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'freeze', child: Row(children: [
+                Sym(isFrozen ? MSym.playCircle : MSym.acUnit, size: 18, color: c.onSurfaceVariant),
+                const SizedBox(width: 12),
+                Text(isFrozen ? 'Unfreeze membership' : 'Freeze membership'),
+              ])),
+              PopupMenuItem(value: 'delete', child: Row(children: [
+                const Sym(MSym.deleteOutline, size: 18, color: TW.rose600),
+                const SizedBox(width: 12),
+                const Text('Delete member', style: TextStyle(color: TW.rose600)),
+              ])),
+            ],
           ),
         ],
       ),
@@ -269,6 +366,23 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         name: _m['name'] as String?, size: 64, bg: c.primaryContainer, fg: c.primary);
   }
 
+  // Share the member's check-in QR page link over WhatsApp (mirrors web shareQrOnWhatsApp).
+  Future<void> _shareQrWhatsApp() async {
+    final memberId = _m['id'] as String? ?? '';
+    if (memberId.isEmpty) return;
+    final phone = _m['phone'] as String? ?? '';
+    final name = _m['name'] as String? ?? 'there';
+    final gymName = (context.read<AuthProvider>().gymData?['name'] as String?) ?? 'our gym';
+    final link = '$_kReceiptBase/qr/$memberId?name=${Uri.encodeComponent(name)}&gym=${Uri.encodeComponent(gymName)}';
+    final msg = 'Hi $name! 👋\nHere\'s your check-in QR code for *$gymName*.\n\n'
+        'Tap the link to download your QR:\n$link\n\nShow it at the entrance to check in. 💪';
+    if (phone.trim().isEmpty) {
+      await openWhatsAppShare(msg);
+    } else {
+      await openWhatsApp(phone, msg);
+    }
+  }
+
   Widget _qrSection(AppColors c) {
     final memberId = _m['id'] as String? ?? '';
     if (memberId.isEmpty) return const SizedBox.shrink();
@@ -305,6 +419,16 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 const SnackBar(content: Text('Member ID copied')),
               );
             },
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: TW.whatsapp, foregroundColor: Colors.white),
+              icon: const Icon(Icons.share, size: 16),
+              label: const Text('Share QR on WhatsApp'),
+              onPressed: _shareQrWhatsApp,
+            ),
           ),
         ],
       ),

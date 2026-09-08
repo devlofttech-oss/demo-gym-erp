@@ -99,7 +99,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   void _recalcExpiry() {
     setState(() {
-      _expiryDate = _durationMonths > 0 ? addMonthsEnd(_planActiveFrom, _durationMonths) : addDays(_planActiveFrom, 30);
+      _expiryDate = _durationMonths > 0 ? addMonths(_planActiveFrom, _durationMonths) : addDays(_planActiveFrom, 30);
     });
   }
 
@@ -212,9 +212,11 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
       return;
     }
     final gymId = context.read<AuthProvider>().gymId!;
-    final discount = _discountPct;
+    final base = _totalFees;
+    final discountAmt = (num.tryParse(_discountAmt.text) ?? 0).clamp(0, base);
+    final discountPct = base > 0 ? double.parse((discountAmt * 100 / base).toStringAsFixed(1)) : 0;
     final joiningFees = _joiningFeesAmt;
-    final totalFees = (_totalFees * (1 - discount / 100)).round() + joiningFees;
+    final totalFees = (base - discountAmt).clamp(0, double.infinity) + joiningFees;
     final paid = _paidNum;
     final balance = (totalFees - paid).clamp(0, double.infinity);
     final nextPaymentDate = _nextDays.text.isNotEmpty ? addDays(_joinDate, int.tryParse(_nextDays.text) ?? 0) : null;
@@ -247,14 +249,15 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         'paidFees': paid,
         'balanceFees': balance,
         if (joiningFees > 0) 'joiningFees': joiningFees,
-        if (discount > 0) 'discountPercent': discount,
+        if (discountAmt > 0) 'discountAmount': discountAmt,
+        if (discountAmt > 0) 'discountPercent': discountPct,
         if (nextPaymentDate != null) 'nextPaymentDate': nextPaymentDate,
         if (_emergency.text.isNotEmpty) 'emergencyContact': _emergency.text.trim(),
         if (_fitnessGoal != null) 'fitnessGoal': _fitnessGoal,
         if (_gender != null) 'gender': _gender,
         if (_batch != null) 'batch': _batch,
         if (_health.text.isNotEmpty) 'healthNotes': _health.text.trim(),
-        if (_dob.isNotEmpty) 'dateOfBirth': _dob,
+        if (_dob.isNotEmpty) 'birthday': _dob,
       });
       if (_photoFile != null) {
         final memberId = member['id'] as String? ?? '';

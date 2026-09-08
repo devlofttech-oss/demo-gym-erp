@@ -395,12 +395,15 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
   void _whatsAppAll() {
     if (_members.isEmpty) return;
+    // Share-sheet mode (no fixed number) so the user picks recipients in
+    // WhatsApp — a single wa.me link can only open one chat, so messaging
+    // "all enrolled" means letting them choose the group/broadcast.
     showWhatsAppSheet(
       context,
-      phone: _members.first['phone'] ?? '',
+      phone: '',
       defaultMessage:
           'Hi, this is a reminder about your ${_cls['name']} class. Please be on time!',
-      recipientLabel: '${_members.length} enrolled members',
+      recipientLabel: '${_members.length} enrolled — choose recipients in WhatsApp',
     );
   }
 

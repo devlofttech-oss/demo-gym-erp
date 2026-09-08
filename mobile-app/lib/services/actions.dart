@@ -10,6 +10,14 @@ Future<void> openWhatsApp(String phone, String message) async {
   await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
+/// Opens WhatsApp's share sheet with a prefilled message but NO fixed number,
+/// so the user picks the recipient(s) — mirrors utils/whatsapp.js `wa.me/?text=`.
+/// Used for broadcast-style sends (e.g. a class reminder to all enrolled members).
+Future<void> openWhatsAppShare(String message) async {
+  final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
+}
+
 /// Check-in beeps — same four tones as the React app's Web Audio playBeep().
 class Beep {
   Beep._();
