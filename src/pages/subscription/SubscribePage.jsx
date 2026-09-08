@@ -19,6 +19,13 @@ function daysLeft(planEndDate) {
   return Math.ceil((end - new Date()) / 86_400_000);
 }
 
+function fmtDate(d) {
+  if (!d) return '';
+  try {
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return String(d); }
+}
+
 export default function SubscribePage() {
   const { gymId, gymData, role } = useAuth();
   const [plans, setPlans] = useState([]);
@@ -98,6 +105,41 @@ export default function SubscribePage() {
               : 'Your subscription has expired.'}
         </p>
       </header>
+
+      {gymData?.planName && (gymData?.planEndDate || gymData?.planStartDate) && (
+        <div className="rounded-xl border border-outline-variant/40 bg-surface-container-lowest p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-container/30 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-primary text-[22px]">workspace_premium</span>
+            </div>
+            <div>
+              <p className="text-xs text-on-surface-variant uppercase tracking-wide font-semibold">Current plan</p>
+              <p className="text-lg font-semibold text-on-surface">{gymData.planName}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 text-sm">
+            {gymData.planStartDate && (
+              <div>
+                <p className="text-xs text-on-surface-variant">Started</p>
+                <p className="text-on-surface font-medium">{fmtDate(gymData.planStartDate)}</p>
+              </div>
+            )}
+            {gymData.planEndDate && (
+              <div>
+                <p className="text-xs text-on-surface-variant">{remaining != null && remaining < 0 ? 'Expired on' : 'Ends on'}</p>
+                <p className="text-on-surface font-medium">{fmtDate(gymData.planEndDate)}</p>
+              </div>
+            )}
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+              remaining == null ? 'bg-surface-container text-on-surface-variant'
+                : remaining < 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+            }`}>
+              {remaining == null ? '—' : remaining < 0 ? 'Expired' : `${remaining} day${remaining === 1 ? '' : 's'} left`}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {plans.map(plan => {

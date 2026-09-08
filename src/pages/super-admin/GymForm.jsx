@@ -4,6 +4,7 @@ import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseConfig } from '../../firebase/config';
 import { getDocument, getCollection, createDocument, updateDocument, setDocument } from '../../firebase/db';
+import { increment } from 'firebase/firestore';
 import { setTenantDocument } from '../../firebase/tenantDb';
 import { uploadGymLogo } from '../../utils/imagekit';
 import toast from 'react-hot-toast';
@@ -54,6 +55,7 @@ export default function GymForm() {
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
   const [showOwnerPassword, setShowOwnerPassword] = useState(false);
   const [availablePlans, setAvailablePlans] = useState([]);
+  const [originalPlanId, setOriginalPlanId] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -84,6 +86,7 @@ export default function GymForm() {
           planEndDate: gym.planEndDate || '',
         });
         setExistingLogoUrl(gym.logoUrl || '');
+        setOriginalPlanId(gym.planId || '');
       })
       .catch(() => toast.error('Failed to load gym'))
       .finally(() => setLoadingEdit(false));
@@ -113,20 +116,29 @@ export default function GymForm() {
       }
 
       if (isEdit) {
-        // Update existing gym
+        // Update existing gym. When the assigned plan CHANGES, grant that plan's
+        // free WhatsApp credits — a manual assignment doesn't go through the paid
+        // grantPaidOrder() path, so we top up the balance here.
+        const selectedPlan = availablePlans.find(p => p.id === form.planId);
+        const planChanged = form.planId && form.planId !== originalPlanId;
+        const grantCredits = planChanged ? Number(selectedPlan?.waCredits) || 0 : 0;
         await updateDocument('gyms', id, {
           name: form.name,
           address: form.address,
           phone: form.phone,
           email: form.email,
-          subscriptionPlan: availablePlans.find(p => p.id === form.planId)?.name || '',
+          subscriptionPlan: selectedPlan?.name || '',
           planId: form.planId,
-          planName: availablePlans.find(p => p.id === form.planId)?.name || '',
+          planName: selectedPlan?.name || '',
           planStartDate: form.planStartDate,
           planEndDate: form.planEndDate,
+          ...(grantCredits > 0 && { waCredits: increment(grantCredits) }),
           ...(logoUrl && { logoUrl }),
         });
-        toast.success('Gym updated!');
+        setOriginalPlanId(form.planId);
+        toast.success(grantCredits > 0
+          ? `Gym updated! ${grantCredits.toLocaleString('en-IN')} WhatsApp credits granted.`
+          : 'Gym updated!');
         navigate('/super-admin/gyms');
         return;
       }
@@ -158,6 +170,7 @@ export default function GymForm() {
         planName: availablePlans.find(p => p.id === form.planId)?.name || '',
         planStartDate: form.planStartDate,
         planEndDate: form.planEndDate,
+        waCredits: Number(availablePlans.find(p => p.id === form.planId)?.waCredits) || 0,
       };
       const gymDoc = await createDocument('gyms', gymData);
       const newGymId = gymDoc.id;
