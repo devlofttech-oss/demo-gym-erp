@@ -83,7 +83,11 @@ export async function grantPaidOrder({ gymId, merchantOrderId, paidAmountPaise, 
     // planStartDate only moves when the gym was lapsed — for a renewal it still
     // marks when the current continuous run of service began.
     const wasActive = current && current > today;
-    const freeCredits = freeWaCreditsForDuration(order.durationDays);
+    // Prefer the plan's configured credits (captured on the order at checkout);
+    // fall back to the legacy duration table for older orders without the field.
+    const freeCredits = order.waCredits != null
+      ? Number(order.waCredits) || 0
+      : freeWaCreditsForDuration(order.durationDays);
     const gymUpdate = {
       planId: order.planId,
       planName: order.planName,

@@ -74,6 +74,9 @@ export default async function handler(req, res) {
     planId,
     planName: plan.name || planId,
     durationDays,
+    // Free WhatsApp automation credits this plan grants — captured server-side at
+    // checkout so grantPaidOrder() credits the exact amount the superadmin set.
+    waCredits: Number(plan.waCredits) || 0,
     amountPaise: Math.round(amountInr * 100),
     amountInr,
     status: 'CREATED',

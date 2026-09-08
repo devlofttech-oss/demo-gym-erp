@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { getCollection, createDocument, updateDocument, deleteDocument } from '../../firebase/db';
 
-const EMPTY_FORM = { name: '', durationDays: '', priceInr: '', description: '' };
+const EMPTY_FORM = { name: '', durationDays: '', priceInr: '', waCredits: '', description: '', sortOrder: '', badge: '' };
 
 export default function SubscriptionPlans() {
   const [plans, setPlans] = useState([]);
@@ -16,7 +16,13 @@ export default function SubscriptionPlans() {
   const fetchPlans = async () => {
     setLoading(true);
     try {
-      const data = await getCollection('subscriptionPlans', [], { field: 'createdAt', direction: 'asc' });
+      // NOTE: do NOT use a Firestore orderBy here — orderBy('createdAt') silently
+      // drops any plan doc that lacks the field (e.g. seeded plans), which desynced
+      // this page from the client subscribe page. Fetch all, sort client-side.
+      const data = await getCollection('subscriptionPlans');
+      data.sort((a, b) =>
+        (a.sortOrder ?? 99) - (b.sortOrder ?? 99) ||
+        String(a.name || '').localeCompare(String(b.name || '')));
       setPlans(data);
     } catch {
       toast.error('Failed to load plans');
@@ -41,7 +47,10 @@ export default function SubscriptionPlans() {
       name: plan.name || '',
       durationDays: plan.durationDays != null ? String(plan.durationDays) : '',
       priceInr: plan.priceInr != null ? String(plan.priceInr) : '',
+      waCredits: plan.waCredits != null ? String(plan.waCredits) : '',
       description: plan.description || '',
+      sortOrder: plan.sortOrder != null ? String(plan.sortOrder) : '',
+      badge: plan.badge || '',
     });
     setShowForm(true);
   };
@@ -63,7 +72,11 @@ export default function SubscriptionPlans() {
         // Rupees, not paise. The checkout endpoint reads this from Firestore and
         // converts — the client never gets to name its own price.
         priceInr: form.priceInr ? Number(form.priceInr) : null,
+        // Free WhatsApp automation credits granted to the gym on purchase/renewal.
+        waCredits: form.waCredits ? Number(form.waCredits) : 0,
         description: form.description.trim(),
+        sortOrder: form.sortOrder ? Number(form.sortOrder) : null,
+        badge: form.badge.trim() || null,
       };
       if (editingId) {
         await updateDocument('subscriptionPlans', editingId, payload);
@@ -156,12 +169,45 @@ export default function SubscriptionPlans() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
+                <label className={labelCls}>WhatsApp Automation Credits</label>
+                <input
+                  type="number"
+                  name="waCredits"
+                  value={form.waCredits}
+                  onChange={handle}
+                  placeholder="e.g. 1000"
+                  min="0"
+                  className={inputCls}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <label className={labelCls}>Description</label>
                 <input
                   name="description"
                   value={form.description}
                   onChange={handle}
                   placeholder="Optional description"
+                  className={inputCls}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className={labelCls}>Sort Order</label>
+                <input
+                  type="number"
+                  name="sortOrder"
+                  value={form.sortOrder}
+                  onChange={handle}
+                  placeholder="e.g. 1 (lower = first)"
+                  className={inputCls}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className={labelCls}>Badge</label>
+                <input
+                  name="badge"
+                  value={form.badge}
+                  onChange={handle}
+                  placeholder="e.g. Most Popular"
                   className={inputCls}
                 />
               </div>
@@ -190,18 +236,18 @@ export default function SubscriptionPlans() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-outline-variant/20 bg-surface-container-low/50">
-                {['Plan Name', 'Duration', 'Price', 'Description', 'Actions'].map(h => (
+                {['Plan Name', 'Duration', 'Price', 'WA Credits', 'Description', 'Actions'].map(h => (
                   <th key={h} className="p-4 font-label-caps text-label-caps text-on-surface-variant uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="p-10 text-center text-on-surface-variant">
+                <tr><td colSpan={6} className="p-10 text-center text-on-surface-variant">
                   <span className="material-symbols-outlined animate-spin text-2xl mr-2">progress_activity</span> Loading…
                 </td></tr>
               ) : plans.length === 0 ? (
-                <tr><td colSpan={5} className="p-12 text-center">
+                <tr><td colSpan={6} className="p-12 text-center">
                   <div className="flex flex-col items-center gap-3 text-on-surface-variant">
                     <span className="material-symbols-outlined text-5xl opacity-30">loyalty</span>
                     <p className="font-medium">No plans yet</p>
@@ -219,6 +265,9 @@ export default function SubscriptionPlans() {
                   </td>
                   <td className="p-4 text-on-surface-variant">
                     {plan.priceInr != null ? `₹${Number(plan.priceInr).toLocaleString('en-IN')}` : '—'}
+                  </td>
+                  <td className="p-4 text-on-surface-variant">
+                    {plan.waCredits ? Number(plan.waCredits).toLocaleString('en-IN') : '—'}
                   </td>
                   <td className="p-4 text-on-surface-variant">{plan.description || '—'}</td>
                   <td className="p-4">
