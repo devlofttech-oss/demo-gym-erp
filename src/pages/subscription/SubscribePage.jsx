@@ -124,6 +124,12 @@ export default function SubscribePage() {
                 ₹{Number(plan.priceInr).toLocaleString('en-IN')}
               </p>
               <p className="text-xs text-on-surface-variant mt-1">{plan.durationDays} days</p>
+              {Number(plan.waCredits) > 0 && (
+                <p className="text-xs text-primary font-medium mt-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">chat</span>
+                  {Number(plan.waCredits).toLocaleString('en-IN')} free WhatsApp credits
+                </p>
+              )}
             </button>
           );
         })}
