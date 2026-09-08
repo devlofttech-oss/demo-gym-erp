@@ -4,6 +4,8 @@
 //   WHATSAPP_PHONE_NUMBER_ID  - the "From" phone number id shown in Meta API Setup
 //   WHATSAPP_API_VERSION      - optional, defaults to v21.0
 
+import { sendViaLeminai } from './providers/leminai.js';
+
 const GRAPH = 'https://graph.facebook.com';
 
 // Normalise an Indian phone number for the API: digits only, prepend 91 to a
@@ -15,9 +17,9 @@ export function normalizePhone(phone) {
   return '';
 }
 
-// Send a pre-approved template message. `components` is the Meta components array
-// (e.g. [{ type: 'body', parameters: [{ type: 'text', text: 'Ravi' }] }]).
-export async function sendTemplateMessage({ to, template, language, components }) {
+// Send a pre-approved template message via the Meta Cloud API. `components` is the
+// Meta components array (e.g. [{ type: 'body', parameters: [{ type: 'text', text: 'Ravi' }] }]).
+async function sendViaMeta({ to, template, language, components }) {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const version = process.env.WHATSAPP_API_VERSION || 'v21.0';
@@ -57,4 +59,18 @@ export async function sendTemplateMessage({ to, template, language, components }
     return { ok: false, error: data?.error?.message || `HTTP ${res.status}`, raw: data };
   }
   return { ok: true, wamid: data?.messages?.[0]?.id || null, raw: data };
+}
+
+// Provider dispatcher. `WA_PROVIDER` selects the transport; everything above the
+// transport (templates, credits, logging in send.js) is provider-agnostic.
+// Defaults to Meta, so nothing changes until WA_PROVIDER=leminai is set.
+export async function sendTemplateMessage(args) {
+  const provider = (process.env.WA_PROVIDER || 'meta').toLowerCase();
+  switch (provider) {
+    case 'leminai':
+      return sendViaLeminai(args);
+    case 'meta':
+    default:
+      return sendViaMeta(args);
+  }
 }
