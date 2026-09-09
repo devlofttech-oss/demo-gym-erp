@@ -45,10 +45,19 @@ class _PlansScreenState extends State<PlansScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
+  String _normalizeType(String? t) =>
+      (t ?? '').toLowerCase().replaceAll('-', ' ').replaceAll('_', ' ').trim();
+
   List<Map<String, dynamic>> get _filtered {
-    if (_tab == 0) return _plans;
-    final t = _planTypes[_tab];
-    return _plans.where((p) => (p['type'] ?? '') == t).toList();
+    final sorted = [..._plans]..sort((a, b) {
+        final aActive = (a['isActive'] != false) ? 0 : 1;
+        final bActive = (b['isActive'] != false) ? 0 : 1;
+        if (aActive != bActive) return aActive.compareTo(bActive);
+        return (a['name'] as String? ?? '').compareTo(b['name'] as String? ?? '');
+      });
+    if (_tab == 0) return sorted;
+    final t = _normalizeType(_planTypes[_tab]);
+    return sorted.where((p) => _normalizeType(p['type'] as String?) == t).toList();
   }
 
   void _showForm([Map<String, dynamic>? plan]) {
@@ -96,10 +105,19 @@ class _PlansScreenState extends State<PlansScreen> {
     }
   }
 
+  Future<void> _toggleActive(Map<String, dynamic> plan) async {
+    final gymId = context.read<AuthProvider>().gymId ?? '';
+    final current = plan['isActive'] != false;
+    await TenantDb.updateDocument(gymId, 'plans', plan['id'] as String, {'isActive': !current});
+    _fetch();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final filtered = _filtered;
+    final totalActive = _plans.where((p) => p['isActive'] != false).length;
+    final totalInactive = _plans.length - totalActive;
 
     return Scaffold(
       backgroundColor: c.background,
@@ -123,6 +141,19 @@ class _PlansScreenState extends State<PlansScreen> {
         onRefresh: _fetch,
         child: CustomScrollView(
           slivers: [
+            // Summary stats
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Row(children: [
+                  _StatChip(label: 'Total', count: _plans.length, color: c.primary),
+                  const SizedBox(width: 8),
+                  _StatChip(label: 'Active', count: totalActive, color: TW.emerald600),
+                  const SizedBox(width: 8),
+                  _StatChip(label: 'Inactive', count: totalInactive, color: TW.slate400),
+                ]),
+              ),
+            ),
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 44,
@@ -130,7 +161,7 @@ class _PlansScreenState extends State<PlansScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _planTypes.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) => FilterChip(
                     label: Text(_planTypes[i]),
                     selected: _tab == i,
@@ -167,6 +198,7 @@ class _PlansScreenState extends State<PlansScreen> {
                       onEdit: () => _showForm(filtered[i]),
                       onDelete: () => _delete(filtered[i]),
                       onDuplicate: () => _duplicate(filtered[i]),
+                      onToggleActive: () => _toggleActive(filtered[i]),
                     ),
                     childCount: filtered.length,
                   ),
@@ -184,7 +216,8 @@ class _PlanCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onDuplicate;
-  const _PlanCard({required this.plan, required this.onEdit, required this.onDelete, required this.onDuplicate});
+  final VoidCallback onToggleActive;
+  const _PlanCard({required this.plan, required this.onEdit, required this.onDelete, required this.onDuplicate, required this.onToggleActive});
 
   @override
   Widget build(BuildContext context) {
@@ -276,11 +309,16 @@ class _PlanCard extends StatelessWidget {
               onSelected: (v) {
                 if (v == 'edit') onEdit();
                 if (v == 'duplicate') onDuplicate();
+                if (v == 'toggle') onToggleActive();
                 if (v == 'delete') onDelete();
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                 const PopupMenuItem(value: 'duplicate', child: Text('Duplicate')),
+                PopupMenuItem(
+                    value: 'toggle',
+                    child: Text(isActive ? 'Deactivate' : 'Activate',
+                        style: TextStyle(color: isActive ? TW.amber600 : TW.emerald600))),
                 const PopupMenuItem(
                     value: 'delete',
                     child: Text('Delete', style: TextStyle(color: TW.rose600))),
@@ -289,6 +327,29 @@ class _PlanCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  const _StatChip({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(children: [
+        Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'PlusJakartaSans')),
+        Text(label, style: const TextStyle(color: TW.slate500, fontSize: 11, fontFamily: 'PlusJakartaSans')),
+      ]),
     );
   }
 }
@@ -423,7 +484,7 @@ class _PlanFormState extends State<_PlanForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _type,
+              initialValue: _type,
               decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
               items: _planTypes
                   .skip(1)

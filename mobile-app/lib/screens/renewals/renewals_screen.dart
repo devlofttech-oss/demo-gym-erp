@@ -8,6 +8,7 @@ import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/whatsapp_api_sheet.dart';
+import '../members/member_detail_screen.dart';
 import '../payments/payment_screen.dart';
 
 class RenewalsScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class RenewalsScreen extends StatefulWidget {
 class _RenewalsScreenState extends State<RenewalsScreen> {
   List<Map<String, dynamic>> _members = [];
   bool _loading = true;
-  int _range = 7; // days ahead
+  int _range = 30; // days ahead
 
   @override
   void initState() {
@@ -220,6 +221,8 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                         (_, i) => _FrozenCard(
                           member: frozen[i],
                           onUnfreeze: () => _unfreeze(frozen[i]),
+                          onView: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => MemberDetailScreen(member: frozen[i]))),
                         ),
                         childCount: frozen.length,
                       ),
@@ -322,11 +325,22 @@ class _RenewalCard extends StatelessWidget {
                     bg: chipColor.withValues(alpha: 0.1), fg: chipColor, dot: true),
               ],
             ),
-            if (member['plan']?.isNotEmpty == true) ...[
-              const SizedBox(height: 4),
-              Text('Plan: ${member['plan']}',
-                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-            ],
+            const SizedBox(height: 6),
+            Row(children: [
+              if ((member['planName'] ?? member['plan'] ?? '').isNotEmpty) ...[
+                Sym(MSym.loyalty, size: 12, color: c.onSurfaceVariant),
+                const SizedBox(width: 4),
+                Text(member['planName'] ?? member['plan'] ?? '',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                const SizedBox(width: 12),
+              ],
+              if ((member['expiryDate'] as String?)?.isNotEmpty == true) ...[
+                Sym(MSym.calendarToday, size: 12, color: c.onSurfaceVariant),
+                const SizedBox(width: 4),
+                Text(fmtDate(member['expiryDate']),
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+              ],
+            ]),
             const SizedBox(height: 10),
             Row(children: [
               if (onWhatsApp != null)
@@ -371,7 +385,8 @@ class _RenewalCard extends StatelessWidget {
 class _FrozenCard extends StatelessWidget {
   final Map<String, dynamic> member;
   final VoidCallback onUnfreeze;
-  const _FrozenCard({required this.member, required this.onUnfreeze});
+  final VoidCallback onView;
+  const _FrozenCard({required this.member, required this.onUnfreeze, required this.onView});
 
   @override
   Widget build(BuildContext context) {
@@ -410,6 +425,15 @@ class _FrozenCard extends StatelessWidget {
                 ],
               ),
             ),
+            OutlinedButton(
+              onPressed: onView,
+              style: OutlinedButton.styleFrom(
+                  foregroundColor: TW.blue600,
+                  side: const BorderSide(color: TW.blue600),
+                  visualDensity: VisualDensity.compact),
+              child: const Text('View'),
+            ),
+            const SizedBox(width: 8),
             FilledButton(
               onPressed: onUnfreeze,
               style: FilledButton.styleFrom(
