@@ -10,7 +10,7 @@ import '../../widgets/common.dart';
 
 const _workoutLevels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 const _workoutGoals = [
-  'Weight Loss',
+  'Fat Loss',
   'Muscle Gain',
   'Endurance',
   'Flexibility',
@@ -173,13 +173,19 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _workoutLevels.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => FilterChip(
-                    label: Text(_workoutLevels[i]),
-                    selected: _levelFilter == i,
-                    onSelected: (_) => setState(() => _levelFilter = i),
-                    showCheckmark: false,
-                  ),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final label = _workoutLevels[i];
+                    final cnt = i == 0
+                        ? _workouts.length
+                        : _workouts.where((w) => (w['level'] ?? '') == label).length;
+                    return FilterChip(
+                      label: Text(i == 0 ? label : '$label ($cnt)'),
+                      selected: _levelFilter == i,
+                      onSelected: (_) => setState(() => _levelFilter = i),
+                      showCheckmark: false,
+                    );
+                  },
                 ),
               ),
             ),
@@ -295,6 +301,13 @@ class _WorkoutCard extends StatelessWidget {
                       bg: TW.violet600.withValues(alpha: 0.08), fg: TW.violet600),
               ],
             ),
+            if ((workout['description'] ?? '').isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(workout['description'],
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+            ],
             const SizedBox(height: 6),
             Row(
               children: [
@@ -476,7 +489,7 @@ class _WorkoutFormState extends State<_WorkoutForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _level,
+              initialValue: _level,
               decoration:
                   const InputDecoration(labelText: 'Level', border: OutlineInputBorder()),
               items: _workoutLevels.skip(1).map((l) =>
@@ -485,7 +498,7 @@ class _WorkoutFormState extends State<_WorkoutForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _goal,
+              initialValue: _goal,
               decoration:
                   const InputDecoration(labelText: 'Goal', border: OutlineInputBorder()),
               items: _workoutGoals.map((g) =>
@@ -495,7 +508,7 @@ class _WorkoutFormState extends State<_WorkoutForm> {
             const SizedBox(height: 12),
             if (widget.members.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _memberId,
+                initialValue: _memberId,
                 decoration: const InputDecoration(
                     labelText: 'Assign to Member', border: OutlineInputBorder()),
                 items: [

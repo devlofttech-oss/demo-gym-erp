@@ -461,6 +461,21 @@ class _MeasurementCard extends StatelessWidget {
                     if (asNum(m['bodyFat']) > 0)
                       Text('BF: ${asNum(m['bodyFat'])}%',
                           style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    if (asNum(m['chest']) > 0)
+                      Text('Chest: ${asNum(m['chest'])} cm',
+                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    if (asNum(m['waist']) > 0)
+                      Text('Waist: ${asNum(m['waist'])} cm',
+                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    if (asNum(m['hips']) > 0)
+                      Text('Hips: ${asNum(m['hips'])} cm',
+                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    if (asNum(m['arms']) > 0)
+                      Text('Arms: ${asNum(m['arms'])} cm',
+                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    if (asNum(m['thighs']) > 0)
+                      Text('Thighs: ${asNum(m['thighs'])} cm',
+                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
                   ],
                 ),
               ],
