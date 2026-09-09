@@ -25,13 +25,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _website = TextEditingController();
   final _instagram = TextEditingController();
 
-  // ImageKit
-  final _ikPublicKey = TextEditingController();
-  final _ikUrlEndpoint = TextEditingController();
-
   bool _loading = true;
   bool _saving = false;
-  bool _showIkKey = false;
 
   @override
   void initState() {
@@ -44,7 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     for (final c in [
       _gymName, _address, _phone, _email, _workingHours, _gracePeriod,
       _gstNumber, _website, _instagram,
-      _ikPublicKey, _ikUrlEndpoint,
     ]) {
       c.dispose();
     }
@@ -71,8 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _gstNumber.text = doc['gstNumber'] ?? '';
           _website.text = doc['website'] ?? '';
           _instagram.text = doc['instagram'] ?? '';
-          _ikPublicKey.text = doc['imagekitPublicKey'] ?? '';
-          _ikUrlEndpoint.text = doc['imagekitUrlEndpoint'] ?? '';
+
         });
       }
     } catch (_) {}
@@ -93,8 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'gstNumber': _gstNumber.text.trim(),
       'website': _website.text.trim(),
       'instagram': _instagram.text.trim(),
-      'imagekitPublicKey': _ikPublicKey.text.trim(),
-      'imagekitUrlEndpoint': _ikUrlEndpoint.text.trim(),
     };
     try {
       await TenantDb.updateDocument('', 'gyms', gymId, data);
@@ -203,29 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-                _section('ImageKit (Photo Upload)'),
-                KCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          'Used for member profile photos. Get your keys from imagekit.io.',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
-                        ),
-                      ),
-                      _field(
-                        'Public Key',
-                        _ikPublicKey,
-                        obscure: !_showIkKey,
-                        isObscured: !_showIkKey,
-                        toggleObscure: () => setState(() => _showIkKey = !_showIkKey),
-                      ),
-                      _field('URL Endpoint', _ikUrlEndpoint),
-                    ],
-                  ),
-                ),
+
               ],
             ),
     );

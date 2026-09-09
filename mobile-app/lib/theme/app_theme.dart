@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// MD3 semantic color tokens, ported 1:1 from the React app's `index.css`
 /// `@theme` block (light) and its `.dark` override block (dark).
@@ -52,23 +53,23 @@ class AppColors extends ThemeExtension<AppColors> {
   });
 
   static const light = AppColors(
-    primary: Color(0xFF3B0764),
+    primary: Color(0xFF5B4FE8),
     onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFFF3E8FF),
-    onPrimaryContainer: Color(0xFF2E1065),
-    secondary: Color(0xFF725C00),
-    secondaryContainer: Color(0xFFFEDD74),
-    onSecondaryContainer: Color(0xFF776000),
-    background: Color(0xFFF9F9FB),
-    surface: Color(0xFFF9F9FB),
-    onSurface: Color(0xFF1A1C1D),
-    onSurfaceVariant: Color(0xFF48454F),
+    primaryContainer: Color(0xFFEAE7FF),
+    onPrimaryContainer: Color(0xFF2C1F8C),
+    secondary: Color(0xFF0E9C8C),
+    secondaryContainer: Color(0xFFCCF5F1),
+    onSecondaryContainer: Color(0xFF065E56),
+    background: Color(0xFFF5F4F0),
+    surface: Color(0xFFF5F4F0),
+    onSurface: Color(0xFF1A1B1E),
+    onSurfaceVariant: Color(0xFF5C5D6E),
     surfaceContainerLowest: Color(0xFFFFFFFF),
-    surfaceContainerLow: Color(0xFFF3F3F5),
-    surfaceContainer: Color(0xFFEEEEF0),
-    surfaceContainerHigh: Color(0xFFE8E8EA),
-    outline: Color(0xFF797580),
-    outlineVariant: Color(0xFFC9C4D0),
+    surfaceContainerLow: Color(0xFFF0EFF9),
+    surfaceContainer: Color(0xFFEAE9F2),
+    surfaceContainerHigh: Color(0xFFE2E1EC),
+    outline: Color(0xFF7B7C8E),
+    outlineVariant: Color(0xFFCBCBD8),
     error: Color(0xFFBA1A1A),
     onError: Color(0xFFFFFFFF),
     errorContainer: Color(0xFFFFDAD6),
@@ -169,17 +170,35 @@ class TW {
   static const whatsapp = Color(0xFF25D366);
 }
 
-/// Type scale ported from `@theme` (all Plus Jakarta Sans).
+/// Brand-specific accent colors from the Modern UI design system.
+class KD {
+  KD._();
+  static const primary = Color(0xFF5B4FE8);
+  static const primaryDeep = Color(0xFF2C1F8C);
+  static const teal = Color(0xFF0E9C8C);
+  static const coral = Color(0xFFFF6A57);
+  static const coralTint = Color(0xFFFFEDE9);
+  static const primaryTint = Color(0xFFEAE7FF);
+  static const ink = Color(0xFF1A1B1E);
+  static const inkSoft = Color(0xFF5C5D6E);
+  /// Dark dock / FAB background gradient start.
+  static const dockStart = Color(0xFF1E1B2E);
+  /// Dark dock / FAB background gradient end.
+  static const dockEnd = Color(0xFF0B0C10);
+}
+
+/// Type scale — Space Grotesk for headers, PlusJakartaSans (≈ Inter) for body.
 class KText {
   KText._();
-  static const _f = 'PlusJakartaSans';
-  static const h1 = TextStyle(fontFamily: _f, fontSize: 32, height: 1.2, fontWeight: FontWeight.w700);
-  static const h2 = TextStyle(fontFamily: _f, fontSize: 24, height: 1.3, fontWeight: FontWeight.w700);
-  static const h3 = TextStyle(fontFamily: _f, fontSize: 20, height: 1.4, fontWeight: FontWeight.w600);
-  static const statValue = TextStyle(fontFamily: _f, fontSize: 28, height: 1.0, fontWeight: FontWeight.w700);
-  static const bodyLg = TextStyle(fontFamily: _f, fontSize: 16, height: 1.6, fontWeight: FontWeight.w400);
-  static const bodyMd = TextStyle(fontFamily: _f, fontSize: 14, height: 1.5, fontWeight: FontWeight.w400);
-  static const labelCaps = TextStyle(fontFamily: _f, fontSize: 12, height: 1.0, fontWeight: FontWeight.w600);
+  static const _body = 'PlusJakartaSans';
+
+  static TextStyle get h1 => GoogleFonts.spaceGrotesk(fontSize: 32, height: 1.2, fontWeight: FontWeight.w700);
+  static TextStyle get h2 => GoogleFonts.spaceGrotesk(fontSize: 24, height: 1.3, fontWeight: FontWeight.w700);
+  static TextStyle get h3 => GoogleFonts.spaceGrotesk(fontSize: 20, height: 1.4, fontWeight: FontWeight.w600);
+  static TextStyle get statValue => GoogleFonts.spaceGrotesk(fontSize: 28, height: 1.0, fontWeight: FontWeight.w700);
+  static const bodyLg = TextStyle(fontFamily: _body, fontSize: 16, height: 1.6, fontWeight: FontWeight.w400);
+  static const bodyMd = TextStyle(fontFamily: _body, fontSize: 14, height: 1.5, fontWeight: FontWeight.w400);
+  static const labelCaps = TextStyle(fontFamily: _body, fontSize: 12, height: 1.0, fontWeight: FontWeight.w600);
 }
 
 /// Spacing constants from `@theme` (--spacing-*).

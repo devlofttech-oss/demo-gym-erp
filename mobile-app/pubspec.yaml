@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+7
+version: 1.0.5+8
 
 environment:
   sdk: ^3.12.2
@@ -60,6 +60,7 @@ dependencies:
   # broad READ_MEDIA_IMAGES/READ_MEDIA_VIDEO permissions its manifest declares
   # are stripped via tools:node="remove" in AndroidManifest.xml (Play policy).
   image_picker: ^1.1.2
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -82,9 +83,9 @@ flutter_launcher_icons:
     generate: true
   image_path: "assets/images/kilos_logo.png"
   # Purple brand background behind the logo on adaptive/rounded icons.
-  adaptive_icon_background: "#3B0764"
+  adaptive_icon_background: "#5B4FE8"
   adaptive_icon_foreground: "assets/images/kilos_logo.png"
-  background_color_ios: "#3B0764"
+  background_color_ios: "#5B4FE8"
   remove_alpha_ios: true
 
 # Launch/splash screen — Kilos logo on the app background (light + dark).

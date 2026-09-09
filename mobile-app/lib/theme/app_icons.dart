@@ -97,6 +97,7 @@ class MSym {
   static const IconData alarm = IconData(0xe855, fontFamily: _f);
   static const IconData build = IconData(0xe869, fontFamily: _f);
   static const IconData restaurant = IconData(0xe56c, fontFamily: _f);
+  static const IconData menu = IconData(0xe8ee, fontFamily: _f);
   static const IconData moreHoriz = IconData(0xe5d3, fontFamily: _f);
   static const IconData pauseCircle = IconData(0xe030, fontFamily: _f);
   static const IconData playCircle = IconData(0xe1c4, fontFamily: _f);

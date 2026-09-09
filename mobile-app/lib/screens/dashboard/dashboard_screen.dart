@@ -9,10 +9,6 @@ import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
-import '../checkin/checkin_screen.dart';
-import '../members/add_member_screen.dart';
-import '../payments/payment_screen.dart';
-import '../renewals/renewals_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -142,13 +138,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         await _load();
       },
       child: ListView(
-        padding: const EdgeInsets.all(KSpace.gutter),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
-          Text('Dashboard Overview', style: KText.h1.copyWith(color: c.onSurface)),
-          const SizedBox(height: 6),
-          Text("Here's what's happening today.", style: KText.bodyLg.copyWith(color: c.onSurfaceVariant)),
-          const SizedBox(height: 16),
-          _quickActions(),
+          Text('Dashboard', style: KText.h2.copyWith(color: c.onSurface)),
+          const SizedBox(height: 2),
+          Text("Here's what's happening today.", style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
           const SizedBox(height: 20),
           _kpiGrid(),
           const SizedBox(height: 16),
@@ -174,94 +168,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _quickActions() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _qa(MSym.personAdd, 'New Member', primary: true, onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const AddMemberScreen()));
-        }),
-        _qa(MSym.payments, 'Record Payment', onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentScreen()));
-        }),
-        _qa(MSym.qrCodeScanner, 'Check-in', onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckinScreen()));
-        }),
-        _qa(MSym.autorenew, 'Renewals', onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const RenewalsScreen()));
-        }),
-      ],
-    );
-  }
-
-  Widget _qa(IconData icon, String label, {bool primary = false, VoidCallback? onTap}) {
-    final c = context.c;
-    return Material(
-      color: primary ? c.primary : c.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: primary ? null : Border.all(color: c.outlineVariant.withValues(alpha: 0.3)),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Sym(icon, size: 16, color: primary ? c.onPrimary : c.onSurface),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: primary ? c.onPrimary : c.onSurface, fontWeight: FontWeight.w500, fontSize: 14)),
-          ]),
-        ),
-      ),
-    );
-  }
-
   Widget _kpiGrid() {
-    final c = context.c;
-    final cards = [
-      _kpi(MSym.accountBalanceWallet, c.primary, c.primaryContainer.withValues(alpha: 0.3), 'Total Revenue', _loading ? '...' : rupees(_revenue), 'All Time', TW.emerald600, TW.emerald50),
-      _kpi(MSym.showChart, c.secondary, c.secondaryContainer.withValues(alpha: 0.3), 'Monthly Revenue', _loading ? '...' : rupees(_monthlyRevenue), 'This Month', TW.sky600, TW.sky50),
-      _kpi(MSym.group, c.primary, c.primaryContainer.withValues(alpha: 0.3), 'Active Members', _loading ? '...' : '$_activeMembers', _loading ? '—' : '$_activeMembers/$_totalMembers', TW.violet600, TW.violet50),
-      _kpi(MSym.howToReg, c.secondary, c.secondaryContainer.withValues(alpha: 0.3), 'Daily Attendance', _loading ? '...' : '$_dailyAttendance', 'Today', TW.amber600, TW.amber50, filled: true),
-    ];
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: KSpace.stackGap,
-      crossAxisSpacing: KSpace.stackGap,
-      childAspectRatio: 1.35,
-      children: cards,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.3,
+      children: [
+        _bentoCard(
+          icon: MSym.accountBalanceWallet,
+          iconBg: KD.primaryTint,
+          iconColor: KD.primary,
+          label: 'Total Revenue',
+          value: _loading ? '...' : rupees(_revenue),
+          sub: 'All time',
+          subColor: KD.teal,
+        ),
+        _bentoCard(
+          icon: MSym.showChart,
+          iconBg: const Color(0xFFCCF5F1),
+          iconColor: KD.teal,
+          label: 'Monthly Revenue',
+          value: _loading ? '...' : rupees(_monthlyRevenue),
+          sub: 'This month',
+          subColor: KD.teal,
+        ),
+        _bentoCard(
+          icon: MSym.group,
+          iconBg: KD.primaryTint,
+          iconColor: KD.primary,
+          label: 'Active Members',
+          value: _loading ? '...' : '$_activeMembers',
+          sub: _loading ? '—' : 'of $_totalMembers total',
+          subColor: KD.inkSoft,
+        ),
+        _bentoCard(
+          icon: MSym.howToReg,
+          iconBg: KD.coralTint,
+          iconColor: KD.coral,
+          label: "Today's Check-ins",
+          value: _loading ? '...' : '$_dailyAttendance',
+          sub: 'Today',
+          subColor: KD.coral,
+        ),
+      ],
     );
   }
 
-  Widget _kpi(IconData icon, Color iconColor, Color iconBg, String label, String value, String tag, Color tagFg, Color tagBg, {bool filled = false}) {
+  Widget _bentoCard({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String label,
+    required String value,
+    required String sub,
+    required Color subColor,
+  }) {
     final c = context.c;
-    return KCard(
+    return Container(
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: kCardShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
-                child: Sym(icon, size: 22, color: iconColor, fill: filled),
-              ),
-              const Spacer(),
-              Pill(tag, fg: tagFg, bg: tagBg.withValues(alpha: context.isDark ? 0.2 : 1)),
-            ],
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+            child: Sym(icon, size: 20, color: iconColor, fill: true),
           ),
           const Spacer(),
-          Text(label.toUpperCase(),
-              style: KText.labelCaps.copyWith(color: c.onSurfaceVariant, letterSpacing: 0.5)),
+          Text(value,
+              style: KText.statValue.copyWith(color: c.onSurface, fontSize: 24),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(color: c.onSurfaceVariant, fontSize: 11.5, fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
-          Text(value, style: KText.statValue.copyWith(color: c.onSurface), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(sub, style: TextStyle(color: subColor, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -540,40 +532,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ));
   }
 
+  String _relativeTime(DateTime? dt) {
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return DateFormat('d MMM').format(dt);
+  }
+
   Widget _recentActivity() {
     final c = context.c;
-    return KCard(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: c.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: kCardShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Recent Activity', style: KText.h3.copyWith(color: c.onSurface)),
-          const SizedBox(height: 20),
+          Text('Recent Activity', style: KText.h3.copyWith(color: c.onSurface, fontSize: 17)),
+          const SizedBox(height: 16),
           if (_loading)
-            Text('Loading activity...', style: TextStyle(color: c.onSurfaceVariant))
+            const KLoading()
           else if (_recent.isEmpty)
             Text('No recent activity.', style: TextStyle(color: c.onSurfaceVariant))
           else
             ..._recent.map((a) {
               final isPay = a.type == 'payment';
+              final initials = a.title.isNotEmpty
+                  ? a.title.split(' ').take(2).map((w) => w.isEmpty ? '' : w[0].toUpperCase()).join()
+                  : '?';
               return Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                   Container(
-                    width: 36, height: 36,
+                    width: 38, height: 38,
                     decoration: BoxDecoration(
-                      color: (isPay ? c.primaryContainer : c.secondaryContainer).withValues(alpha: 0.4),
+                      color: isPay ? KD.primaryTint : KD.coralTint,
                       shape: BoxShape.circle,
                     ),
-                    child: Sym(isPay ? MSym.payments : MSym.howToReg, size: 18, color: isPay ? c.primary : c.secondary, fill: true),
+                    child: Center(
+                      child: Text(initials,
+                          style: TextStyle(
+                            color: isPay ? KD.primary : KD.coral,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          )),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(a.title, style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w500, fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text(a.date == null ? '' : '${DateFormat('d MMM').format(a.date!)} · ${DateFormat('h:mm a').format(a.date!)}',
-                          style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+                      Text(a.title,
+                          style: const TextStyle(color: KD.ink, fontWeight: FontWeight.w500, fontSize: 13.5),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 1),
+                      Text(_relativeTime(a.date),
+                          style: const TextStyle(color: KD.inkSoft, fontSize: 11.5)),
                     ]),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isPay ? KD.primaryTint : KD.coralTint,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      isPay ? 'Payment' : 'Check-in',
+                      style: TextStyle(
+                        color: isPay ? KD.primary : KD.coral,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ]),
               );
