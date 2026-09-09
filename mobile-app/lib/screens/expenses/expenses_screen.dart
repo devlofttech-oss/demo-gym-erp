@@ -238,27 +238,36 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _SummaryCard(
-                        label: 'This month',
-                        value: rupees(_monthTotal),
-                        color: TW.rose600,
-                        icon: MSym.receiptLong,
+                child: Column(children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SummaryCard(
+                          label: 'This month',
+                          value: rupees(_monthTotal),
+                          color: TW.rose600,
+                          icon: MSym.receiptLong,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _SummaryCard(
-                        label: 'Recurring',
-                        value: '$_recurringCount entries',
-                        color: TW.amber600,
-                        icon: MSym.repeat,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _SummaryCard(
+                          label: 'Recurring',
+                          value: '$_recurringCount entries',
+                          color: TW.amber600,
+                          icon: MSym.repeat,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _SummaryCard(
+                    label: 'Total All Time',
+                    value: rupees(_expenses.fold<num>(0, (s, e) => s + asNum(e['amount']))),
+                    color: TW.violet600,
+                    icon: MSym.payments,
+                  ),
+                ]),
               ),
             ),
             // Category filter
@@ -269,7 +278,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) => FilterChip(
                     label: Text(_categories[i]),
                     selected: _catTab == i,
@@ -298,9 +307,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       : null,
                 ),
               )
-            else
+            else ...[
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (_, i) => _ExpenseCard(
@@ -312,6 +321,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   ),
                 ),
               ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: Row(children: [
+                    Text('Total (${filtered.length} records):',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    const SizedBox(width: 8),
+                    Text(
+                      rupees(filtered.fold<num>(0, (s, e) => s + asNum(e['amount']))),
+                      style: KText.bodyMd.copyWith(color: TW.rose600, fontWeight: FontWeight.w700),
+                    ),
+                  ]),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -565,7 +589,7 @@ class _ExpenseFormState extends State<_ExpenseForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _category,
+              initialValue: _category,
               decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
               items: _categories
                   .skip(1)
@@ -596,7 +620,7 @@ class _ExpenseFormState extends State<_ExpenseForm> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _payMode,
+                  initialValue: _payMode,
                   decoration: const InputDecoration(
                       labelText: 'Payment Mode', border: OutlineInputBorder()),
                   items: _payModes

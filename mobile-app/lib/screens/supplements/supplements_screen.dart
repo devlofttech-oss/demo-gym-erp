@@ -32,6 +32,7 @@ class _SupplementsScreenState extends State<SupplementsScreen>
   bool _loading = true;
   late TabController _tabCtrl;
   int _catTab = 0;
+  String _search = '';
 
   @override
   void initState() {
@@ -62,9 +63,14 @@ class _SupplementsScreenState extends State<SupplementsScreen>
   }
 
   List<Map<String, dynamic>> get _filteredInventory {
-    if (_catTab == 0) return _inventory;
-    final cat = _supCategories[_catTab];
-    return _inventory.where((s) => (s['category'] ?? '') == cat).toList();
+    var list = _catTab == 0
+        ? _inventory
+        : _inventory.where((s) => (s['category'] ?? '') == _supCategories[_catTab]).toList();
+    if (_search.isNotEmpty) {
+      final q = _search.toLowerCase();
+      list = list.where((s) => (s['name'] as String?)?.toLowerCase().contains(q) == true).toList();
+    }
+    return list;
   }
 
   void _showAddForm() {
@@ -74,6 +80,20 @@ class _SupplementsScreenState extends State<SupplementsScreen>
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _SupplementForm(
+        gymId: context.read<AuthProvider>().gymId ?? '',
+        onSaved: _fetch,
+      ),
+    );
+  }
+
+  void _showEditForm(Map<String, dynamic> supp) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SupplementForm(
+        supplement: supp,
         gymId: context.read<AuthProvider>().gymId ?? '',
         onSaved: _fetch,
       ),
@@ -169,9 +189,12 @@ class _SupplementsScreenState extends State<SupplementsScreen>
             allInventory: _inventory,
             loading: _loading,
             catTab: _catTab,
+            search: _search,
             onCatTab: (i) => setState(() => _catTab = i),
+            onSearch: (v) => setState(() => _search = v),
             onSell: _showSellSheet,
             onRestock: _showRestockSheet,
+            onEdit: _showEditForm,
             onDelete: _delete,
             onRefresh: _fetch,
           ),
@@ -187,9 +210,12 @@ class _InventoryTab extends StatelessWidget {
   final List<Map<String, dynamic>> allInventory;
   final bool loading;
   final int catTab;
+  final String search;
   final ValueChanged<int> onCatTab;
+  final ValueChanged<String> onSearch;
   final ValueChanged<Map<String, dynamic>> onSell;
   final ValueChanged<Map<String, dynamic>> onRestock;
+  final ValueChanged<Map<String, dynamic>> onEdit;
   final ValueChanged<Map<String, dynamic>> onDelete;
   final Future<void> Function() onRefresh;
   const _InventoryTab({
@@ -197,19 +223,84 @@ class _InventoryTab extends StatelessWidget {
     required this.allInventory,
     required this.loading,
     required this.catTab,
+    required this.search,
     required this.onCatTab,
+    required this.onSearch,
     required this.onSell,
     required this.onRestock,
+    required this.onEdit,
     required this.onDelete,
     required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+    final lowStock = allInventory.where((s) => asNum(s['stock']) < 10 && asNum(s['stock']) > 0).length;
+    final outOfStock = allInventory.where((s) => asNum(s['stock']) <= 0).length;
+    final inventoryValue = allInventory.fold<num>(0, (sum, s) => sum + asNum(s['stock']) * asNum(s['price']));
+    final today = DateTime.now().toIso8601String().split('T').first;
+    final expired = allInventory.where((s) {
+      final exp = s['expiryDate'] as String?;
+      return exp != null && exp.isNotEmpty && exp.compareTo(today) < 0;
+    }).toList();
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: CustomScrollView(
         slivers: [
+          // Summary stats
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(children: [
+                _SupStat(label: 'Total', value: '${allInventory.length}', color: c.primary),
+                const SizedBox(width: 6),
+                _SupStat(label: 'Low Stock', value: '${lowStock + outOfStock}', color: TW.amber600),
+                const SizedBox(width: 6),
+                _SupStat(label: 'Value', value: rupees(inventoryValue), color: TW.emerald600),
+              ]),
+            ),
+          ),
+          // Expired alert banner
+          if (expired.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: TW.rose600.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: TW.rose600.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(children: [
+                    const Sym(MSym.warning, size: 14, color: TW.rose600),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(
+                      '${expired.length} item${expired.length > 1 ? 's' : ''} expired: ${expired.take(2).map((s) => s['name']).join(', ')}${expired.length > 2 ? '...' : ''}',
+                      style: const TextStyle(color: TW.rose600, fontSize: 12),
+                    )),
+                  ]),
+                ),
+              ),
+            ),
+          // Search
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search supplements…',
+                  prefixIcon: Sym(MSym.search, size: 18, color: c.onSurfaceVariant),
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onChanged: onSearch,
+              ),
+            ),
+          ),
           SliverToBoxAdapter(
             child: SizedBox(
               height: 44,
@@ -217,7 +308,7 @@ class _InventoryTab extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 itemCount: _supCategories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) => FilterChip(
                   label: Text(_supCategories[i]),
                   selected: catTab == i,
@@ -246,6 +337,7 @@ class _InventoryTab extends StatelessWidget {
                     supp: inventory[i],
                     onSell: () => onSell(inventory[i]),
                     onRestock: () => onRestock(inventory[i]),
+                    onEdit: () => onEdit(inventory[i]),
                     onDelete: () => onDelete(inventory[i]),
                   ),
                   childCount: inventory.length,
@@ -262,9 +354,10 @@ class _InventoryCard extends StatelessWidget {
   final Map<String, dynamic> supp;
   final VoidCallback onSell;
   final VoidCallback onRestock;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
   const _InventoryCard(
-      {required this.supp, required this.onSell, required this.onRestock, required this.onDelete});
+      {required this.supp, required this.onSell, required this.onRestock, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -321,9 +414,11 @@ class _InventoryCard extends StatelessWidget {
                 PopupMenuButton<String>(
                   icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
                   onSelected: (v) {
+                    if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
                   },
                   itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
                         value: 'delete',
                         child: Text('Delete', style: TextStyle(color: TW.rose600))),
@@ -381,62 +476,112 @@ class _SalesLogTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    final now = DateTime.now();
+    final monthPrefix = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    final totalRevenue = sales.fold<num>(0, (s, e) => s + asNum(e['total']));
+    final monthRevenue = sales
+        .where((e) => (e['date'] ?? '').toString().startsWith(monthPrefix))
+        .fold<num>(0, (s, e) => s + asNum(e['total']));
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: loading
           ? const KLoading()
-          : sales.isEmpty
-              ? KEmpty(icon: MSym.history, message: 'No sales recorded yet')
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: sales.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) {
-                    final s = sales[i];
-                    final qty = asNum(s['quantity']).toInt();
-                    final total = asNum(s['total']);
-                    return KCard(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: TW.emerald500.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Sym(MSym.shoppingCart, color: TW.emerald600, size: 18),
+          : CustomScrollView(
+              slivers: [
+                if (sales.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Row(children: [
+                        Expanded(child: KCard(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(children: [
+                            Text(rupees(totalRevenue), style: TextStyle(color: TW.emerald600, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'PlusJakartaSans')),
+                            Text('Total Revenue', style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
+                          ]),
+                        )),
+                        const SizedBox(width: 10),
+                        Expanded(child: KCard(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(children: [
+                            Text(rupees(monthRevenue), style: TextStyle(color: TW.blue600, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'PlusJakartaSans')),
+                            Text('This Month', style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
+                          ]),
+                        )),
+                      ]),
+                    ),
+                  ),
+                sales.isEmpty
+                    ? const SliverFillRemaining(child: KEmpty(icon: MSym.history, message: 'No sales recorded yet'))
+                    : SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (_, i) {
+                              final s = sales[i];
+                              final qty = asNum(s['quantity']).toInt();
+                              final total = asNum(s['total']);
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: KCard(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(children: [
+                                    Container(
+                                      width: 40, height: 40,
+                                      decoration: BoxDecoration(color: TW.emerald500.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                                      child: Sym(MSym.shoppingCart, color: TW.emerald600, size: 18),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(s['name'] ?? '', style: KText.bodyLg.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
+                                      Text('$qty unit${qty != 1 ? 's' : ''} · ${fmtDate(s['date'])}', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                                    ])),
+                                    Text(rupees(total), style: KText.bodyLg.copyWith(color: TW.emerald600, fontWeight: FontWeight.w700)),
+                                  ]),
+                                ),
+                              );
+                            },
+                            childCount: sales.length,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(s['name'] ?? '',
-                                    style: KText.bodyLg.copyWith(
-                                        color: c.onSurface, fontWeight: FontWeight.w600)),
-                                Text('$qty unit${qty != 1 ? 's' : ''} · ${fmtDate(s['date'])}',
-                                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                              ],
-                            ),
-                          ),
-                          Text(rupees(total),
-                              style: KText.bodyLg.copyWith(
-                                  color: TW.emerald600, fontWeight: FontWeight.w700)),
-                        ],
+                        ),
                       ),
-                    );
-                  },
-                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _SupStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _SupStat({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(children: [
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'PlusJakartaSans')),
+          Text(label, style: const TextStyle(color: TW.slate500, fontSize: 10, fontFamily: 'PlusJakartaSans')),
+        ]),
+      ),
     );
   }
 }
 
 class _SupplementForm extends StatefulWidget {
+  final Map<String, dynamic>? supplement;
   final String gymId;
   final VoidCallback onSaved;
-  const _SupplementForm({required this.gymId, required this.onSaved});
+  const _SupplementForm({this.supplement, required this.gymId, required this.onSaved});
 
   @override
   State<_SupplementForm> createState() => _SupplementFormState();
@@ -449,6 +594,19 @@ class _SupplementFormState extends State<_SupplementForm> {
   String _category = 'Protein';
   String _expiryDate = '';
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = widget.supplement;
+    if (s != null) {
+      _nameCtrl.text = s['name'] ?? '';
+      _stockCtrl.text = asNum(s['stock']) == 0 ? '' : asNum(s['stock']).toStringAsFixed(0);
+      _priceCtrl.text = asNum(s['price']) == 0 ? '' : asNum(s['price']).toString();
+      _category = s['category'] ?? 'Protein';
+      _expiryDate = s['expiryDate'] ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -479,7 +637,12 @@ class _SupplementFormState extends State<_SupplementForm> {
       'expiryDate': _expiryDate,
     };
     try {
-      await TenantDb.createDocument(widget.gymId, 'supplements', data);
+      final s = widget.supplement;
+      if (s != null) {
+        await TenantDb.updateDocument(widget.gymId, 'supplements', s['id'] as String, data);
+      } else {
+        await TenantDb.createDocument(widget.gymId, 'supplements', data);
+      }
       if (mounted) Navigator.pop(context);
       widget.onSaved();
     } catch (_) {}
@@ -511,7 +674,7 @@ class _SupplementFormState extends State<_SupplementForm> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Text('Add Supplement', style: KText.h3.copyWith(color: c.onSurface)),
+                Text(widget.supplement != null ? 'Edit Supplement' : 'Add Supplement', style: KText.h3.copyWith(color: c.onSurface)),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -526,7 +689,7 @@ class _SupplementFormState extends State<_SupplementForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _category,
+              initialValue: _category,
               decoration:
                   const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
               items: _supCategories

@@ -157,7 +157,7 @@ class _StaffScreenState extends State<StaffScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _roles.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) => FilterChip(
                     label: Text(_roles[i]),
                     selected: _tab == i,
@@ -198,6 +198,15 @@ class _StaffScreenState extends State<StaffScreen> {
                   ),
                 ),
               ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: Text(
+                  'Showing ${filtered.length} of ${_staff.length} staff member${_staff.length != 1 ? 's' : ''}',
+                  style: KText.bodyMd.copyWith(color: context.c.onSurfaceVariant),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -518,7 +527,7 @@ class _StaffFormState extends State<_StaffForm> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _role,
+                initialValue: _role,
                 decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
                 items: _validRoles
                     .map((r) => DropdownMenuItem(value: r, child: Text(r)))
@@ -572,7 +581,7 @@ class _StaffFormState extends State<_StaffForm> {
               Row(children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _commissionType,
+                    initialValue: _commissionType,
                     decoration: const InputDecoration(labelText: 'Commission Type', border: OutlineInputBorder()),
                     items: const [
                       DropdownMenuItem(value: 'Percent', child: Text('Percent (%)')),

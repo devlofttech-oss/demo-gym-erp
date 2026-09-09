@@ -43,11 +43,18 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    if (_search.isEmpty) return _equipment;
-    final term = _search.toLowerCase();
-    return _equipment
-        .where((e) => (e['name'] as String?)?.toLowerCase().contains(term) ?? false)
-        .toList();
+    var list = _search.isEmpty
+        ? List<Map<String, dynamic>>.from(_equipment)
+        : _equipment.where((e) => (e['name'] as String?)?.toLowerCase().contains(_search.toLowerCase()) ?? false).toList();
+    list.sort((a, b) {
+      final da = (a['nextServiceDate'] as String?) ?? '';
+      final db = (b['nextServiceDate'] as String?) ?? '';
+      if (da.isEmpty && db.isEmpty) return 0;
+      if (da.isEmpty) return 1;
+      if (db.isEmpty) return -1;
+      return da.compareTo(db);
+    });
+    return list;
   }
 
   _ServiceStatus _status(Map<String, dynamic> e) {
