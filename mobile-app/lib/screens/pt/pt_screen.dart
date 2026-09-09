@@ -80,8 +80,13 @@ class _PTScreenState extends State<PTScreen> with SingleTickerProviderStateMixin
     final prefix = '${now.year}-${now.month.toString().padLeft(2, '0')}';
     return _sessions.where((s) => (s['date'] ?? '').startsWith(prefix)).length;
   }
-  double get _totalRevenue =>
-      _packages.fold(0.0, (sum, p) => sum + asNum(p['price']));
+  double get _totalRevenue {
+    final now = DateTime.now();
+    final prefix = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    return _packages
+        .where((p) => (p['createdAt'] ?? p['startDate'] ?? '').toString().startsWith(prefix))
+        .fold(0.0, (sum, p) => sum + asNum(p['price']));
+  }
 
   void _showPackageForm([Map<String, dynamic>? pkg]) {
     showModalBottomSheet(
@@ -190,7 +195,7 @@ class _PTScreenState extends State<PTScreen> with SingleTickerProviderStateMixin
                 const SizedBox(width: 8),
                 _StatCard('Clients', '$_activeClients', TW.blue600),
                 const SizedBox(width: 8),
-                _StatCard('Revenue', '₹${grouped(_totalRevenue)}', TW.emerald600),
+                _StatCard('This Month', '₹${grouped(_totalRevenue)}', TW.emerald600),
               ],
             ),
           ),
@@ -249,7 +254,7 @@ class _PTScreenState extends State<PTScreen> with SingleTickerProviderStateMixin
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               itemCount: _sessionStatuses.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (_, i) => FilterChip(
                 label: Text(_sessionStatuses[i]),
                 selected: _sessionStatusFilter == i,
@@ -269,15 +274,31 @@ class _PTScreenState extends State<PTScreen> with SingleTickerProviderStateMixin
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (_, i) => _SessionCard(
-                  session: filtered[i],
-                  onEdit: () => _showSessionForm(filtered[i]),
-                  onDelete: () async {
-                    await TenantDb.deleteDocument(
-                        context.read<AuthProvider>().gymId ?? '', 'ptSessions', filtered[i]['id']);
-                    _fetch();
-                  },
-                ),
+                (_, i) {
+                  final s = filtered[i];
+                  final pkg = _packages.where((p) => p['id'] == s['packageId']).firstOrNull;
+                  return _SessionCard(
+                    session: s,
+                    packageName: pkg?['name'] as String?,
+                    onEdit: () => _showSessionForm(s),
+                    onDelete: () async {
+                      await TenantDb.deleteDocument(
+                          context.read<AuthProvider>().gymId ?? '', 'ptSessions', s['id']);
+                      _fetch();
+                    },
+                    onMarkComplete: s['status'] == 'Completed'
+                        ? null
+                        : () async {
+                            final gymId = context.read<AuthProvider>().gymId ?? '';
+                            await TenantDb.updateDocument(gymId, 'ptSessions', s['id'] as String, {'status': 'Completed'});
+                            if (pkg != null) {
+                              final completed = asNum(pkg['sessionsCompleted']) + 1;
+                              await TenantDb.updateDocument(gymId, 'ptPackages', pkg['id'] as String, {'sessionsCompleted': completed});
+                            }
+                            _fetch();
+                          },
+                  );
+                },
                 childCount: filtered.length,
               ),
             ),
@@ -447,7 +468,9 @@ class _SessionCard extends StatelessWidget {
   final Map<String, dynamic> session;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _SessionCard({required this.session, required this.onEdit, required this.onDelete});
+  final VoidCallback? onMarkComplete;
+  final String? packageName;
+  const _SessionCard({required this.session, required this.onEdit, required this.onDelete, this.onMarkComplete, this.packageName});
 
   Color get _statusColor {
     switch (session['status']) {
@@ -506,6 +529,14 @@ class _SessionCard extends StatelessWidget {
                     Text(session['trainerName'],
                         style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
                   ],
+                  if (packageName?.isNotEmpty == true) ...[
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      Sym(MSym.loyalty, size: 12, color: c.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text(packageName!, style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    ]),
+                  ],
                   if ((session['notes'] ?? '').isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(session['notes'],
@@ -520,10 +551,15 @@ class _SessionCard extends StatelessWidget {
               icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
               onSelected: (v) {
                 if (v == 'edit') onEdit();
+                if (v == 'complete') onMarkComplete?.call();
                 if (v == 'delete') onDelete();
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                if ((session['status'] ?? 'Scheduled') == 'Scheduled')
+                  const PopupMenuItem(
+                      value: 'complete',
+                      child: Text('Mark Completed', style: TextStyle(color: TW.emerald600))),
                 const PopupMenuItem(
                     value: 'delete',
                     child: Text('Delete', style: TextStyle(color: TW.rose600))),
@@ -669,7 +705,7 @@ class _PackageFormState extends State<_PackageForm> {
             const SizedBox(height: 12),
             if (widget.members.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _memberId,
+                initialValue: _memberId,
                 decoration: const InputDecoration(labelText: 'Member', border: OutlineInputBorder()),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('No member')),
@@ -688,7 +724,7 @@ class _PackageFormState extends State<_PackageForm> {
             const SizedBox(height: 12),
             if (widget.staff.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _trainerId,
+                initialValue: _trainerId,
                 decoration: const InputDecoration(labelText: 'Trainer', border: OutlineInputBorder()),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('No trainer')),
@@ -902,7 +938,7 @@ class _SessionFormState extends State<_SessionForm> {
             const SizedBox(height: 16),
             if (widget.packages.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _packageId,
+                initialValue: _packageId,
                 decoration: const InputDecoration(labelText: 'Package', border: OutlineInputBorder()),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('No package')),
@@ -941,7 +977,7 @@ class _SessionFormState extends State<_SessionForm> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _status,
+              initialValue: _status,
               decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
               items: _sessionStatuses.skip(1).map((s) =>
                   DropdownMenuItem(value: s, child: Text(s))).toList(),

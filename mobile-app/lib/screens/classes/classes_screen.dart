@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../services/actions.dart';
 import '../../services/helpers.dart';
 import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
@@ -155,13 +156,19 @@ class _ClassesScreenState extends State<ClassesScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _classTypes.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => FilterChip(
-                    label: Text(_classTypes[i]),
-                    selected: _tab == i,
-                    onSelected: (_) => setState(() => _tab = i),
-                    showCheckmark: false,
-                  ),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final label = _classTypes[i];
+                    final cnt = i == 0
+                        ? _classes.length
+                        : _classes.where((c) => (c['type'] ?? '') == label).length;
+                    return FilterChip(
+                      label: Text(i == 0 ? label : '$label ($cnt)'),
+                      selected: _tab == i,
+                      onSelected: (_) => setState(() => _tab = i),
+                      showCheckmark: false,
+                    );
+                  },
                 ),
               ),
             ),
@@ -306,7 +313,11 @@ class _ClassCard extends StatelessWidget {
                         value: capacity > 0 ? (enrolled / capacity).clamp(0.0, 1.0) : 0,
                         backgroundColor: TW.slate200,
                         valueColor: AlwaysStoppedAnimation(
-                            enrolled >= capacity ? TW.rose600 : TW.emerald600),
+                            enrolled >= capacity
+                                ? TW.rose600
+                                : capacity > 0 && (enrolled / capacity) >= 0.7
+                                    ? TW.amber600
+                                    : TW.emerald600),
                         minHeight: 6,
                       ),
                     ),
@@ -521,14 +532,28 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(m['name'] ?? '',
-                                      style: KText.bodyMd.copyWith(
-                                          color: c.onSurface, fontWeight: FontWeight.w600)),
+                                  Row(children: [
+                                    Text(m['name'] ?? '',
+                                        style: KText.bodyMd.copyWith(
+                                            color: c.onSurface, fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 6),
+                                    Pill(
+                                      m['status']?.toString() ?? 'Active',
+                                      fg: m['status'] == 'Inactive' ? TW.slate500 : TW.emerald600,
+                                      bg: m['status'] == 'Inactive' ? TW.slate100 : TW.emerald100,
+                                    ),
+                                  ]),
                                   Text(m['phone'] ?? '',
                                       style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
                                 ],
                               ),
                             ),
+                            if ((m['phone'] as String?)?.isNotEmpty == true)
+                              IconButton(
+                                icon: const Sym(MSym.chat, size: 18, color: TW.whatsapp),
+                                onPressed: () => openWhatsApp(m['phone'] as String, 'Hi ${m['name']}, this is a reminder for your class.'),
+                                tooltip: 'WhatsApp',
+                              ),
                             IconButton(
                               icon: Sym(MSym.personOff, size: 20, color: TW.rose600),
                               onPressed: () => _toggleEnroll(m['id'], false),
@@ -643,6 +668,34 @@ class _MemberPickerState extends State<_MemberPicker> {
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
               onChanged: (v) => setState(() => _search = v),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Text('${_enrolled.length} enrolled',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                const Spacer(),
+                TextButton(
+                  onPressed: () async {
+                    final allIds = widget.allMembers.map((m) => m['id'] as String).toList();
+                    final allEnrolled = allIds.every(_enrolled.contains);
+                    if (allEnrolled) {
+                      for (final id in allIds) {
+                        if (_enrolled.contains(id)) await widget.onToggle(id, false);
+                      }
+                      setState(() => _enrolled.clear());
+                    } else {
+                      for (final id in allIds) {
+                        if (!_enrolled.contains(id)) await widget.onToggle(id, true);
+                      }
+                      setState(() { for (final id in allIds) { if (!_enrolled.contains(id)) _enrolled.add(id); } });
+                    }
+                  },
+                  child: Text(widget.allMembers.every((m) => _enrolled.contains(m['id'])) ? 'Deselect All' : 'Select All'),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -872,7 +925,7 @@ class _ClassFormState extends State<_ClassForm> {
             const SizedBox(height: 12),
             if (widget.staff.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _trainerId,
+                initialValue: _trainerId,
                 decoration:
                     const InputDecoration(labelText: 'Trainer', border: OutlineInputBorder()),
                 items: [
