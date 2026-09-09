@@ -14,6 +14,19 @@ concurrency:
   group: mobile-ota-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # The Shorebird release that each platform's patches attach to.
+  #
+  # Update the relevant one WHEN YOU CUT A RELEASE for that platform - not when
+  # you bump pubspec.yaml. pubspec runs ahead of what is actually released, and
+  # the two platforms are routinely on different versions (Android ships from a
+  # git tag, iOS from a Codemagic run), so one shared value cannot serve both.
+  #
+  # A patch fails with "No release exists for <platform> in release version X"
+  # when the value here names a release that was never cut.
+  ANDROID_RELEASE_VERSION: "1.0.4+7"
+  IOS_RELEASE_VERSION: "1.0.5+8"
+
 jobs:
   android-patch:
     name: OTA patch → Android phones
@@ -38,7 +51,7 @@ jobs:
         # `yes` auto-answers Shorebird's confirmation prompt. Patches the latest
         # Android release (the baseline). No keystore needed — a patch is a code
         # diff matched by app_id + release version, not a distributable signed build.
-        run: yes | shorebird patch android --release-version=1.0.4+7 --allow-asset-diffs
+        run: yes | shorebird patch android --release-version="$ANDROID_RELEASE_VERSION" --allow-asset-diffs
 
   ios-patch:
     name: OTA patch → iOS phones
@@ -106,7 +119,7 @@ jobs:
       - name: Push OTA patch to iOS
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
-        run: yes | shorebird patch ios --release-version=1.0.4+7 --allow-asset-diffs
+        run: yes | shorebird patch ios --release-version="$IOS_RELEASE_VERSION" --allow-asset-diffs
 
       # ios/Podfile.lock is not in the repo, so every machine resolves pods on
       # its own and Shorebird reads the difference as a native change. Surface
