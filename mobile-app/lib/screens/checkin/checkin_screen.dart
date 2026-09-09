@@ -53,7 +53,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
   List<Map<String, dynamic>> _staff = [];
   bool _loading = true;
   bool _checkingIn = false;
-  String? _selectedMemberId;
+  Map<String, dynamic>? _selectedMember;
+  final _manualSearchCtrl = TextEditingController();
+  String _manualSearch = '';
+  bool _showResults = false;
   final List<_Entry> _recent = [];
 
   String? _lastScanId;
@@ -68,6 +71,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _manualSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -261,13 +265,38 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
   }
 
+  List<Map<String, dynamic>> get _manualResults {
+    final q = _manualSearch.toLowerCase().trim();
+    if (q.isEmpty) return [];
+    return _members.where((m) {
+      final name = (m['name'] as String?)?.toLowerCase() ?? '';
+      final phone = (m['phone'] as String?) ?? '';
+      return name.contains(q) || phone.contains(q);
+    }).take(6).toList();
+  }
+
+  void _selectManualMember(Map<String, dynamic> m) {
+    setState(() {
+      _selectedMember = m;
+      _manualSearchCtrl.text = '${m['name']} · ${m['phone'] ?? ''}';
+      _manualSearch = '';
+      _showResults = false;
+    });
+  }
+
+  void _clearManualSelection() {
+    setState(() {
+      _selectedMember = null;
+      _manualSearchCtrl.clear();
+      _manualSearch = '';
+      _showResults = false;
+    });
+  }
+
   Future<void> _manualCheckin() async {
-    if (_selectedMemberId == null) { _toast('Please select a member', TW.rose600); return; }
-    final member = _members.where((m) => m['id'] == _selectedMemberId).firstOrNull;
-    if (member != null) {
-      await _processMember(member);
-      setState(() => _selectedMemberId = null);
-    }
+    if (_selectedMember == null) { _toast('Please select a member', TW.rose600); return; }
+    await _processMember(_selectedMember!);
+    _clearManualSelection();
   }
 
   @override
@@ -360,31 +389,93 @@ class _CheckinScreenState extends State<CheckinScreen> {
         const SizedBox(height: 16),
         const Divider(height: 1),
         const SizedBox(height: 16),
-        Text('Manual Fallback (Members)', style: TextStyle(color: c.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+        Text('Manual Fallback', style: TextStyle(color: c.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 4),
+        Text('Type member name or phone to search', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
         const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(12), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3))),
-              child: DropdownButtonHideUnderline(child: DropdownButton<String>(
-                value: _selectedMemberId,
-                isExpanded: true,
-                hint: Text(_loading ? 'Loading...' : '-- Select Member --', style: TextStyle(color: c.onSurfaceVariant)),
-                dropdownColor: c.surfaceContainerLowest,
-                style: TextStyle(color: c.onSurface, fontFamily: 'PlusJakartaSans', fontSize: 14),
-                items: _members.map((m) => DropdownMenuItem(value: m['id'] as String, child: Text('${m['name']} (${m['phone']})', overflow: TextOverflow.ellipsis))).toList(),
-                onChanged: (v) => setState(() => _selectedMemberId = v),
-              )),
+        Container(
+          decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(12), border: Border.all(color: _selectedMember != null ? c.primary.withValues(alpha: 0.4) : c.outlineVariant.withValues(alpha: 0.3))),
+          child: Row(children: [
+            const SizedBox(width: 12),
+            Sym(_selectedMember != null ? MSym.checkCircle : MSym.search, size: 18,
+                color: _selectedMember != null ? c.primary : c.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Expanded(child: TextField(
+              controller: _manualSearchCtrl,
+              enabled: !_loading,
+              onChanged: (v) => setState(() {
+                _manualSearch = v;
+                _showResults = v.isNotEmpty;
+                if (_selectedMember != null && v != '${_selectedMember!['name']} · ${_selectedMember!['phone'] ?? ''}') {
+                  _selectedMember = null;
+                }
+              }),
+              onTap: () { if (_selectedMember != null) _clearManualSelection(); },
+              style: TextStyle(color: c.onSurface, fontSize: 14),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: _loading ? 'Loading members...' : 'Name or phone number...',
+                hintStyle: TextStyle(color: c.onSurfaceVariant),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            )),
+            if (_manualSearchCtrl.text.isNotEmpty)
+              GestureDetector(
+                onTap: _clearManualSelection,
+                child: Padding(padding: const EdgeInsets.all(10), child: Sym(MSym.close, size: 16, color: c.onSurfaceVariant)),
+              ),
+          ]),
+        ),
+        // Search results dropdown
+        if (_showResults && _manualResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: c.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3)),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 4))],
+            ),
+            child: Column(
+              children: _manualResults.map((m) {
+                final isLast = m == _manualResults.last;
+                return GestureDetector(
+                  onTap: () => _selectManualMember(m),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: isLast ? null : Border(bottom: BorderSide(color: c.outlineVariant.withValues(alpha: 0.15))),
+                    ),
+                    child: Row(children: [
+                      InitialAvatar(name: m['name'] as String?, size: 30, bg: c.primaryContainer, fg: c.primary),
+                      const SizedBox(width: 10),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text((m['name'] as String?) ?? '—', style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text((m['phone'] as String?) ?? '', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+                      ])),
+                      Pill(m['status']?.toString() ?? '—',
+                          fg: m['status'] == 'Active' ? TW.emerald700 : TW.rose600,
+                          bg: m['status'] == 'Active' ? TW.emerald100 : TW.rose100),
+                    ]),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          const SizedBox(width: 8),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
-            onPressed: (_checkingIn || _loading || _selectedMemberId == null) ? null : _manualCheckin,
-            child: const Text('Check In'),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: c.primary, foregroundColor: c.onPrimary,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onPressed: (_checkingIn || _loading || _selectedMember == null) ? null : _manualCheckin,
+            icon: _checkingIn ? const KSpinner(size: 16, color: Colors.white) : const Sym(MSym.howToReg, size: 16),
+            label: Text(_checkingIn ? 'Processing...' : 'Check In${_selectedMember != null ? ' · ${_selectedMember!['name']}' : ''}'),
           ),
-        ]),
+        ),
       ]),
     );
   }
