@@ -30,10 +30,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _planName = '';
   int _durationMonths = 1;
   num _totalFees = 0;
+  num _discountPct = 0;
+  num _discountAmt = 0;
   String _paymentMode = 'Cash';
   late String _planActiveFrom;
   late String _expiryDate;
   final _paidNow = TextEditingController();
+  final _discountPctCtrl = TextEditingController();
+  final _discountAmtCtrl = TextEditingController();
   final _notes = TextEditingController();
 
   @override
@@ -48,6 +52,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void dispose() {
     _paidNow.dispose();
+    _discountPctCtrl.dispose();
+    _discountAmtCtrl.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -70,8 +76,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool get _isFullyPaid =>
       _selected != null && asNum(_selected!['balanceFees']) == 0 && asNum(_selected!['paidFees']) > 0;
 
+  num get _discountedTotal => (_totalFees - _discountAmt).clamp(0, double.infinity);
   num get _outstandingBase =>
-      asNum(_selected?['balanceFees']) > 0 ? asNum(_selected!['balanceFees']) : _totalFees;
+      asNum(_selected?['balanceFees']) > 0 ? asNum(_selected!['balanceFees']) : _discountedTotal;
   num get _paidNum => num.tryParse(_paidNow.text) ?? 0;
   num get _balance => (_outstandingBase - _paidNum).clamp(0, double.infinity);
 
@@ -83,6 +90,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _totalFees = asNum(p['price']);
     _expiryDate = addMonths(_planActiveFrom, _durationMonths);
     _paidNow.clear();
+    _discountPct = 0;
+    _discountAmt = 0;
+    _discountPctCtrl.clear();
+    _discountAmtCtrl.clear();
   }
 
   void _loadMember(String id) {
@@ -126,7 +137,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (_memberId == null) { _toast('Please select a member'); return; }
     if (_paidNum <= 0) { _toast('Enter a valid paid amount'); return; }
     final gymId = context.read<AuthProvider>().gymId!;
-    final currentBalance = asNum(_selected?['balanceFees']) > 0 ? asNum(_selected!['balanceFees']) : _totalFees;
+    final effectiveTotal = _discountedTotal > 0 ? _discountedTotal : _totalFees;
+    final currentBalance = asNum(_selected?['balanceFees']) > 0 ? asNum(_selected!['balanceFees']) : effectiveTotal;
     final newBalance = (currentBalance - _paidNum).clamp(0, double.infinity);
 
     setState(() => _saving = true);
@@ -138,7 +150,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'planName': _planName,
         'planActiveFrom': _planActiveFrom,
         'expiryDate': _expiryDate,
-        'totalFees': _totalFees,
+        'totalFees': effectiveTotal,
+        'originalFees': _totalFees,
+        if (_discountAmt > 0) 'discountAmt': _discountAmt,
+        if (_discountPct > 0) 'discountPct': _discountPct,
         'paidAmount': _paidNum,
         'amount': _paidNum,
         'balanceFees': newBalance,
@@ -152,7 +167,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'planActiveFrom': _planActiveFrom,
         'expiryDate': _expiryDate,
         'status': 'Active',
-        'totalFees': _totalFees,
+        'totalFees': effectiveTotal,
         'paidFees': asNum(_selected?['paidFees']) + _paidNum,
         'balanceFees': newBalance,
       });
@@ -199,6 +214,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _label('Membership Plan'),
                     const SizedBox(height: 6),
                     if (locked) _lockedPlan() else _planDropdown(),
+                    if (!locked && _totalFees > 0) ...[
+                      const SizedBox(height: 12),
+                      _discountRow(),
+                    ],
                     const SizedBox(height: 16),
                     _feesRow(),
                     const SizedBox(height: 8),
@@ -344,8 +363,47 @@ class _PaymentScreenState extends State<PaymentScreen> {
     ]);
   }
 
+  static const _typeOrder = ['Gym', 'Personal Training', 'Group Class', 'Addon'];
+
   Widget _planDropdown() {
     final c = context.c;
+    // Group plans by type field; ungrouped plans fall under 'Gym'
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final p in _plans) {
+      final t = (p['type'] as String?) ?? (p['planType'] as String?) ?? 'Gym';
+      grouped.putIfAbsent(t, () => []).add(p);
+    }
+    // Build ordered type list — known types first, then any extras
+    final types = [
+      ..._typeOrder.where(grouped.containsKey),
+      ...grouped.keys.where((k) => !_typeOrder.contains(k)),
+    ];
+
+    final items = <DropdownMenuItem<String>>[];
+    for (final type in types) {
+      // Section header (disabled)
+      items.add(DropdownMenuItem<String>(
+        enabled: false,
+        value: '__hdr_$type',
+        child: Text(type.toUpperCase(),
+            style: TextStyle(color: c.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+      ));
+      for (final p in grouped[type]!) {
+        final price = asNum(p['price']);
+        final months = asNum(p['durationMonths']).toInt();
+        items.add(DropdownMenuItem<String>(
+          value: p['id'] as String,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: Text(
+              '${p['name']}${price > 0 ? ' — ${rupees(price)}' : ''}${months > 0 ? ' (${months}m)' : ''}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ));
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3))),
@@ -355,24 +413,87 @@ class _PaymentScreenState extends State<PaymentScreen> {
         hint: Text(_plans.isEmpty ? 'No plans' : 'Select plan', style: TextStyle(color: c.onSurfaceVariant)),
         dropdownColor: c.surfaceContainerLowest,
         style: TextStyle(color: c.onSurface, fontFamily: 'PlusJakartaSans', fontSize: 14),
-        items: _plans.map((p) {
-          final price = asNum(p['price']);
-          final months = asNum(p['durationMonths']).toInt();
-          return DropdownMenuItem(value: p['id'] as String, child: Text('${p['name']}${price > 0 ? ' — ${rupees(price)}' : ''}${months > 0 ? ' (${months}m)' : ''}', overflow: TextOverflow.ellipsis));
-        }).toList(),
-        onChanged: (id) { final p = _plans.firstWhere((e) => e['id'] == id); setState(() => _applyPlan(p)); },
+        items: items,
+        onChanged: (id) {
+          if (id == null || id.startsWith('__hdr_')) return;
+          final p = _plans.firstWhere((e) => e['id'] == id);
+          setState(() => _applyPlan(p));
+        },
       )),
     );
+  }
+
+  Widget _discountRow() {
+    final c = context.c;
+    final hasDiscount = _discountAmt > 0;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Text('Discount', style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
+        const SizedBox(width: 8),
+        if (hasDiscount) Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(color: TW.green50, borderRadius: BorderRadius.circular(99), border: Border.all(color: TW.green200)),
+          child: Text('−${rupees(_discountAmt)} applied', style: const TextStyle(color: TW.green700, fontSize: 10.5, fontWeight: FontWeight.w600)),
+        ),
+      ]),
+      const SizedBox(height: 6),
+      Row(children: [
+        Expanded(child: SizedBox(height: 46, child: TextField(
+          controller: _discountPctCtrl,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (v) {
+            final pct = num.tryParse(v) ?? 0;
+            final amt = (_totalFees * pct / 100);
+            setState(() {
+              _discountPct = pct.clamp(0, 100);
+              _discountAmt = amt.clamp(0, _totalFees);
+              _discountAmtCtrl.text = _discountAmt > 0 ? _discountAmt.toStringAsFixed(0) : '';
+            });
+          },
+          style: TextStyle(color: c.onSurface, fontSize: 13),
+          decoration: _dec().copyWith(hintText: '0%', prefixText: '%  '),
+        ))),
+        const SizedBox(width: 8),
+        Expanded(child: SizedBox(height: 46, child: TextField(
+          controller: _discountAmtCtrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: (v) {
+            final amt = num.tryParse(v) ?? 0;
+            final pct = _totalFees > 0 ? (amt / _totalFees * 100) : 0;
+            setState(() {
+              _discountAmt = amt.clamp(0, _totalFees);
+              _discountPct = pct.clamp(0, 100);
+              _discountPctCtrl.text = _discountPct > 0 ? _discountPct.toStringAsFixed(1) : '';
+            });
+          },
+          style: TextStyle(color: c.onSurface, fontSize: 13),
+          decoration: _dec().copyWith(hintText: '0', prefixText: '₹  '),
+        ))),
+      ]),
+    ]);
   }
 
   Widget _feesRow() {
     final c = context.c;
     final balancePos = _balance > 0;
+    final hasDiscount = _discountAmt > 0 && _totalFees > 0;
+    final displayTotal = hasDiscount ? _discountedTotal : _totalFees;
+
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Total (₹)', style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
-        _ro(_totalFees > 0 ? rupees(_totalFees) : '—', c.surfaceContainer, c.onSurfaceVariant),
+        Container(
+          height: 46, alignment: Alignment.centerLeft, padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.25))),
+          child: hasDiscount
+              ? Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(rupees(_totalFees), style: TextStyle(color: c.onSurfaceVariant, fontSize: 11, decoration: TextDecoration.lineThrough)),
+                  Text(rupees(displayTotal), style: TextStyle(color: TW.green700, fontWeight: FontWeight.w700, fontSize: 13)),
+                ])
+              : Text(_totalFees > 0 ? rupees(_totalFees) : '—', style: TextStyle(color: c.onSurfaceVariant, fontWeight: FontWeight.w600, fontSize: 13)),
+        ),
       ])),
       const SizedBox(width: 8),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -456,6 +577,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 6),
           Wrap(spacing: 16, runSpacing: 4, children: [
             if (_selected != null && asNum(_selected!['paidFees']) > 0) _sum('Already Paid', rupees(asNum(_selected!['paidFees'])), TW.green600),
+            if (_discountAmt > 0) _sum('Discount', '−${rupees(_discountAmt)}', TW.green600),
             _sum('Outstanding', rupees(_outstandingBase), c.onSurface),
             _sum('Paying', rupees(_paidNum), c.primary),
             _sum('Balance', rupees(_balance), _balance > 0 ? TW.rose500 : TW.green600),

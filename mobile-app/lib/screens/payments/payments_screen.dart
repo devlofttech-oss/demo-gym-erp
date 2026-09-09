@@ -177,15 +177,55 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     final thisMonthCount = _payments.where((p) => _thisMonth(p['date'])).length;
     final thisMonthSum = _payments.where((p) => _thisMonth(p['date'])).fold<num>(0, (s, p) => s + asNum(p['amount']));
     final filtered = _filteredPayments;
+
+    // Payment mode breakdown totals
+    final modeBreakdown = <String, num>{};
+    for (final p in _payments) {
+      final mode = (p['paymentMode'] as String?) ?? 'Cash';
+      modeBreakdown[mode] = (modeBreakdown[mode] ?? 0) + asNum(p['amount']);
+    }
+    final activeModes = _payModes.where((m) => (modeBreakdown[m] ?? 0) > 0).toList();
+
     return [
       KCard(
-        child: Wrap(
-          spacing: 28, runSpacing: 16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _summaryItem('Total Revenue', rupees(_totalRevenue), TW.emerald600),
-            _summaryItem('Total Payments', '${_payments.length}', c.onSurface),
-            _summaryItem('This Month', '$thisMonthCount', c.onSurface),
-            _summaryItem('Paid This Month', rupees(thisMonthSum), TW.emerald600),
+            Wrap(
+              spacing: 28, runSpacing: 16,
+              children: [
+                _summaryItem('Total Revenue', rupees(_totalRevenue), TW.emerald600),
+                _summaryItem('Total Payments', '${_payments.length}', c.onSurface),
+                _summaryItem('This Month', '$thisMonthCount', c.onSurface),
+                _summaryItem('Paid This Month', rupees(thisMonthSum), TW.emerald600),
+              ],
+            ),
+            if (activeModes.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Divider(height: 1, color: c.outlineVariant.withValues(alpha: 0.2)),
+              const SizedBox(height: 12),
+              Text('By Payment Mode', style: KText.labelCaps.copyWith(color: c.onSurfaceVariant, letterSpacing: 0.5)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: activeModes.map((mode) {
+                  final mc = _modeColors[mode] ?? (TW.slate700, TW.slate100);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: mc.$2,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(mode, style: TextStyle(color: mc.$1, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 6),
+                      Text(rupees(modeBreakdown[mode]!), style: TextStyle(color: mc.$1, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    ]),
+                  );
+                }).toList(),
+              ),
+            ],
           ],
         ),
       ),
@@ -367,6 +407,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             SizedBox(width: 70, child: Text('Expired On', style: TextStyle(color: c.onSurfaceVariant, fontSize: 14))),
             Text(m['expiryDate'] != null ? fmtDate(m['expiryDate']) : '—', style: const TextStyle(color: TW.rose600, fontWeight: FontWeight.w500)),
           ]),
+          Builder(builder: (_) {
+            final bal = asNum(m['balanceFees']);
+            return Row(children: [
+              SizedBox(width: 70, child: Text('Balance Due', style: TextStyle(color: c.onSurfaceVariant, fontSize: 14))),
+              Text(
+                bal > 0 ? rupees(bal) : '—',
+                style: TextStyle(color: bal > 0 ? TW.rose600 : c.onSurfaceVariant, fontWeight: bal > 0 ? FontWeight.w600 : FontWeight.w400),
+              ),
+            ]);
+          }),
           const SizedBox(height: 12),
           Row(children: [
             if (phone != null && phone.isNotEmpty) ...[
