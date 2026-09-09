@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -300,26 +303,40 @@ class _StaffFormState extends State<_StaffForm> {
   final _commissionCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _certCtrl = TextEditingController();
+  // App login fields — only used when creating a new staff member
+  final _loginEmailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
   String _role = 'Trainer';
   String _commissionType = 'Percent';
   String _joiningDate = todayStr();
   bool _saving = false;
+  bool _createLogin = false;
+  bool _showPassword = false;
+
+  static const _validRoles = ['Trainer', 'Staff', 'Manager', 'Receptionist'];
+  static const _validCommTypes = ['Percent', 'Fixed'];
 
   @override
   void initState() {
     super.initState();
     final s = widget.staff;
     if (s != null) {
-      _nameCtrl.text = s['name'] ?? '';
-      _phoneCtrl.text = s['phone'] ?? '';
-      _emailCtrl.text = s['email'] ?? '';
-      _salaryCtrl.text = asNum(s['salary']) == 0 ? '' : asNum(s['salary']).toString();
-      _commissionCtrl.text = asNum(s['commission']) == 0 ? '' : asNum(s['commission']).toString();
-      _addressCtrl.text = s['address'] ?? '';
+      _nameCtrl.text = (s['name'] as String?) ?? '';
+      _phoneCtrl.text = (s['phone'] as String?) ?? '';
+      _emailCtrl.text = (s['email'] as String?) ?? '';
+      final salary = asNum(s['salary']);
+      _salaryCtrl.text = salary == 0 ? '' : salary.toStringAsFixed(0);
+      final comm = asNum(s['commission']);
+      _commissionCtrl.text = comm == 0 ? '' : comm.toStringAsFixed(0);
+      _addressCtrl.text = (s['address'] as String?) ?? '';
       _certCtrl.text = (s['certifications'] as List?)?.join(', ') ?? '';
-      _role = s['role'] ?? 'Trainer';
-      _commissionType = s['commissionType'] as String? ?? 'Percent';
-      _joiningDate = s['joiningDate'] ?? todayStr();
+      // Sanitise dropdown values so the form never crashes on unexpected data
+      final storedRole = s['role'] as String? ?? '';
+      _role = _validRoles.contains(storedRole) ? storedRole : 'Trainer';
+      final storedCommType = s['commissionType'] as String? ?? '';
+      _commissionType = _validCommTypes.contains(storedCommType) ? storedCommType : 'Percent';
+      _joiningDate = (s['joiningDate'] as String?) ?? todayStr();
     }
   }
 
@@ -332,6 +349,8 @@ class _StaffFormState extends State<_StaffForm> {
     _commissionCtrl.dispose();
     _addressCtrl.dispose();
     _certCtrl.dispose();
+    _loginEmailCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
@@ -345,8 +364,50 @@ class _StaffFormState extends State<_StaffForm> {
     if (d != null) setState(() => _joiningDate = d.toIso8601String().split('T').first);
   }
 
+  // Creates a Firebase Auth user using a secondary app so the admin stays signed in.
+  Future<String?> _createAuthUser(String email, String password) async {
+    FirebaseApp? secondaryApp;
+    try {
+      secondaryApp = await Firebase.initializeApp(
+        name: 'staffSetup_${email.hashCode.abs()}',
+        options: Firebase.app().options,
+      );
+      final auth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final cred = await auth.createUserWithEmailAndPassword(email: email, password: password);
+      return cred.user?.uid;
+    } on FirebaseException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login creation failed: ${e.message}'), backgroundColor: TW.rose600),
+        );
+      }
+      return null;
+    } finally {
+      await secondaryApp?.delete();
+    }
+  }
+
   Future<void> _save() async {
-    if (_nameCtrl.text.trim().isEmpty) return;
+    if (_nameCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name is required'), backgroundColor: TW.rose600),
+      );
+      return;
+    }
+    if (_createLogin) {
+      if (_loginEmailCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login email is required'), backgroundColor: TW.rose600),
+        );
+        return;
+      }
+      if (_passwordCtrl.text.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: TW.rose600),
+        );
+        return;
+      }
+    }
     setState(() => _saving = true);
     final data = {
       'name': _nameCtrl.text.trim(),
@@ -363,14 +424,48 @@ class _StaffFormState extends State<_StaffForm> {
           : _certCtrl.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
     };
     try {
+      String staffDocId;
       if (widget.staff != null) {
         await TenantDb.updateDocument(widget.gymId, 'staff', widget.staff!['id'], data);
+        staffDocId = widget.staff!['id'] as String;
       } else {
-        await TenantDb.createDocument(widget.gymId, 'staff', data);
+        final created = await TenantDb.createDocument(widget.gymId, 'staff', data);
+        staffDocId = created['id'] as String;
       }
+
+      // Create app login credentials for new staff members.
+      if (_createLogin && widget.staff == null) {
+        final email = _loginEmailCtrl.text.trim();
+        final uid = await _createAuthUser(email, _passwordCtrl.text);
+        if (uid != null && mounted) {
+          // Write users/{uid} — Firestore rules allow an admin to create this
+          // document for staff in their own gym (secondary app pattern).
+          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+            'role': 'staff',
+            'gymId': widget.gymId,
+            'name': _nameCtrl.text.trim(),
+            'email': email,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          // Link the auth UID back to the staff document.
+          await TenantDb.updateDocument(widget.gymId, 'staff', staffDocId, {
+            'uid': uid,
+            'loginEmail': email,
+            'hasLogin': true,
+          });
+        }
+      }
+
       if (mounted) Navigator.pop(context);
       widget.onSaved();
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e'), backgroundColor: TW.rose600),
+        );
+      }
+    }
     if (mounted) setState(() => _saving = false);
   }
 
@@ -378,151 +473,242 @@ class _StaffFormState extends State<_StaffForm> {
   Widget build(BuildContext context) {
     final c = context.c;
     final isEdit = widget.staff != null;
+    final existingLogin = isEdit && widget.staff!['hasLogin'] == true;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text(isEdit ? 'Edit Staff' : 'Add Staff',
-                    style: KText.h3.copyWith(color: c.onSurface)),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Sym(MSym.close, size: 20, color: c.onSurfaceVariant),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Full Name *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _role,
-              decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
-              items: _roles
-                  .skip(1)
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                  .toList(),
-              onChanged: (v) => setState(() => _role = v!),
-            ),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration:
-                      const InputDecoration(labelText: 'Phone', border: OutlineInputBorder()),
-                ),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.surfaceContainerLowest,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.88,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          builder: (_, ctrl) => ListView(
+            controller: ctrl,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: [
+              Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: c.outlineVariant, borderRadius: BorderRadius.circular(2))),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration:
-                      const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text(isEdit ? 'Edit Staff' : 'Add Staff',
+                      style: KText.h3.copyWith(color: c.onSurface)),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Sym(MSym.close, size: 20, color: c.onSurfaceVariant),
+                  ),
+                ],
               ),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _salaryCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'Salary (₹)', border: OutlineInputBorder()),
-                ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameCtrl,
+                decoration:
+                    const InputDecoration(labelText: 'Full Name *', border: OutlineInputBorder()),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: InkWell(
-                  onTap: _pickDate,
-                  child: InputDecorator(
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _role,
+                decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                items: _validRoles
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .toList(),
+                onChanged: (v) => setState(() => _role = v!),
+              ),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: _phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration:
+                        const InputDecoration(labelText: 'Phone', border: OutlineInputBorder()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration:
+                        const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: _salaryCtrl,
+                    keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Joining Date', border: OutlineInputBorder()),
-                    child: Text(fmtDate(_joiningDate),
-                        style: KText.bodyMd.copyWith(color: c.onSurface)),
+                        labelText: 'Salary (₹)', border: OutlineInputBorder()),
                   ),
                 ),
-              ),
-            ]),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _commissionType,
-                  decoration: const InputDecoration(labelText: 'Commission Type', border: OutlineInputBorder()),
-                  items: const [
-                    DropdownMenuItem(value: 'Percent', child: Text('Percent (%)')),
-                    DropdownMenuItem(value: 'Fixed', child: Text('Fixed (₹)')),
-                  ],
-                  onChanged: (v) => setState(() => _commissionType = v!),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _commissionCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: _commissionType == 'Percent' ? 'Commission %' : 'Commission (₹)',
-                    border: const OutlineInputBorder(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickDate,
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                          labelText: 'Joining Date', border: OutlineInputBorder()),
+                      child: Text(fmtDate(_joiningDate),
+                          style: KText.bodyMd.copyWith(color: c.onSurface)),
+                    ),
                   ),
                 ),
+              ]),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _commissionType,
+                    decoration: const InputDecoration(labelText: 'Commission Type', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'Percent', child: Text('Percent (%)')),
+                      DropdownMenuItem(value: 'Fixed', child: Text('Fixed (₹)')),
+                    ],
+                    onChanged: (v) => setState(() => _commissionType = v!),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _commissionCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: _commissionType == 'Percent' ? 'Commission %' : 'Commission (₹)',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _addressCtrl,
+                maxLines: 2,
+                decoration:
+                    const InputDecoration(labelText: 'Address', border: OutlineInputBorder()),
               ),
-            ]),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _addressCtrl,
-              maxLines: 2,
-              decoration:
-                  const InputDecoration(labelText: 'Address', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _certCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Certifications (comma-separated)',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _certCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Certifications (comma-separated)',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(isEdit ? 'Save Changes' : 'Add Staff'),
+              const SizedBox(height: 20),
+
+              // ── App Login ────────────────────────────────────────────────
+              if (existingLogin) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: TW.emerald600.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: TW.emerald600.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(children: [
+                    const Sym(MSym.checkCircle, size: 18, color: TW.emerald600),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('App login active', style: KText.bodyMd.copyWith(color: TW.emerald700, fontWeight: FontWeight.w600)),
+                      Text(widget.staff!['loginEmail'] as String? ?? '', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant, fontSize: 12)),
+                    ])),
+                  ]),
+                ),
+                const SizedBox(height: 16),
+              ] else if (!isEdit) ...[
+                // Create login option for new staff
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => setState(() => _createLogin = !_createLogin),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _createLogin
+                          ? c.primary.withValues(alpha: 0.08)
+                          : c.surfaceContainer,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _createLogin
+                            ? c.primary.withValues(alpha: 0.4)
+                            : c.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(children: [
+                      Sym(
+                        _createLogin ? MSym.checkCircle : MSym.lock,
+                        size: 18,
+                        color: _createLogin ? c.primary : c.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Create app login', style: KText.bodyMd.copyWith(
+                          color: _createLogin ? c.primary : c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        )),
+                        Text('Staff can sign in to the mobile app', style: KText.bodyMd.copyWith(
+                          color: c.onSurfaceVariant,
+                          fontSize: 12,
+                        )),
+                      ])),
+                    ]),
+                  ),
+                ),
+                if (_createLogin) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _loginEmailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Login Email *',
+                      border: OutlineInputBorder(),
+                      helperText: 'Staff will use this to sign in',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordCtrl,
+                    obscureText: !_showPassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password * (min 6 chars)',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Sym(_showPassword ? MSym.visibilityOff : MSym.visibility, size: 20, color: c.onSurfaceVariant),
+                        onPressed: () => setState(() => _showPassword = !_showPassword),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+              ],
+
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(isEdit ? 'Save Changes' : 'Add Staff'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

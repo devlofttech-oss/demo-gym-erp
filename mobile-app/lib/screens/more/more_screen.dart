@@ -22,7 +22,7 @@ import '../staff/staff_screen.dart';
 import '../supplements/supplements_screen.dart';
 import '../workouts/workouts_screen.dart';
 
-const _webAppUrl = 'https://app.kilos.devlofttech.com';
+const _webAppUrl = 'https://app-kilos.devlofttech.com';
 const _subscriptionUrl = '$_webAppUrl/subscription';
 const _waCreditsUrl = '$_webAppUrl/whatsapp-credits';
 const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym-management/id6739598737';
@@ -130,19 +130,19 @@ class _MoreScreenState extends State<MoreScreen> {
           padding: EdgeInsets.zero,
           child: Column(
             children: [
-              _LinkTile(MSym.language, 'Access Web App', 'Manage your gym on desktop', TW.blue600, () => _launch(_webAppUrl)),
+              _LinkTile(MSym.gridView, 'Access Web App', 'Manage your gym on desktop', TW.blue600, () => _launch(_webAppUrl)),
               _divider(c),
-              _LinkTile(MSym.upload, 'Bulk Import Members', 'Import members from a spreadsheet', TW.emerald600, _showBulkImport),
+              _LinkTile(MSym.personAdd, 'Bulk Import Members', 'Import members from a spreadsheet', TW.emerald600, _showBulkImport),
               _divider(c),
               _LinkTile(MSym.autorenew, 'Buy / Renew Plan', 'Manage your subscription on web', TW.violet600, () => _launch(_subscriptionUrl)),
               _divider(c),
-              _LinkTile(MSym.payment, 'Purchase WhatsApp Credits', 'Buy credits via web', TW.emerald600, () => _launch(_waCreditsUrl)),
+              _LinkTile(MSym.payments, 'Purchase WhatsApp Credits', 'Buy credits via web', TW.emerald600, () => _launch(_waCreditsUrl)),
               _divider(c),
-              _LinkTile(MSym.devices, 'Download iOS App', 'Get Kilos on iPhone', TW.slate700, () => _launch(_iosAppUrl)),
+              _LinkTile(MSym.store, 'Download iOS App', 'Get Kilos on iPhone', TW.slate700, () => _launch(_iosAppUrl)),
               _divider(c),
-              _LinkTile(MSym.info, 'How to Use Kilos?', 'Video tutorials', TW.violet600, _showHowToUse),
+              _LinkTile(MSym.schedule, 'How to Use Kilos?', 'Video tutorials', TW.violet600, _showHowToUse),
               _divider(c),
-              _LinkTile(MSym.campaign, 'Request a Feature', 'Tell us what you need', TW.amber600, _showRequestFeature),
+              _LinkTile(MSym.notifications, 'Request a Feature', 'Tell us what you need', TW.amber600, _showRequestFeature),
               _divider(c),
               _LinkTile(MSym.chat, 'Contact Us', 'WhatsApp or Email', TW.rose600, _showContactUs),
             ],
@@ -258,7 +258,7 @@ class _BulkImportSheet extends StatelessWidget {
   final Future<void> Function(String) onLaunch;
   const _BulkImportSheet({required this.onLaunch});
 
-  static const _importUrl = 'https://app.kilos.devlofttech.com/members/import';
+  static const _importUrl = 'https://app-kilos.devlofttech.com/members/import';
 
   static const _cols = <(IconData, String, bool)>[
     (MSym.person, 'Name', true),
