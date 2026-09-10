@@ -66,6 +66,10 @@ export default function Settings() {
   const handleAddBranch = async (e) => {
     e.preventDefault();
     if (!newBranchName.trim()) return;
+    if (gymIds.length >= 3) {
+      toast.error('Maximum of 3 branches allowed on this plan.');
+      return;
+    }
     setCreatingBranch(true);
     try {
       // 1. Create the new gym (branch) document
@@ -197,14 +201,21 @@ export default function Settings() {
             <div>
               <h3 className="font-h3 text-h3 text-on-surface mb-1">Branches</h3>
               <p className="text-sm text-on-surface-variant">
-                {gymBranches.length === 1
-                  ? 'You have 1 branch. Add more to manage multiple locations.'
-                  : `You have ${gymBranches.length} branches.`}
+                {gymBranches.length >= 3
+                  ? `You have ${gymBranches.length}/3 branches — maximum reached.`
+                  : gymBranches.length === 1
+                  ? 'You have 1 branch. Add up to 2 more locations.'
+                  : `You have ${gymBranches.length}/3 branches.`}
               </p>
             </div>
             <button
-              onClick={() => setIsAddBranchOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+              onClick={() => gymBranches.length < 3 && setIsAddBranchOpen(true)}
+              disabled={gymBranches.length >= 3}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm ${
+                gymBranches.length >= 3
+                  ? 'bg-surface-container text-on-surface-variant opacity-50 cursor-not-allowed'
+                  : 'bg-primary text-on-primary hover:bg-primary/90'
+              }`}
             >
               <span className="material-symbols-outlined text-[16px]">add</span> Add Branch
             </button>
