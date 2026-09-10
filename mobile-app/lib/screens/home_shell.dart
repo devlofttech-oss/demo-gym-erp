@@ -36,7 +36,8 @@ import 'workouts/workouts_screen.dart';
 
 const _webAppUrl = 'https://app-kilos.devlofttech.com';
 const _waCreditsUrl = '$_webAppUrl/whatsapp-credits';
-const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym-management/id6739598737';
+const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym/id6804961729';
+const _androidAppUrl = 'https://play.google.com/store/apps/details?id=com.devloft.kilos';
 const _youtubeUrl = 'https://www.youtube.com/@DevloftTechnologies';
 const _contactWa = 'https://wa.me/917012583444';
 
@@ -668,6 +669,10 @@ class _KilosDrawer extends StatelessWidget {
                     _DrawerNavItem(Icons.phone_iphone, 'Download iOS app', () {
                       Navigator.of(context).pop();
                       onLaunchUrl(_iosAppUrl);
+                    }),
+                    _DrawerNavItem(Icons.android, 'Download Android app', () {
+                      Navigator.of(context).pop();
+                      onLaunchUrl(_androidAppUrl);
                     }),
                     _DrawerNavItem(MSym.playCircle, 'How to use Kilos?', () {
                       Navigator.of(context).pop();

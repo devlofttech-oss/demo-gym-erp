@@ -77,12 +77,12 @@ function HowToModal({ onClose }) {
           <>
             <p className="text-sm text-on-surface-variant">Select your preferred language:</p>
             <div className="flex gap-3">
-              <a href={platform === 'web' ? 'https://youtube.com' : 'https://youtube.com'} target="_blank" rel="noopener noreferrer"
+              <a href="https://www.youtube.com/@DevloftTechnologies" target="_blank" rel="noopener noreferrer"
                 className="flex-1 flex flex-col items-center gap-2 p-4 rounded-xl bg-primary text-on-primary hover:bg-primary/90 transition-colors">
                 <span className="material-symbols-outlined text-[24px]">play_circle</span>
                 <span className="text-sm font-semibold">English</span>
               </a>
-              <a href={platform === 'web' ? 'https://youtube.com' : 'https://youtube.com'} target="_blank" rel="noopener noreferrer"
+              <a href="https://www.youtube.com/@DevloftTechnologies" target="_blank" rel="noopener noreferrer"
                 className="flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border border-outline-variant/30 hover:bg-surface-container transition-colors text-on-surface">
                 <span className="material-symbols-outlined text-[24px]">play_circle</span>
                 <span className="text-sm font-semibold">हिंदी</span>
@@ -154,12 +154,12 @@ export default function Sidebar() {
       to: '/whatsapp-credits',
     },
     {
-      icon: 'open_in_new', label: 'Access Web App', fill: false,
-      href: 'https://app-kilos.devlofttech.com',
+      icon: 'phone_iphone', label: 'Download iOS App', fill: false,
+      href: 'https://apps.apple.com/in/app/kilos-gym/id6804961729',
     },
     {
-      icon: 'phone_iphone', label: 'Download iOS App', fill: false,
-      href: 'https://apps.apple.com/app/kilos',
+      icon: 'android', label: 'Download Android App', fill: false,
+      href: 'https://play.google.com/store/apps/details?id=com.devloft.kilos',
     },
     {
       icon: 'help', label: 'How to Use Kilos?', fill: false,
