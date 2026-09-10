@@ -26,6 +26,8 @@ class _ReportScreenState extends State<ReportScreen> {
   List<Map<String, dynamic>> _payments = [];
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>> _attendance = [];
+  List<Map<String, dynamic>> _prevPayments = [];
+  List<Map<String, dynamic>> _prevMembers = [];
   bool _loading = false;
   bool _exporting = false;
 
@@ -62,6 +64,8 @@ class _ReportScreenState extends State<ReportScreen> {
         TenantDb.getCollection(gymId, 'attendance'),
       ]);
       if (mounted) {
+        final prev = DateTime(_month.year, _month.month - 1);
+        final prevPrefix = '${prev.year}-${prev.month.toString().padLeft(2, '0')}';
         setState(() {
           _payments = res[0]
               .where((p) => (p['date'] as String? ?? '').startsWith(prefix))
@@ -74,6 +78,12 @@ class _ReportScreenState extends State<ReportScreen> {
                 final d = recordDate(a);
                 return d != null && d.startsWith(prefix);
               })
+              .toList();
+          _prevPayments = res[0]
+              .where((p) => (p['date'] as String? ?? '').startsWith(prevPrefix))
+              .toList();
+          _prevMembers = res[1]
+              .where((m) => (m['joinDate'] as String? ?? '').startsWith(prevPrefix))
               .toList();
         });
       }
@@ -89,6 +99,18 @@ class _ReportScreenState extends State<ReportScreen> {
 
   int get _renewals =>
       _payments.where((p) => (p['type'] ?? '') == 'Renewal').length;
+
+  double get _prevRevenue => _prevPayments.fold(0.0, (s, p) => s + asNum(p['amount']));
+  int get _prevNewMembers => _prevMembers.length;
+  int get _prevRenewals => _prevPayments.where((p) => (p['type'] ?? '') == 'Renewal').length;
+
+  String _trend(num curr, num prev) {
+    if (prev == 0) return curr > 0 ? 'New' : '';
+    final pct = ((curr - prev) / prev * 100).round();
+    return pct >= 0 ? '+$pct%' : '$pct%';
+  }
+
+  bool _trendUp(num curr, num prev) => curr >= prev;
 
   Map<int, double> get _dailyRevenue {
     final map = <int, double>{};
@@ -321,17 +343,23 @@ class _ReportScreenState extends State<ReportScreen> {
                       Row(
                         children: [
                           _StatCard('Revenue', '₹${grouped(_revenue)}',
-                              TW.emerald600, MSym.payments),
+                              TW.emerald600, MSym.payments,
+                              trend: _trend(_revenue, _prevRevenue),
+                              trendUp: _trendUp(_revenue, _prevRevenue)),
                           const SizedBox(width: 10),
                           _StatCard('New Members', '$_newMembers',
-                              TW.blue600, MSym.personAdd),
+                              TW.blue600, MSym.personAdd,
+                              trend: _trend(_newMembers, _prevNewMembers),
+                              trendUp: _trendUp(_newMembers, _prevNewMembers)),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
                           _StatCard('Renewals', '$_renewals',
-                              TW.violet600, MSym.autorenew),
+                              TW.violet600, MSym.autorenew,
+                              trend: _trend(_renewals, _prevRenewals),
+                              trendUp: _trendUp(_renewals, _prevRenewals)),
                           const SizedBox(width: 10),
                           _StatCard('Avg Daily Attendance',
                               _avgDailyAttendance.toStringAsFixed(1),
@@ -474,9 +502,13 @@ class _ReportScreenState extends State<ReportScreen> {
                                           style: KText.bodyMd.copyWith(
                                               color: c.onSurface,
                                               fontWeight: FontWeight.w600)),
+                                      if ((p['planName'] ?? p['plan'] ?? '').isNotEmpty)
+                                        Text(p['planName'] ?? p['plan'] ?? '',
+                                            style: KText.bodyMd.copyWith(
+                                                color: c.onSurfaceVariant, fontSize: 12)),
                                       Text(p['date'] ?? '',
                                           style: KText.bodyMd.copyWith(
-                                              color: c.onSurfaceVariant)),
+                                              color: c.onSurfaceVariant, fontSize: 11)),
                                     ],
                                   ),
                                 ),
@@ -487,10 +519,20 @@ class _ReportScreenState extends State<ReportScreen> {
                                         style: KText.bodyMd.copyWith(
                                             color: TW.emerald600,
                                             fontWeight: FontWeight.w700)),
-                                    Text(p['paymentMode'] ?? '',
-                                        style: KText.bodyMd.copyWith(
-                                            color: c.onSurfaceVariant,
-                                            fontSize: 11)),
+                                    const SizedBox(height: 4),
+                                    Row(mainAxisSize: MainAxisSize.min, children: [
+                                      Pill(
+                                        (p['type'] ?? '') == 'Renewal' ? 'Renewal' : 'New',
+                                        fg: (p['type'] ?? '') == 'Renewal' ? TW.violet600 : TW.blue600,
+                                        bg: (p['type'] ?? '') == 'Renewal' ? const Color(0xFFEDE9FE) : const Color(0xFFDBEAFE),
+                                      ),
+                                      if ((p['paymentMode'] ?? '').isNotEmpty) ...[
+                                        const SizedBox(width: 4),
+                                        Text(p['paymentMode'] ?? '',
+                                            style: KText.bodyMd.copyWith(
+                                                color: c.onSurfaceVariant, fontSize: 10)),
+                                      ],
+                                    ]),
                                   ],
                                 ),
                               ],
@@ -586,11 +628,14 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
-  const _StatCard(this.label, this.value, this.color, this.icon);
+  final String? trend;
+  final bool trendUp;
+  const _StatCard(this.label, this.value, this.color, this.icon, {this.trend, this.trendUp = true});
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    final hasTrend = trend != null && trend!.isNotEmpty;
     return Expanded(
       child: KCard(
         child: Row(
@@ -609,13 +654,32 @@ class _StatCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(value,
-                      style: KText.bodyLg.copyWith(
-                          color: c.onSurface,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Row(children: [
+                    Expanded(
+                      child: Text(value,
+                          style: KText.bodyLg.copyWith(
+                              color: c.onSurface,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    if (hasTrend) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: trendUp ? TW.emerald50 : TW.rose50,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(trend!,
+                            style: TextStyle(
+                                color: trendUp ? TW.emerald600 : TW.rose600,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ]),
                   Text(label,
                       style: KText.bodyMd.copyWith(
                           color: c.onSurfaceVariant, fontSize: 11),

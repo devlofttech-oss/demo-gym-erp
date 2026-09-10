@@ -347,8 +347,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const KLoading(label: 'Loading attendance...')
           else if (_todayAttendance.isEmpty)
             const KEmpty(icon: MSym.eventBusy, message: 'No check-ins recorded today yet.')
-          else
+          else ...[
             ..._todayAttendance.take(5).map((a) => _attRow(a)),
+            if (_todayAttendance.length > 5) ...[
+              Divider(height: 1, color: c.outlineVariant.withValues(alpha: 0.2)),
+              TextButton(
+                onPressed: _showAllAttendance,
+                child: Text('View all ${_todayAttendance.length} check-ins',
+                    style: TextStyle(color: c.primary, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -367,6 +376,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(width: 10),
         const Pill('Checked In', fg: TW.emerald600, bg: TW.emerald50, dot: true),
       ]),
+    );
+  }
+
+  void _showAllAttendance() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.c.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        final c = ctx.c;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (_, scroll) => Column(children: [
+            const SizedBox(height: 12),
+            Container(width: 36, height: 4, decoration: BoxDecoration(color: c.outlineVariant, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                Text("Today's Attendance", style: KText.h3.copyWith(color: c.onSurface)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: c.secondaryContainer.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(99)),
+                  child: Text('${_todayAttendance.length}', style: TextStyle(color: c.secondary, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.separated(
+                controller: scroll,
+                itemCount: _todayAttendance.length,
+                separatorBuilder: (_, _) => Divider(height: 1, color: c.outlineVariant.withValues(alpha: 0.2)),
+                itemBuilder: (_, i) => _attRow(_todayAttendance[i]),
+              ),
+            ),
+          ]),
+        );
+      },
     );
   }
 

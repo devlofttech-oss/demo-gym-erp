@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
@@ -177,6 +178,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               children: [
+                _section('Appearance'),
+                KCard(
+                  child: Consumer<ThemeProvider>(
+                    builder: (_, tp, _) => SwitchListTile(
+                      value: tp.isDark,
+                      onChanged: (v) => tp.setDark(v),
+                      title: Text('Dark Mode', style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w500)),
+                      subtitle: Text(tp.isDark ? 'Dark theme active' : 'Light theme active',
+                          style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+                      secondary: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: tp.isDark ? const Color(0xFF1E1B2E) : c.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Sym(tp.isDark ? MSym.darkMode : MSym.lightMode, size: 18,
+                            color: tp.isDark ? const Color(0xFFB2A4FF) : TW.amber600),
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
                 _section('Gym Information'),
                 KCard(
                   child: Column(
