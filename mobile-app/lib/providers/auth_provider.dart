@@ -129,6 +129,30 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() => _auth.signOut();
 
+  Future<bool> addBranch(String name) async {
+    final user = currentUser;
+    if (user == null || gymIds.length >= 3) return false;
+    try {
+      final newGym = await TenantDb.createRootDocument('gyms', {
+        'name': name.trim(),
+        'isActive': true,
+        'ownerUid': user.uid,
+      });
+      final newId = newGym['id'] as String;
+      final updatedIds = [...gymIds, newId];
+      await TenantDb.updateRootDocument('users', user.uid, {'gymIds': updatedIds});
+      await TenantDb.setRootDocument('gyms/$newId/settings', 'general', {
+        'gymInfo': {'name': name.trim()},
+      });
+      gymIds = updatedIds;
+      gymBranches = [...gymBranches, Branch(newId, name.trim())];
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> switchBranch(String newGymId) async {
     if (!gymIds.contains(newGymId) || newGymId == gymId) return;
     final prefs = await SharedPreferences.getInstance();

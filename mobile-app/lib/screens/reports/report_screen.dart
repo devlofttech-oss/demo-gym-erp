@@ -21,11 +21,13 @@ class ReportScreen extends StatefulWidget {
   State<ReportScreen> createState() => _ReportScreenState();
 }
 
-class _ReportScreenState extends State<ReportScreen> {
+class _ReportScreenState extends State<ReportScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabCtrl;
   DateTime _month = DateTime.now();
   List<Map<String, dynamic>> _payments = [];
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>> _attendance = [];
+  List<Map<String, dynamic>> _leads = [];
   List<Map<String, dynamic>> _prevPayments = [];
   List<Map<String, dynamic>> _prevMembers = [];
   bool _loading = false;
@@ -34,7 +36,14 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
     _fetch();
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
   }
 
   String get _monthPrefix =>
@@ -62,6 +71,7 @@ class _ReportScreenState extends State<ReportScreen> {
         TenantDb.getCollection(gymId, 'payments'),
         TenantDb.getCollection(gymId, 'members'),
         TenantDb.getCollection(gymId, 'attendance'),
+        TenantDb.getCollection(gymId, 'leads'),
       ]);
       if (mounted) {
         final prev = DateTime(_month.year, _month.month - 1);
@@ -85,6 +95,10 @@ class _ReportScreenState extends State<ReportScreen> {
           _prevMembers = res[1]
               .where((m) => (m['joinDate'] as String? ?? '').startsWith(prevPrefix))
               .toList();
+          _leads = res[3].where((l) {
+            final d = toDate(l['createdAt']);
+            return d != null && d.year == _month.year && d.month == _month.month;
+          }).toList();
         });
       }
     } catch (_) {}
@@ -111,6 +125,28 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   bool _trendUp(num curr, num prev) => curr >= prev;
+
+  int get _leadsWon => _leads.where((l) => (l['status'] ?? '') == 'Won').length;
+  double get _conversionRate => _leads.isEmpty ? 0 : _leadsWon / _leads.length * 100;
+
+  Map<String, int> get _leadsByStatus {
+    const statuses = ['New', 'Contacted', 'Follow-up', 'Interested', 'Won', 'Lost'];
+    final map = {for (final s in statuses) s: 0};
+    for (final l in _leads) {
+      final s = (l['status'] as String?) ?? 'New';
+      map[s] = (map[s] ?? 0) + 1;
+    }
+    return map;
+  }
+
+  Map<String, int> get _leadsBySource {
+    final map = <String, int>{};
+    for (final l in _leads) {
+      final s = (l['source'] as String?) ?? 'Other';
+      map[s] = (map[s] ?? 0) + 1;
+    }
+    return map;
+  }
 
   Map<int, double> get _dailyRevenue {
     final map = <int, double>{};
@@ -299,10 +335,21 @@ class _ReportScreenState extends State<ReportScreen> {
             onPressed: _exporting ? null : _exportPdf,
           ),
         ],
+        bottom: TabBar(
+          controller: _tabCtrl,
+          tabs: const [Tab(text: 'Overview'), Tab(text: 'Leads')],
+          labelColor: KD.primary,
+          unselectedLabelColor: TW.slate500,
+          indicatorColor: KD.primary,
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _fetch,
-        child: CustomScrollView(
+      body: TabBarView(
+        controller: _tabCtrl,
+        children: [
+          // ── Overview tab ──
+          RefreshIndicator(
+            onRefresh: _fetch,
+            child: CustomScrollView(
           slivers: [
             // Month picker
             SliverToBoxAdapter(
@@ -619,6 +666,184 @@ class _ReportScreenState extends State<ReportScreen> {
           ],
         ),
       ),
+          // ── Leads tab ──
+          _buildLeadsTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeadsTab() {
+    final c = context.c;
+    final byStatus = _leadsByStatus;
+    final bySource = _leadsBySource;
+    final total = _leads.length;
+
+    return RefreshIndicator(
+      onRefresh: _fetch,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                IconButton(icon: Sym(MSym.chevronLeft, color: c.onSurface), onPressed: _prevMonth),
+                const SizedBox(width: 8),
+                Text(_monthLabel, style: KText.h3.copyWith(color: c.onSurface)),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Sym(MSym.chevronRight,
+                      color: (_month.year >= DateTime.now().year && _month.month >= DateTime.now().month)
+                          ? TW.slate400 : c.onSurface),
+                  onPressed: _nextMonth,
+                ),
+              ]),
+            ),
+          ),
+          if (_loading)
+            const SliverFillRemaining(child: KLoading())
+          else ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(children: [
+                  _StatCard('Total Leads', '$total', TW.violet600, MSym.personSearch),
+                  const SizedBox(width: 10),
+                  _StatCard('Won', '$_leadsWon', TW.emerald600, MSym.trophy),
+                  const SizedBox(width: 10),
+                  _StatCard('Conversion', '${_conversionRate.toStringAsFixed(0)}%', TW.blue600, MSym.showChart),
+                ]),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: KCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('By Status', style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+                      const SizedBox(height: 12),
+                      ...byStatus.entries.map((e) => _ProgressRow(e.key, e.value, total, _statusColor(e.key))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (bySource.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: KCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('By Source', style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+                        const SizedBox(height: 12),
+                        ...bySource.entries.map((e) => _ProgressRow(e.key, e.value, total, TW.violet600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: Text('Leads this month (${_leads.length})',
+                    style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            if (_leads.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                  child: KCard(child: Center(child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('No leads this month', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  ))),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) {
+                      final l = _leads[i];
+                      final status = (l['status'] as String?) ?? 'New';
+                      final sc = _statusColor(status);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: KCard(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          child: Row(children: [
+                            InitialAvatar(name: l['name'] as String?, size: 36, bg: sc.withValues(alpha: 0.12), fg: sc),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(l['name'] ?? '', style: KText.bodyMd.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
+                              if ((l['phone'] as String? ?? '').isNotEmpty)
+                                Text(l['phone'] as String, style: KText.bodyMd.copyWith(color: c.onSurfaceVariant, fontSize: 12)),
+                            ])),
+                            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                              Pill(status, fg: sc, bg: sc.withValues(alpha: 0.1), dot: true),
+                              if ((l['source'] as String? ?? '').isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(l['source'] as String, style: const TextStyle(color: TW.slate500, fontSize: 11)),
+                              ],
+                            ]),
+                          ]),
+                        ),
+                      );
+                    },
+                    childCount: _leads.length,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(String status) => const {
+    'New': TW.blue600,
+    'Contacted': TW.violet600,
+    'Follow-up': TW.amber600,
+    'Interested': TW.emerald600,
+    'Won': TW.emerald600,
+    'Lost': TW.rose600,
+  }[status] ?? TW.slate500;
+}
+
+class _ProgressRow extends StatelessWidget {
+  final String label;
+  final int count;
+  final int total;
+  final Color color;
+  const _ProgressRow(this.label, this.count, this.total, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = total > 0 ? count / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(children: [
+        SizedBox(width: 90, child: Text(label, style: const TextStyle(color: TW.slate500, fontSize: 12))),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              backgroundColor: color.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation(color),
+              minHeight: 8,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(width: 24, child: Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12))),
+      ]),
     );
   }
 }

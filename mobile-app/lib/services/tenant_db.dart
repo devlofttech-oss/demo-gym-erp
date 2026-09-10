@@ -97,6 +97,13 @@ class TenantDb {
       String collection, String id, Map<String, dynamic> data) =>
       _db.collection(collection).doc(id).set(data);
 
+  /// Update a root (non-tenant) document, e.g. `users/{uid}`.
+  static Future<void> updateRootDocument(String collection, String id, Map<String, dynamic> data) =>
+      _db.collection(collection).doc(id).update({
+        ...data,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
   /// Add a document to a root (non-tenant) collection, auto-ID + timestamps.
   /// Used for platform-wide collections the Super Admin reads (e.g. featureRequests).
   static Future<Map<String, dynamic>> createRootDocument(

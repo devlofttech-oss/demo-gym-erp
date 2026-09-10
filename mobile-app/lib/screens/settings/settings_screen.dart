@@ -105,6 +105,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() => _saving = false);
   }
 
+  Future<void> _addBranchDialog() async {
+    final ctrl = TextEditingController();
+    final auth = context.read<AuthProvider>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Branch'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Branch Name *',
+            hintText: 'e.g. Koramangala, Indiranagar…',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && ctrl.text.trim().isNotEmpty && mounted) {
+      final success = await auth.addBranch(ctrl.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(success
+              ? 'Branch "${ctrl.text.trim()}" created!'
+              : 'Failed to create branch.'),
+          backgroundColor: success ? TW.emerald600 : TW.rose600,
+        ));
+      }
+    }
+    ctrl.dispose();
+  }
+
   Widget _section(String title) {
     final c = context.c;
     return Padding(
@@ -217,7 +256,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-
+                if (context.read<AuthProvider>().role == 'admin') ...[
+                  _section('Branches'),
+                  Builder(builder: (ctx) {
+                    final auth = ctx.watch<AuthProvider>();
+                    final atLimit = auth.gymBranches.length >= 3;
+                    return KCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Expanded(
+                              child: Text(
+                                atLimit
+                                    ? '${auth.gymBranches.length}/3 branches — maximum reached'
+                                    : '${auth.gymBranches.length}/3 branches',
+                                style: TextStyle(color: c.onSurfaceVariant, fontSize: 13),
+                              ),
+                            ),
+                            if (!atLimit)
+                              TextButton.icon(
+                                onPressed: _addBranchDialog,
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('Add Branch'),
+                              ),
+                          ]),
+                          const SizedBox(height: 8),
+                          ...auth.gymBranches.asMap().entries.map((e) {
+                            final idx = e.key;
+                            final branch = e.value;
+                            final isActive = branch.id == auth.gymId;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isActive ? KD.primaryTint : c.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: isActive ? KD.primary.withValues(alpha: 0.3) : c.outlineVariant.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(children: [
+                                Container(
+                                  width: 32, height: 32,
+                                  decoration: BoxDecoration(
+                                    color: isActive ? KD.primary : c.surfaceContainerHigh,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: Text('${idx + 1}',
+                                        style: TextStyle(
+                                            color: isActive ? Colors.white : c.onSurfaceVariant,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(branch.name,
+                                        style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
+                                    if (isActive)
+                                      Text('Currently viewing',
+                                          style: TextStyle(color: KD.primary, fontSize: 11, fontWeight: FontWeight.w500)),
+                                  ],
+                                )),
+                                if (!isActive)
+                                  OutlinedButton(
+                                    onPressed: () => auth.switchBranch(branch.id),
+                                    style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                                    child: const Text('Switch', style: TextStyle(fontSize: 12)),
+                                  ),
+                              ]),
+                            );
+                          }),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
               ],
             ),
     );
