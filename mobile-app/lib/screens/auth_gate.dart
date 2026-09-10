@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/tenant_db.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
-import 'login_screen.dart';
+import 'landing_screen.dart';
 import 'home_shell.dart';
+import 'onboarding/onboarding_screen.dart';
 
 /// Routes on auth state — mirrors the web app's role redirect
 /// (staff land on Check-in, admins on the Dashboard).
@@ -22,8 +24,63 @@ class AuthGate extends StatelessWidget {
         body: const Center(child: KSpinner(size: 40)),
       );
     }
-    if (auth.currentUser == null) return const LoginScreen();
+    if (auth.currentUser == null) return const LandingScreen();
     if (auth.role == 'superadmin') return const _SuperAdminNotice();
+    if (auth.role == 'staff') return const HomeShell();
+    // Admin: check if they have plans set up yet
+    return const _PostLoginGate();
+  }
+}
+
+/// Checks if the gym has any plans; shows OnboardingScreen if not.
+class _PostLoginGate extends StatefulWidget {
+  const _PostLoginGate();
+  @override
+  State<_PostLoginGate> createState() => _PostLoginGateState();
+}
+
+class _PostLoginGateState extends State<_PostLoginGate> {
+  bool _checking = true;
+  bool _needsOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPlans();
+  }
+
+  Future<void> _checkPlans() async {
+    final gymId = context.read<AuthProvider>().gymId;
+    if (gymId == null || gymId.isEmpty) {
+      if (mounted) setState(() => _checking = false);
+      return;
+    }
+    try {
+      final plans = await TenantDb.getCollection(gymId, 'plans');
+      if (mounted) {
+        setState(() {
+          _needsOnboarding = plans.isEmpty;
+          _checking = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return Scaffold(
+        backgroundColor: context.c.background,
+        body: const Center(child: KSpinner(size: 40)),
+      );
+    }
+    if (_needsOnboarding) {
+      return OnboardingScreen(
+        onComplete: () => setState(() => _needsOnboarding = false),
+      );
+    }
     return const HomeShell();
   }
 }

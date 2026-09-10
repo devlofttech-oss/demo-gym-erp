@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { getTenantCollection } from './firebase/tenantDb';
 import DashboardLayout from './components/layout/DashboardLayout';
 import RoleRoute from './components/auth/RoleRoute';
 import Login from './pages/Login';
@@ -45,13 +47,31 @@ import TrialList from './pages/super-admin/TrialList';
 import SubscriptionPlans from './pages/super-admin/SubscriptionPlans';
 import FeatureRequests from './pages/super-admin/FeatureRequests';
 import RegisterPage from './pages/RegisterPage';
+import Onboarding from './pages/Onboarding';
 import SubscriptionEnded from './pages/SubscriptionEnded';
 import SubscribePage from './pages/subscription/SubscribePage';
 import PaymentReturn from './pages/subscription/PaymentReturn';
 
 function RoleRedirect() {
-  const { role } = useAuth();
+  const { role, gymId } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [hasPlans, setHasPlans] = useState(true);
+
+  useEffect(() => {
+    if (role !== 'admin' || !gymId) { setChecking(false); return; }
+    getTenantCollection(gymId, 'plans')
+      .then(plans => setHasPlans(plans.length > 0))
+      .catch(() => setHasPlans(true))
+      .finally(() => setChecking(false));
+  }, [gymId, role]);
+
   if (role === 'staff') return <Navigate to="/checkin" replace />;
+  if (checking) return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  if (!hasPlans) return <Navigate to="/onboarding" replace />;
   return <Dashboard />;
 }
 
@@ -68,6 +88,13 @@ export default function App() {
       <Route path="/setup-superadmin" element={<SetupSuperAdmin />} />
       <Route path="/qr/:memberId" element={<MemberQRPage />} />
       <Route path="/receipt/:receiptId" element={<ReceiptPage />} />
+
+      {/* First-login onboarding */}
+      <Route path="/onboarding" element={
+        <RoleRoute allowedRoles={ADMIN}>
+          <Onboarding />
+        </RoleRoute>
+      } />
 
       {/* Standalone scanner kiosk */}
       <Route path="/scanner" element={
