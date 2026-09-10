@@ -222,6 +222,7 @@ class _BottomNavArea extends StatelessWidget {
     final safeBottom = MediaQuery.of(context).padding.bottom;
     // The dock area is 58px dock + 16px top gap + safe area.
     final dockAreaH = 58.0 + 16.0 + safeBottom + 12;
+    final c = context.c;
 
     return SizedBox(
       width: double.infinity,
@@ -231,7 +232,7 @@ class _BottomNavArea extends StatelessWidget {
         children: [
           // ── Quick-action stack — floats above, no height impact ────
           Positioned(
-            right: 16,
+            right: 26,
             bottom: dockAreaH + 8,
             child: IgnorePointer(
               ignoring: !quickOpen,
@@ -271,30 +272,30 @@ class _BottomNavArea extends StatelessWidget {
 
           // ── FAB ────────────────────────────────────────────────────
           Positioned(
-            right: 16,
+            right: 26,
             bottom: safeBottom + 22,
             child: GestureDetector(
               onTap: onFabTap,
               child: Container(
-                width: 52,
-                height: 52,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [KD.dockStart, KD.dockEnd],
+                    colors: [Color(0xFF26232F), KD.dockEnd],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: KD.dockEnd.withValues(alpha: 0.4),
+                      color: const Color(0x66140F2D),
                       blurRadius: 26,
                       offset: const Offset(0, 14),
                     ),
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: c.background,
                       blurRadius: 0,
-                      spreadRadius: 5,
+                      spreadRadius: 6,
                     ),
                   ],
                 ),
@@ -380,7 +381,7 @@ class _FloatingDock extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(29),
         boxShadow: [
-          BoxShadow(color: KD.dockEnd.withValues(alpha: 0.45), blurRadius: 30, offset: const Offset(0, 14)),
+          BoxShadow(color: KD.primaryDeep.withValues(alpha: 0.35), blurRadius: 36, offset: const Offset(0, 18)),
         ],
       ),
       child: Padding(
@@ -475,7 +476,7 @@ class _KilosDrawer extends StatelessWidget {
 
     return Drawer(
       backgroundColor: c.surfaceContainerLowest,
-      width: MediaQuery.of(context).size.width * 0.82,
+      width: MediaQuery.of(context).size.width * 0.80,
       child: SafeArea(
         child: Column(
           children: [
@@ -483,22 +484,43 @@ class _KilosDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 children: [
+                  // Drawer head: brand logo + close
+                  Row(children: [
+                    Container(
+                      width: 30, height: 30,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset('assets/images/kilos_logo.png', fit: BoxFit.contain),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Kilos', style: KText.h3.copyWith(color: c.onSurface, fontSize: 17)),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(
+                          color: c.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(child: Icon(Icons.close, color: c.onSurfaceVariant, size: 14)),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 16),
+
                   // Profile row
                   Row(children: [
-                    InitialAvatar(name: name, size: 42, bg: KD.primaryTint, fg: KD.primary),
+                    InitialAvatar(name: name, size: 40, bg: KD.primaryTint, fg: KD.primary),
                     const SizedBox(width: 12),
                     Expanded(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: KText.h3.copyWith(color: c.onSurface, fontSize: 16)),
+                        Text(name, style: KText.h3.copyWith(color: c.onSurface, fontSize: 14)),
                         Text(auth.role?.toUpperCase() ?? 'ADMIN',
                             style: TextStyle(color: c.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                       ],
                     )),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.close, color: c.onSurfaceVariant, size: 20),
-                    ),
                   ]),
                   const SizedBox(height: 14),
 
