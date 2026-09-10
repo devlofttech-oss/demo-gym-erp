@@ -24,7 +24,7 @@ env:
   #
   # A patch fails with "No release exists for <platform> in release version X"
   # when the value here names a release that was never cut.
-  ANDROID_RELEASE_VERSION: "1.0.4+7"
+  ANDROID_RELEASE_VERSION: "1.0.5+8"
   IOS_RELEASE_VERSION: "1.0.5+8"
 
 jobs:
