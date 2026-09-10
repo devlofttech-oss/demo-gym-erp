@@ -12,6 +12,7 @@ import '../members/add_member_screen.dart';
 
 const _statuses = ['All', 'New', 'Contacted', 'Follow-up', 'Interested', 'Won', 'Lost'];
 const _sources = ['Walk-in', 'Phone', 'WhatsApp', 'Website', 'Referral', 'Other'];
+const _lostReasons = ['Too expensive', 'Joined competitor', 'Not interested anymore', 'Location inconvenient', 'No response', 'Other'];
 
 const _statusColor = {
   'New': TW.blue600,
@@ -102,6 +103,14 @@ class _LeadsScreenState extends State<LeadsScreen> {
   }
 
   int get _followUpTodayCount => _leads.where(_followUpToday).length;
+  int get _wonCount => _leads.where((l) => (l['status'] ?? '') == 'Won').length;
+  int get _thisMonthCount {
+    final now = DateTime.now();
+    return _leads.where((l) {
+      final dt = toDate(l['createdAt']);
+      return dt != null && dt.year == now.year && dt.month == now.month;
+    }).length;
+  }
 
   void _showForm([Map<String, dynamic>? lead]) {
     showModalBottomSheet(
@@ -178,6 +187,20 @@ class _LeadsScreenState extends State<LeadsScreen> {
         onRefresh: _fetch,
         child: CustomScrollView(
           slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(children: [
+                  _LStat('Total', '${_leads.length}', TW.violet600),
+                  const SizedBox(width: 8),
+                  _LStat('This Month', '$_thisMonthCount', TW.blue600),
+                  const SizedBox(width: 8),
+                  _LStat('Won', '$_wonCount', TW.emerald600),
+                  const SizedBox(width: 8),
+                  _LStat('Follow-up', '$_followUpTodayCount', TW.amber600),
+                ]),
+              ),
+            ),
             if (_followUpTodayCount > 0)
               SliverToBoxAdapter(
                 child: Padding(
@@ -224,13 +247,16 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   itemCount: _statuses.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => FilterChip(
-                    label: Text(_statuses[i]),
-                    selected: _tab == i,
-                    onSelected: (_) => setState(() => _tab = i),
-                    showCheckmark: false,
-                  ),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final cnt = i == 0 ? _leads.length : _leads.where((l) => (l['status'] ?? '') == _statuses[i]).length;
+                    return FilterChip(
+                      label: Text('${_statuses[i]} ($cnt)'),
+                      selected: _tab == i,
+                      onSelected: (_) => setState(() => _tab = i),
+                      showCheckmark: false,
+                    );
+                  },
                 ),
               ),
             ),
@@ -241,7 +267,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   itemCount: const ['All', 'Today', 'This Week', 'This Month'].length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
                     const ranges = ['All', 'Today', 'This Week', 'This Month'];
                     return FilterChip(
@@ -262,7 +288,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   itemCount: _sources.length + 1,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
                     final src = i == 0 ? 'All' : _sources[i - 1];
                     return FilterChip(
@@ -350,6 +376,9 @@ class _LeadCard extends StatelessWidget {
     final phone = lead['phone'] as String? ?? '';
     final source = lead['source'] as String? ?? '';
     final followUp = lead['nextFollowUp'] as String? ?? '';
+    final budget = asNum(lead['budget']);
+    final notes = lead['notes'] as String? ?? '';
+    final lostReason = lead['lostReason'] as String? ?? '';
     final canConvert = status == 'Won' || status == 'Interested';
 
     return Padding(
@@ -406,14 +435,26 @@ class _LeadCard extends StatelessWidget {
                       ),
                       if (phone.isNotEmpty)
                         Text(phone, style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                      Wrap(spacing: 8, children: [
+                      Wrap(spacing: 8, runSpacing: 4, children: [
                         if (source.isNotEmpty)
                           Pill(source, bg: TW.slate200, fg: TW.slate500),
+                        if (budget > 0)
+                          Pill('₹${grouped(budget)}', bg: TW.emerald50, fg: TW.emerald700),
+                        if (lostReason.isNotEmpty)
+                          Pill(lostReason, bg: TW.rose50, fg: TW.rose600),
                         if (followUp.isNotEmpty)
                           Text('Follow-up: ${fmtDate(followUp)}',
                               style: KText.bodyMd.copyWith(
                                   color: isFollowUpToday ? TW.amber600 : c.onSurfaceVariant)),
                       ]),
+                      if (notes.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(notes,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: KText.bodyMd.copyWith(color: c.onSurfaceVariant, fontSize: 12)),
+                        ),
                     ],
                   ),
                 ),
@@ -480,8 +521,10 @@ class _LeadFormState extends State<_LeadForm> {
   final _emailCtrl = TextEditingController();
   final _planCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
   String _status = 'New';
   String _source = 'Walk-in';
+  String _lostReason = '';
   String _followUpDate = '';
   bool _saving = false;
 
@@ -497,7 +540,9 @@ class _LeadFormState extends State<_LeadForm> {
       _budgetCtrl.text = asNum(l['budget']) == 0 ? '' : asNum(l['budget']).toString();
       _status = l['status'] ?? 'New';
       _source = l['source'] ?? 'Walk-in';
+      _lostReason = l['lostReason'] ?? '';
       _followUpDate = l['nextFollowUp'] ?? '';
+      _notesCtrl.text = l['notes'] ?? '';
     }
   }
 
@@ -508,6 +553,7 @@ class _LeadFormState extends State<_LeadForm> {
     _emailCtrl.dispose();
     _planCtrl.dispose();
     _budgetCtrl.dispose();
+    _notesCtrl.dispose();
     super.dispose();
   }
 
@@ -535,6 +581,8 @@ class _LeadFormState extends State<_LeadForm> {
       'interestedPlan': _planCtrl.text.trim(),
       'budget': num.tryParse(_budgetCtrl.text) ?? 0,
       'nextFollowUp': _followUpDate,
+      'notes': _notesCtrl.text.trim(),
+      if (_status == 'Lost' && _lostReason.isNotEmpty) 'lostReason': _lostReason,
     };
     try {
       if (widget.lead != null) {
@@ -614,7 +662,7 @@ class _LeadFormState extends State<_LeadForm> {
             Row(children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _status,
+                  initialValue: _status,
                   decoration:
                       const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
                   items: _statuses
@@ -627,7 +675,7 @@ class _LeadFormState extends State<_LeadForm> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _source,
+                  initialValue: _source,
                   decoration:
                       const InputDecoration(labelText: 'Source', border: OutlineInputBorder()),
                   items: _sources
@@ -638,6 +686,16 @@ class _LeadFormState extends State<_LeadForm> {
               ),
             ]),
             const SizedBox(height: 12),
+            if (_status == 'Lost')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: DropdownButtonFormField<String>(
+                  initialValue: _lostReason.isEmpty ? null : _lostReason,
+                  decoration: const InputDecoration(labelText: 'Lost Reason', border: OutlineInputBorder()),
+                  items: _lostReasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                  onChanged: (v) => setState(() => _lostReason = v ?? ''),
+                ),
+              ),
             Row(children: [
               Expanded(
                 child: TextField(
@@ -656,6 +714,12 @@ class _LeadFormState extends State<_LeadForm> {
                 ),
               ),
             ]),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notesCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder(), alignLabelWithHint: true),
+            ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickFollowUp,
@@ -683,6 +747,32 @@ class _LeadFormState extends State<_LeadForm> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _LStat(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(children: [
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 18)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(color: c.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.w500)),
+        ]),
       ),
     );
   }

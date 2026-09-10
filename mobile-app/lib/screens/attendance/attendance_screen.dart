@@ -146,7 +146,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           if (_loading) const KLoading(label: 'Loading attendance...')
           else if (paginated.isEmpty) const KEmpty(icon: MSym.eventBusy, message: 'No check-ins found')
           else _groupedList(paginated),
-          if (!_loading && totalPages > 1) _pagination(totalPages),
+          if (!_loading && totalPages > 1) _pagination(totalPages, filtered.length),
         ],
       ),
     );
@@ -313,13 +313,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _pagination(int totalPages) {
+  Widget _pagination(int totalPages, int total) {
     final c = context.c;
+    final start = (_page - 1) * _pageSize + 1;
+    final end = (_page * _pageSize).clamp(0, total);
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         IconButton(onPressed: _page > 1 ? () => setState(() => _page--) : null, icon: Sym(MSym.chevronLeft, size: 20, color: c.onSurfaceVariant)),
-        Text('Page $_page of $totalPages', style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
+        Text('Showing $start–$end of $total', style: TextStyle(color: c.onSurfaceVariant, fontSize: 13)),
         IconButton(onPressed: _page < totalPages ? () => setState(() => _page++) : null, icon: Sym(MSym.chevronRight, size: 20, color: c.onSurfaceVariant)),
       ]),
     );
