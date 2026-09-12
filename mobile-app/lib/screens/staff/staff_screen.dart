@@ -484,19 +484,19 @@ class _StaffFormState extends State<_StaffForm> {
     final isEdit = widget.staff != null;
     final existingLogin = isEdit && widget.staff!['hasLogin'] == true;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.88,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (_, ctrl) => Container(
         decoration: BoxDecoration(
           color: c.surfaceContainerLowest,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.88,
-          maxChildSize: 0.95,
-          minChildSize: 0.5,
-          builder: (_, ctrl) => ListView(
+        child: Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: ListView(
             controller: ctrl,
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [

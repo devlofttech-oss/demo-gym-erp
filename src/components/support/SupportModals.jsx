@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { createDocument } from '../../firebase/db';
 
 // Kilos support contacts (shared across web + mobile)
-export const SUPPORT_WA_URL    = 'https://wa.me/917012583444';
+export const SUPPORT_WA_URL    = 'https://wa.me/918062181265';
 export const SUPPORT_MAIL_URL  = 'mailto:support@kilos.devlofttech.com';
 
 /**

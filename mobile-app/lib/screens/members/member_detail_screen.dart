@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/actions.dart';
 import '../../services/helpers.dart';
+import '../../constants.dart';
 import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
@@ -67,9 +68,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     }
   }
 
-  static const _kReceiptBase = 'https://gym-erp-demo.web.app';
-
-  String _receiptUrl() => '$_kReceiptBase/receipt/${_m['id'] ?? ''}';
+  String _receiptUrl() => '$kWebAppUrl/receipt/${_m['id'] ?? ''}';
 
   Future<void> _viewReceipt() async {
     final url = Uri.parse(_receiptUrl());
@@ -373,7 +372,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final phone = _m['phone'] as String? ?? '';
     final name = _m['name'] as String? ?? 'there';
     final gymName = (context.read<AuthProvider>().gymData?['name'] as String?) ?? 'our gym';
-    final link = '$_kReceiptBase/qr/$memberId?name=${Uri.encodeComponent(name)}&gym=${Uri.encodeComponent(gymName)}';
+    final link = '$kWebAppUrl/qr/$memberId?name=${Uri.encodeComponent(name)}&gym=${Uri.encodeComponent(gymName)}';
     final msg = 'Hi $name! 👋\nHere\'s your check-in QR code for *$gymName*.\n\n'
         'Tap the link to download your QR:\n$link\n\nShow it at the entrance to check in. 💪';
     if (phone.trim().isEmpty) {

@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/subscription.dart';
@@ -34,12 +37,12 @@ import 'subscription/subscription_screen.dart';
 import 'supplements/supplements_screen.dart';
 import 'workouts/workouts_screen.dart';
 
-const _webAppUrl = 'https://app-kilos.devlofttech.com';
-const _waCreditsUrl = '$_webAppUrl/whatsapp-credits';
+const _waCreditsUrl = '$kWebAppUrl/whatsapp-credits';
 const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym/id6804961729';
 const _androidAppUrl = 'https://play.google.com/store/apps/details?id=com.devloft.kilos';
 const _youtubeUrl = 'https://www.youtube.com/@DevloftTechnologies';
-const _contactWa = 'https://wa.me/917012583444';
+const _contactWa = 'https://wa.me/918062181265';
+const _contactEmail = 'mailto:support@kilos.devlofttech.com';
 
 // ─── Dock items (shown in the floating oval) ────────────────────────────────
 
@@ -73,6 +76,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   int _index = 0;
   bool _quickOpen = false;
+  Widget? _overlay;
   late AnimationController _fabCtrl;
 
   @override
@@ -105,7 +109,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
   void _push(Widget screen) {
     _closeQuick();
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    setState(() => _overlay = screen);
   }
 
   Future<void> _launch(String url) async {
@@ -120,6 +124,15 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     }
   }
 
+  void _showContactSheet(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ContactSheet(onLaunch: _launch),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -127,68 +140,99 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     if (_index >= items.length) _index = 0;
     final c = context.c;
 
-    return Scaffold(
-      backgroundColor: c.background,
-      key: const ValueKey('home_shell'),
-      appBar: _TopBar(auth: auth),
-      drawer: auth.role == 'staff'
-          ? null
-          : _KilosDrawer(
-              auth: auth,
-              onNavTap: (idx) {
-                setState(() => _index = idx);
-                Navigator.of(context).pop();
-              },
-              onPushScreen: _push,
-              onLaunchUrl: _launch,
-              currentIndex: _index,
-            ),
-      body: GestureDetector(
-        onTap: _closeQuick,
-        behavior: HitTestBehavior.translucent,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                const UpdateBanner(),
-                Expanded(
-                  child: IndexedStack(
-                    index: _index,
-                    children: items.map((e) => e.screen).toList(),
-                  ),
-                ),
-                // Reserve space so content isn't hidden behind dock + safe area.
-                SizedBox(height: 96 + MediaQuery.of(context).padding.bottom),
-              ],
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _BottomNavArea(
-                items: items,
-                index: _index,
-                onSelect: (i) => setState(() {
-                  _index = i;
-                  _closeQuick();
-                }),
-                quickOpen: _quickOpen,
-                fabCtrl: _fabCtrl,
-                onFabTap: _toggleQuick,
-                onQuickAction: (action) {
-                  _closeQuick();
-                  switch (action) {
-                    case _QuickAction.addMember:
-                      _push(const AddMemberScreen());
-                    case _QuickAction.checkin:
-                      setState(() => _index = auth.role == 'staff' ? 0 : 3);
-                    case _QuickAction.recordPayment:
-                      _push(const PaymentScreen());
-                  }
+    return PopScope(
+      canPop: _overlay == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _overlay != null) setState(() => _overlay = null);
+      },
+      child: Scaffold(
+        backgroundColor: c.background,
+        key: const ValueKey('home_shell'),
+        appBar: _TopBar(
+          auth: auth,
+          onBack: _overlay != null ? () => setState(() => _overlay = null) : null,
+        ),
+        drawer: auth.role == 'staff'
+            ? null
+            : _KilosDrawer(
+                auth: auth,
+                onNavTap: (idx) {
+                  setState(() { _index = idx; _overlay = null; });
+                  Navigator.of(context).pop();
                 },
+                onPushScreen: _push,
+                onLaunchUrl: _launch,
+                onContactUs: () => _showContactSheet(context),
+                currentIndex: _index,
               ),
-            ),
-          ],
+        body: GestureDetector(
+          onTap: _closeQuick,
+          behavior: HitTestBehavior.translucent,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  const UpdateBanner(),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Offstage(
+                          offstage: _overlay != null,
+                          child: IndexedStack(
+                            index: _index,
+                            children: items.map((e) => e.screen).toList(),
+                          ),
+                        ),
+                        if (_overlay != null) _overlay!,
+                      ],
+                    ),
+                  ),
+                  Container(
+                    height: 96 + MediaQuery.of(context).padding.bottom,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [c.background.withValues(alpha: 0), c.background],
+                        stops: const [0.0, 0.5],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _BottomNavArea(
+                  items: items,
+                  index: _index,
+                  onSelect: (i) => setState(() {
+                    _index = i;
+                    _overlay = null;
+                    _closeQuick();
+                  }),
+                  quickOpen: _quickOpen,
+                  fabCtrl: _fabCtrl,
+                  onFabTap: _toggleQuick,
+                  onQuickAction: (action) {
+                    _closeQuick();
+                    switch (action) {
+                      case _QuickAction.addMember:
+                        _push(const AddMemberScreen());
+                      case _QuickAction.checkin:
+                        setState(() {
+                          _index = auth.role == 'staff' ? 0 : 3;
+                          _overlay = null;
+                        });
+                      case _QuickAction.recordPayment:
+                        _push(const PaymentScreen());
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -274,7 +318,7 @@ class _BottomNavArea extends StatelessWidget {
           // ── FAB ────────────────────────────────────────────────────
           Positioned(
             right: 26,
-            bottom: safeBottom + 22,
+            bottom: safeBottom + 80,
             child: GestureDetector(
               onTap: onFabTap,
               child: Container(
@@ -460,6 +504,7 @@ class _KilosDrawer extends StatelessWidget {
   final ValueChanged<int> onNavTap;
   final ValueChanged<Widget> onPushScreen;
   final ValueChanged<String> onLaunchUrl;
+  final VoidCallback onContactUs;
   final int currentIndex;
 
   const _KilosDrawer({
@@ -467,6 +512,7 @@ class _KilosDrawer extends StatelessWidget {
     required this.onNavTap,
     required this.onPushScreen,
     required this.onLaunchUrl,
+    required this.onContactUs,
     required this.currentIndex,
   });
 
@@ -664,23 +710,25 @@ class _KilosDrawer extends StatelessWidget {
                     }),
                     _DrawerNavItem(MSym.language, 'Access web app', () {
                       Navigator.of(context).pop();
-                      onLaunchUrl(_webAppUrl);
+                      onLaunchUrl(kWebAppUrl);
                     }),
-                    _DrawerNavItem(Icons.phone_iphone, 'Download iOS app', () {
-                      Navigator.of(context).pop();
-                      onLaunchUrl(_iosAppUrl);
-                    }),
-                    _DrawerNavItem(Icons.android, 'Download Android app', () {
-                      Navigator.of(context).pop();
-                      onLaunchUrl(_androidAppUrl);
-                    }),
+                    if (!Platform.isIOS)
+                      _DrawerNavItem(Icons.phone_iphone, 'Download iOS app', () {
+                        Navigator.of(context).pop();
+                        onLaunchUrl(_iosAppUrl);
+                      }),
+                    if (!Platform.isAndroid)
+                      _DrawerNavItem(Icons.android, 'Download Android app', () {
+                        Navigator.of(context).pop();
+                        onLaunchUrl(_androidAppUrl);
+                      }),
                     _DrawerNavItem(MSym.playCircle, 'How to use Kilos?', () {
                       Navigator.of(context).pop();
                       onLaunchUrl(_youtubeUrl);
                     }),
                     _DrawerNavItem(MSym.supportAgent, 'Contact us', () {
                       Navigator.of(context).pop();
-                      onLaunchUrl(_contactWa);
+                      onContactUs();
                     }),
                     _DrawerNavItem(MSym.settings, 'Settings', () {
                       Navigator.of(context).pop();
@@ -701,6 +749,49 @@ class _KilosDrawer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ContactSheet extends StatelessWidget {
+  final Future<void> Function(String) onLaunch;
+  const _ContactSheet({required this.onLaunch});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surfaceContainerLowest,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 36, height: 4, decoration: BoxDecoration(color: c.outlineVariant, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 20),
+        const Sym(MSym.supportAgent, size: 36, color: TW.emerald600),
+        const SizedBox(height: 12),
+        Text('Contact Us', style: KText.h2.copyWith(color: c.onSurface)),
+        const SizedBox(height: 6),
+        Text("We're here to help", style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+        const SizedBox(height: 20),
+        Row(children: [
+          Expanded(child: FilledButton.icon(
+            onPressed: () { Navigator.pop(context); onLaunch(_contactWa); },
+            icon: const Sym(MSym.chat, size: 18),
+            label: const Text('WhatsApp'),
+            style: FilledButton.styleFrom(backgroundColor: TW.emerald600, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+          )),
+          const SizedBox(width: 12),
+          Expanded(child: OutlinedButton.icon(
+            onPressed: () { Navigator.pop(context); onLaunch(_contactEmail); },
+            icon: const Sym(MSym.sms, size: 18),
+            label: const Text('Mail Us'),
+            style: OutlinedButton.styleFrom(foregroundColor: c.onSurface, padding: const EdgeInsets.symmetric(vertical: 14)),
+          )),
+        ]),
+        const SizedBox(height: 16),
+      ]),
     );
   }
 }
@@ -820,7 +911,8 @@ class _DrawerLogoutRow extends StatelessWidget {
 
 class _TopBar extends StatelessWidget implements PreferredSizeWidget {
   final AuthProvider auth;
-  const _TopBar({required this.auth});
+  final VoidCallback? onBack;
+  const _TopBar({required this.auth, this.onBack});
   @override
   Size get preferredSize => const Size.fromHeight(56);
 
@@ -829,6 +921,7 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
     final c = context.c;
     final theme = context.watch<ThemeProvider>();
     final isAdmin = auth.role != 'staff';
+    final inOverlay = onBack != null;
 
     return AppBar(
       backgroundColor: c.surfaceContainerLowest,
@@ -836,15 +929,20 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       centerTitle: true,
       leadingWidth: 52,
-      leading: isAdmin
-          ? Builder(builder: (ctx) => IconButton(
-                icon: Sym(MSym.menu, size: 22, color: c.onSurface),
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
-              ))
-          : Padding(
-              padding: const EdgeInsets.only(left: 14),
-              child: Image.asset('assets/images/kilos_logo.png', width: 30, height: 30),
-            ),
+      leading: inOverlay
+          ? IconButton(
+              icon: Sym(MSym.arrowBack, size: 22, color: c.onSurface),
+              onPressed: onBack,
+            )
+          : isAdmin
+              ? Builder(builder: (ctx) => IconButton(
+                    icon: Sym(MSym.menu, size: 22, color: c.onSurface),
+                    onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  ))
+              : Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: Image.asset('assets/images/kilos_logo.png', width: 30, height: 30),
+                ),
       title: auth.isMultiBranch
           ? _BranchSwitcher(auth: auth)
           : Column(
@@ -857,6 +955,11 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
               ],
             ),
       actions: [
+        if (inOverlay && isAdmin)
+          Builder(builder: (ctx) => IconButton(
+            icon: Sym(MSym.menu, size: 22, color: c.onSurface),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          )),
         IconButton(
           onPressed: theme.toggle,
           icon: Sym(theme.isDark ? MSym.lightMode : MSym.darkMode, size: 22, color: c.onSurfaceVariant),

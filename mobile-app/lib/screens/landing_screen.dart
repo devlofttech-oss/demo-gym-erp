@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
 const _registerUrl = 'https://app-kilos.devlofttech.com/register';
-const _contactWaUrl = 'https://wa.me/917012583444';
+const _contactWaUrl = 'https://wa.me/918062181265';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});

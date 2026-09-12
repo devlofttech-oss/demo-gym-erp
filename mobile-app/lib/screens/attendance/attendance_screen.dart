@@ -118,7 +118,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final totalPages = (filtered.length / _pageSize).ceil();
     final paginated = filtered.skip((_page - 1) * _pageSize).take(_pageSize).toList();
 
-    return RefreshIndicator(
+    return Scaffold(
+      backgroundColor: c.background,
+      body: RefreshIndicator(
       onRefresh: () async { setState(() => _loading = true); await _fetch(); },
       child: ListView(
         padding: const EdgeInsets.all(KSpace.gutter),
@@ -149,6 +151,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           if (!_loading && totalPages > 1) _pagination(totalPages, filtered.length),
         ],
       ),
+    ),
     );
   }
 

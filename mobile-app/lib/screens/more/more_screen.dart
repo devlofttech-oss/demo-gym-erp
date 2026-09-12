@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
@@ -22,12 +25,11 @@ import '../staff/staff_screen.dart';
 import '../supplements/supplements_screen.dart';
 import '../workouts/workouts_screen.dart';
 
-const _webAppUrl = 'https://app-kilos.devlofttech.com';
-const _subscriptionUrl = '$_webAppUrl/subscription';
-const _waCreditsUrl = '$_webAppUrl/whatsapp-credits';
+const _subscriptionUrl = '$kWebAppUrl/subscription';
+const _waCreditsUrl = '$kWebAppUrl/whatsapp-credits';
 const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym-management/id6739598737';
 const _youtubeUrl = 'https://www.youtube.com/@DevloftTechnologies';
-const _contactWa = 'https://wa.me/917012583444';
+const _contactWa = 'https://wa.me/918062181265';
 const _contactEmail = 'mailto:support@kilos.devlofttech.com';
 
 class MoreScreen extends StatefulWidget {
@@ -130,15 +132,17 @@ class _MoreScreenState extends State<MoreScreen> {
           padding: EdgeInsets.zero,
           child: Column(
             children: [
-              _LinkTile(MSym.gridView, 'Access Web App', 'Manage your gym on desktop', TW.blue600, () => _launch(_webAppUrl)),
+              _LinkTile(MSym.gridView, 'Access Web App', 'Manage your gym on desktop', TW.blue600, () => _launch(kWebAppUrl)),
               _divider(c),
               _LinkTile(MSym.personAdd, 'Bulk Import Members', 'Import members from a spreadsheet', TW.emerald600, _showBulkImport),
               _divider(c),
               _LinkTile(MSym.autorenew, 'Buy / Renew Plan', 'Manage your subscription on web', TW.violet600, () => _launch(_subscriptionUrl)),
               _divider(c),
               _LinkTile(MSym.payments, 'Purchase WhatsApp Credits', 'Buy credits via web', TW.emerald600, () => _launch(_waCreditsUrl)),
-              _divider(c),
-              _LinkTile(MSym.store, 'Download iOS App', 'Get Kilos on iPhone', TW.slate700, () => _launch(_iosAppUrl)),
+              if (!Platform.isIOS) ...[
+                _divider(c),
+                _LinkTile(MSym.store, 'Download iOS App', 'Get Kilos on iPhone', TW.slate700, () => _launch(_iosAppUrl)),
+              ],
               _divider(c),
               _LinkTile(MSym.schedule, 'How to Use Kilos?', 'Video tutorials', TW.violet600, _showHowToUse),
               _divider(c),
