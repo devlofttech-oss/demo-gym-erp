@@ -746,7 +746,7 @@ export default function PaymentsList() {
       {messageMember && (
         <SendWhatsAppModal
           gymId={gymId}
-          type={messageMember.expiryDate && new Date(messageMember.expiryDate) < new Date() ? 'renewal' : 'payment'}
+          type={activeTab === 'expired' ? 'renewal' : 'payment'}
           recipients={[messageMember]}
           extra={{ amount: messageMember.balanceFees }}
           recipientLabel={`${messageMember.name} · ${messageMember.phone}`}

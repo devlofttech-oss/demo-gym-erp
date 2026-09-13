@@ -211,11 +211,11 @@ export default function SubscribePage() {
       >
         {paying
           ? <><span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Starting…</>
-          : `Pay ₹${Number(plans.find(p => p.id === selected)?.priceInr || 0).toLocaleString('en-IN')} with PhonePe`}
+          : `Pay ₹${Number(plans.find(p => p.id === selected)?.priceInr || 0).toLocaleString('en-IN')}`}
       </button>
 
       <p className="text-xs text-on-surface-variant">
-        Secure UPI, card and netbanking via PhonePe. You'll come back here once the payment finishes.
+        Secure UPI, card and netbanking. You'll come back here once the payment finishes.
       </p>
     </div>
   );
