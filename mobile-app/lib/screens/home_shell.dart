@@ -300,9 +300,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   }
 }
 
-// ─── Bottom nav area (dock + FAB + quick stack) ─────────────────────────────
-
-enum _QuickAction { addMember, checkin, recordPayment }
+// ─── Bottom nav area (dock) ─────────────────────────────────────────────────
 
 class _BottomNavArea extends StatelessWidget {
   final List<_DockItem> items;
@@ -320,7 +318,6 @@ class _BottomNavArea extends StatelessWidget {
     final safeBottom = MediaQuery.of(context).padding.bottom;
     // The dock area is 58px dock + 16px top gap + safe area.
     final dockAreaH = 58.0 + 16.0 + safeBottom + 12;
-    final c = context.c;
 
     return SizedBox(
       width: double.infinity,
