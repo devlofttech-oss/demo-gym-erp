@@ -346,7 +346,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (_loading)
             const KLoading(label: 'Loading attendance...')
           else if (_todayAttendance.isEmpty)
-            const KEmpty(icon: MSym.eventBusy, message: 'No check-ins recorded today yet.')
+            const Center(child: KEmpty(icon: MSym.eventBusy, message: 'No check-ins recorded today yet.'))
           else ...[
             ..._todayAttendance.take(5).map((a) => _attRow(a)),
             if (_todayAttendance.length > 5) ...[

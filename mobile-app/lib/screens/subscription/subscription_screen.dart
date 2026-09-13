@@ -231,12 +231,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
                       : const Sym(MSym.shoppingCart, size: 20),
                   label: Text(_busy
                       ? 'Starting…'
-                      : 'Pay ₹${plan?.priceInr ?? 0} with PhonePe'),
+                      : 'Pay ₹${plan?.priceInr ?? 0}'),
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Secure UPI, card and netbanking via PhonePe. '
+                  'Secure UPI, card and netbanking. '
                   'Renewing early adds to the time you already have.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 11, color: c.onSurfaceVariant),

@@ -117,10 +117,6 @@ class _StaffScreenState extends State<StaffScreen> {
       appBar: AppBar(
         backgroundColor: c.background,
         elevation: 0,
-        leading: IconButton(
-          icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Text('Staff', style: KText.h3.copyWith(color: c.onSurface)),
         actions: [
           IconButton(

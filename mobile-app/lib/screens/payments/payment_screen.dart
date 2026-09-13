@@ -190,7 +190,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       appBar: AppBar(
         backgroundColor: c.background,
         elevation: 0,
-        leading: IconButton(icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface), onPressed: () => Navigator.pop(context)),
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text('Record Payment', style: KText.h3.copyWith(color: c.onSurface)),
           Text('Process a payment and activate the member plan', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),

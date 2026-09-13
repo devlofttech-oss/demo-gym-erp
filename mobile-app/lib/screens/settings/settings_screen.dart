@@ -190,10 +190,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: c.background,
         elevation: 0,
-        leading: IconButton(
-          icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Text('Settings', style: KText.h3.copyWith(color: c.onSurface)),
         actions: [
           if (!_loading)

@@ -148,10 +148,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
       child: Scaffold(
         backgroundColor: c.background,
         key: const ValueKey('home_shell'),
-        appBar: _TopBar(
-          auth: auth,
-          onBack: _overlay != null ? () => setState(() => _overlay = null) : null,
-        ),
+        appBar: _TopBar(auth: auth),
         drawer: auth.role == 'staff'
             ? null
             : _KilosDrawer(
@@ -212,23 +209,87 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                     _overlay = null;
                     _closeQuick();
                   }),
-                  quickOpen: _quickOpen,
-                  fabCtrl: _fabCtrl,
-                  onFabTap: _toggleQuick,
-                  onQuickAction: (action) {
-                    _closeQuick();
-                    switch (action) {
-                      case _QuickAction.addMember:
-                        _push(const AddMemberScreen());
-                      case _QuickAction.checkin:
-                        setState(() {
-                          _index = auth.role == 'staff' ? 0 : 3;
-                          _overlay = null;
-                        });
-                      case _QuickAction.recordPayment:
-                        _push(const PaymentScreen());
-                    }
-                  },
+                ),
+              ),
+              // ── Quick-action stack ──────────────────────────────────
+              Positioned(
+                right: 26,
+                bottom: MediaQuery.of(context).padding.bottom + 158,
+                child: IgnorePointer(
+                  ignoring: !_quickOpen,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _quickOpen ? 1 : 0,
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 200),
+                      offset: _quickOpen ? Offset.zero : const Offset(0, 0.12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _QuickBtn(
+                            icon: MSym.personAdd,
+                            label: 'Add member',
+                            onTap: () { _closeQuick(); _push(const AddMemberScreen()); },
+                          ),
+                          const SizedBox(height: 10),
+                          _QuickBtn(
+                            icon: MSym.qrCodeScanner,
+                            label: 'Scan check-in',
+                            onTap: () {
+                              _closeQuick();
+                              setState(() { _index = auth.role == 'staff' ? 0 : 3; _overlay = null; });
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          _QuickBtn(
+                            icon: MSym.payments,
+                            label: 'Record payment',
+                            onTap: () { _closeQuick(); _push(const PaymentScreen()); },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // ── FAB ────────────────────────────────────────────────
+              Positioned(
+                right: 26,
+                bottom: MediaQuery.of(context).padding.bottom + 80,
+                child: GestureDetector(
+                  onTap: _toggleQuick,
+                  child: Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF26232F), KD.dockEnd],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0x66140F2D),
+                          blurRadius: 26,
+                          offset: const Offset(0, 14),
+                        ),
+                        BoxShadow(
+                          color: c.background,
+                          blurRadius: 0,
+                          spreadRadius: 6,
+                        ),
+                      ],
+                    ),
+                    child: AnimatedBuilder(
+                      animation: _fabCtrl,
+                      builder: (_, _) => Transform.rotate(
+                        angle: _fabCtrl.value * 0.785398,
+                        child: const Icon(Icons.add, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -247,19 +308,11 @@ class _BottomNavArea extends StatelessWidget {
   final List<_DockItem> items;
   final int index;
   final ValueChanged<int> onSelect;
-  final bool quickOpen;
-  final AnimationController fabCtrl;
-  final VoidCallback onFabTap;
-  final ValueChanged<_QuickAction> onQuickAction;
 
   const _BottomNavArea({
     required this.items,
     required this.index,
     required this.onSelect,
-    required this.quickOpen,
-    required this.fabCtrl,
-    required this.onFabTap,
-    required this.onQuickAction,
   });
 
   @override
@@ -275,86 +328,6 @@ class _BottomNavArea extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // ── Quick-action stack — floats above, no height impact ────
-          Positioned(
-            right: 26,
-            bottom: dockAreaH + 8,
-            child: IgnorePointer(
-              ignoring: !quickOpen,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: quickOpen ? 1 : 0,
-                child: AnimatedSlide(
-                  duration: const Duration(milliseconds: 200),
-                  offset: quickOpen ? Offset.zero : const Offset(0, 0.12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _QuickBtn(
-                        icon: MSym.personAdd,
-                        label: 'Add member',
-                        onTap: () => onQuickAction(_QuickAction.addMember),
-                      ),
-                      const SizedBox(height: 10),
-                      _QuickBtn(
-                        icon: MSym.qrCodeScanner,
-                        label: 'Scan check-in',
-                        onTap: () => onQuickAction(_QuickAction.checkin),
-                      ),
-                      const SizedBox(height: 10),
-                      _QuickBtn(
-                        icon: MSym.payments,
-                        label: 'Record payment',
-                        onTap: () => onQuickAction(_QuickAction.recordPayment),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ── FAB ────────────────────────────────────────────────────
-          Positioned(
-            right: 26,
-            bottom: safeBottom + 80,
-            child: GestureDetector(
-              onTap: onFabTap,
-              child: Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF26232F), KD.dockEnd],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0x66140F2D),
-                      blurRadius: 26,
-                      offset: const Offset(0, 14),
-                    ),
-                    BoxShadow(
-                      color: c.background,
-                      blurRadius: 0,
-                      spreadRadius: 6,
-                    ),
-                  ],
-                ),
-                child: AnimatedBuilder(
-                  animation: fabCtrl,
-                  builder: (_, _) => Transform.rotate(
-                    angle: fabCtrl.value * 0.785398,
-                    child: const Icon(Icons.add, color: Colors.white, size: 22),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
           // ── Oval dock ──────────────────────────────────────────────
           Positioned(
             left: 0,
@@ -911,8 +884,7 @@ class _DrawerLogoutRow extends StatelessWidget {
 
 class _TopBar extends StatelessWidget implements PreferredSizeWidget {
   final AuthProvider auth;
-  final VoidCallback? onBack;
-  const _TopBar({required this.auth, this.onBack});
+  const _TopBar({required this.auth});
   @override
   Size get preferredSize => const Size.fromHeight(56);
 
@@ -921,7 +893,6 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
     final c = context.c;
     final theme = context.watch<ThemeProvider>();
     final isAdmin = auth.role != 'staff';
-    final inOverlay = onBack != null;
 
     return AppBar(
       backgroundColor: c.surfaceContainerLowest,
@@ -929,12 +900,7 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       centerTitle: true,
       leadingWidth: 52,
-      leading: inOverlay
-          ? IconButton(
-              icon: Sym(MSym.arrowBack, size: 22, color: c.onSurface),
-              onPressed: onBack,
-            )
-          : isAdmin
+      leading: isAdmin
               ? Builder(builder: (ctx) => IconButton(
                     icon: Sym(MSym.menu, size: 22, color: c.onSurface),
                     onPressed: () => Scaffold.of(ctx).openDrawer(),
@@ -955,11 +921,6 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
               ],
             ),
       actions: [
-        if (inOverlay && isAdmin)
-          Builder(builder: (ctx) => IconButton(
-            icon: Sym(MSym.menu, size: 22, color: c.onSurface),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          )),
         IconButton(
           onPressed: theme.toggle,
           icon: Sym(theme.isDark ? MSym.lightMode : MSym.darkMode, size: 22, color: c.onSurfaceVariant),

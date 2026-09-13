@@ -302,7 +302,6 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
       appBar: AppBar(
         backgroundColor: c.background,
         elevation: 0,
-        leading: IconButton(icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface), onPressed: () => Navigator.pop(context)),
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text('Add New Member', style: KText.h3.copyWith(color: c.onSurface)),
           Text('Register a member and record their first payment', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
