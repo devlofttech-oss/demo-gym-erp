@@ -47,6 +47,11 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    // Resolving role, gym and branches takes several reads. Report busy for the
+    // duration so the gate holds its spinner instead of dropping back to the
+    // landing screen while an already-signed-in user is still being resolved.
+    loading = true;
+    notifyListeners();
     try {
       final userDoc = await TenantDb.getTopDocument('users', user.uid);
       if (userDoc == null || userDoc['role'] == 'deleted') {
@@ -81,10 +86,14 @@ class AuthProvider extends ChangeNotifier {
 
         if (allGymIds.isNotEmpty) {
           final docs = await Future.wait(
-              allGymIds.map((id) => TenantDb.getTopDocument('gyms', id)));
+            allGymIds.map((id) => TenantDb.getTopDocument('gyms', id)),
+          );
           gymBranches = [
             for (var i = 0; i < allGymIds.length; i++)
-              Branch(allGymIds[i], (docs[i]?['name'] as String?) ?? 'Branch ${i + 1}')
+              Branch(
+                allGymIds[i],
+                (docs[i]?['name'] as String?) ?? 'Branch ${i + 1}',
+              ),
           ];
           final activeIdx = allGymIds.indexOf(resolvedActiveId ?? '');
           final activeGym = activeIdx >= 0 ? docs[activeIdx] : docs.first;
@@ -97,7 +106,8 @@ class AuthProvider extends ChangeNotifier {
           inactiveGymError = false;
         }
         role = userRole;
-        userName = (userDoc['name'] as String?) ??
+        userName =
+            (userDoc['name'] as String?) ??
             user.displayName ??
             user.email?.split('@').first ??
             '';
@@ -140,7 +150,9 @@ class AuthProvider extends ChangeNotifier {
       });
       final newId = newGym['id'] as String;
       final updatedIds = [...gymIds, newId];
-      await TenantDb.updateRootDocument('users', user.uid, {'gymIds': updatedIds});
+      await TenantDb.updateRootDocument('users', user.uid, {
+        'gymIds': updatedIds,
+      });
       await TenantDb.setRootDocument('gyms/$newId/settings', 'general', {
         'gymInfo': {'name': name.trim()},
       });

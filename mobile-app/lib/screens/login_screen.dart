@@ -33,13 +33,25 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
       _loading = true;
     });
+    final navigator = Navigator.of(context);
     try {
-      await context.read<AuthProvider>().login(_email.text.trim(), _password.text);
-    } catch (e) {
-      setState(() => _error = 'Invalid credentials. Please try again.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      await context.read<AuthProvider>().login(
+        _email.text.trim(),
+        _password.text,
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Invalid credentials. Please try again.';
+          _loading = false;
+        });
+      }
+      return;
     }
+    // AuthGate sits at the root and swaps in the dashboard as soon as a user is
+    // signed in. This screen was pushed on top of it, so without popping back
+    // the login form stays put and hides the app that just signed in.
+    navigator.popUntil((r) => r.isFirst);
   }
 
   InputDecoration _dec(String hint) {
@@ -77,8 +89,16 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: BoxDecoration(
                 color: c.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3)),
-                boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 40, offset: Offset(0, 20))],
+                border: Border.all(
+                  color: c.outlineVariant.withValues(alpha: 0.3),
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 40,
+                    offset: Offset(0, 20),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -93,24 +113,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text('Kilos',
-                      textAlign: TextAlign.center,
-                      style: KText.h1.copyWith(color: c.onSurface, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  Text('by Devloft Technologies',
-                      textAlign: TextAlign.center,
-                      style: KText.bodyMd.copyWith(color: c.primary, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 12),
-                  Text('Sign in to your management dashboard',
-                      textAlign: TextAlign.center,
-                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                  const SizedBox(height: 28),
-                  if (auth.inactiveGymError) _banner(
-                    c.errorContainer.withValues(alpha: 0.4),
-                    TW.amber800,
-                    'Your gym account is currently inactive. Please contact support.',
+                  Text(
+                    'Kilos',
+                    textAlign: TextAlign.center,
+                    style: KText.h1.copyWith(
+                      color: c.onSurface,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  if (_error != null) _banner(c.errorContainer, c.onErrorContainer, _error!),
+                  const SizedBox(height: 4),
+                  Text(
+                    'by Devloft Technologies',
+                    textAlign: TextAlign.center,
+                    style: KText.bodyMd.copyWith(
+                      color: c.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sign in to your management dashboard',
+                    textAlign: TextAlign.center,
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 28),
+                  if (auth.inactiveGymError)
+                    _banner(
+                      c.errorContainer.withValues(alpha: 0.4),
+                      TW.amber800,
+                      'Your gym account is currently inactive. Please contact support.',
+                    ),
+                  if (_error != null)
+                    _banner(c.errorContainer, c.onErrorContainer, _error!),
                   _label('Email address'),
                   const SizedBox(height: 6),
                   TextField(
@@ -130,9 +164,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onSubmitted: (_) => _submit(),
                     decoration: _dec('••••••••').copyWith(
                       suffixIcon: IconButton(
-                        icon: Sym(_showPassword ? MSym.visibilityOff : MSym.visibility,
-                            size: 20, color: c.onSurfaceVariant),
-                        onPressed: () => setState(() => _showPassword = !_showPassword),
+                        icon: Sym(
+                          _showPassword ? MSym.visibilityOff : MSym.visibility,
+                          size: 20,
+                          color: c.onSurfaceVariant,
+                        ),
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
                       ),
                     ),
                   ),
@@ -144,7 +182,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: c.primary,
                         foregroundColor: c.onPrimary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _loading
                           ? const KSpinner(size: 22, color: Colors.white)
@@ -153,7 +193,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 Sym(MSym.login, size: 20, color: c.onPrimary),
                                 const SizedBox(width: 8),
-                                const Text('Sign In', style: TextStyle(fontWeight: FontWeight.w700)),
+                                const Text(
+                                  'Sign In',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
                               ],
                             ),
                     ),
@@ -161,9 +204,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 28),
                   Opacity(
                     opacity: 0.7,
-                    child: Text('Developed by DevLoft Tech',
-                        textAlign: TextAlign.center,
-                        style: KText.labelCaps.copyWith(color: c.onSurfaceVariant, fontWeight: FontWeight.w400)),
+                    child: Text(
+                      'Developed by DevLoft Tech',
+                      textAlign: TextAlign.center,
+                      style: KText.labelCaps.copyWith(
+                        color: c.onSurfaceVariant,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -174,13 +222,26 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _label(String t) => Text(t, style: KText.bodyMd.copyWith(color: context.c.onSurface, fontWeight: FontWeight.w600));
+  Widget _label(String t) => Text(
+    t,
+    style: KText.bodyMd.copyWith(
+      color: context.c.onSurface,
+      fontWeight: FontWeight.w600,
+    ),
+  );
 
   Widget _banner(Color bg, Color fg, String msg) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-        child: Text(msg, textAlign: TextAlign.center, style: TextStyle(color: fg, fontWeight: FontWeight.w500, fontSize: 14)),
-      );
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 20),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      msg,
+      textAlign: TextAlign.center,
+      style: TextStyle(color: fg, fontWeight: FontWeight.w500, fontSize: 14),
+    ),
+  );
 }
