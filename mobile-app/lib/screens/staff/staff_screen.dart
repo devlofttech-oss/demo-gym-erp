@@ -14,6 +14,9 @@ import '../../widgets/common.dart';
 const _roles = ['All', 'Trainer', 'Staff', 'Manager', 'Receptionist'];
 
 /// Web stores commissionPercent; older mobile builds stored `commission`.
+String _generateQrId() =>
+    'staff_${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
+
 num _staffCommission(Map<String, dynamic> s) =>
     asNum(s['commissionPercent']) > 0
     ? asNum(s['commissionPercent'])
@@ -545,11 +548,12 @@ class _StaffFormState extends State<_StaffForm> {
         );
         staffDocId = widget.staff!['id'] as String;
       } else {
-        final created = await TenantDb.createDocument(
-          widget.gymId,
-          'staff',
-          data,
-        );
+        final created = await TenantDb.createDocument(widget.gymId, 'staff', {
+          ...data,
+          // Web stamps this on create and both check-in scanners match on it
+          // before falling back to the document id.
+          'qrId': _generateQrId(),
+        });
         staffDocId = created['id'] as String;
       }
 

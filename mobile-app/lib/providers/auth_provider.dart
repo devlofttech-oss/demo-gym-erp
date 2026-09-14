@@ -198,7 +198,16 @@ class AuthProvider extends ChangeNotifier {
         'gymIds': updatedIds,
       });
       await TenantDb.setRootDocument('gyms/$newId/settings', 'general', {
-        'gymInfo': {'name': name.trim()},
+        'gymInfo': {
+          'name': name.trim(),
+          'location': '',
+          'contact': '',
+          'email': '',
+          'website': '',
+          'gstNumber': '',
+          'openingHours': '',
+          'instagram': '',
+        },
       });
       gymIds = updatedIds;
       gymBranches = [...gymBranches, Branch(newId, name.trim())];

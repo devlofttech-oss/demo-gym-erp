@@ -751,11 +751,16 @@ class _LeadFormState extends State<_LeadForm> {
       'status': _status,
       'source': _source,
       'interestedPlan': _planCtrl.text.trim(),
-      'budget': num.tryParse(_budgetCtrl.text) ?? 0,
+      // Web writes null for a blank budget so the field renders empty rather
+      // than as a literal 0.
+      'budget': _budgetCtrl.text.trim().isEmpty
+          ? null
+          : num.tryParse(_budgetCtrl.text),
       'nextFollowUp': _followUpDate,
       'notes': _notesCtrl.text.trim(),
-      if (_status == 'lost' && _lostReason.isNotEmpty)
-        'lostReason': _lostReason,
+      // Always written, as web does — writing it only for lost leads left a
+      // stale reason behind when a lead moved on to another status.
+      'lostReason': _status == 'lost' ? _lostReason : '',
     };
     try {
       if (widget.lead != null) {

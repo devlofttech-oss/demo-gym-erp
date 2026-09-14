@@ -506,9 +506,15 @@ class _WorkoutFormState extends State<_WorkoutForm> {
         .map(
           (e) => {
             'name': e.nameCtrl.text.trim(),
-            'sets': int.tryParse(e.setsCtrl.text) ?? 0,
-            'reps': int.tryParse(e.repsCtrl.text) ?? 0,
-            'restSeconds': int.tryParse(e.restCtrl.text) ?? 0,
+            'sets': e.setsCtrl.text.trim().isEmpty
+                ? null
+                : int.tryParse(e.setsCtrl.text),
+            'reps': e.repsCtrl.text.trim().isEmpty
+                ? null
+                : int.tryParse(e.repsCtrl.text),
+            'restSeconds': e.restCtrl.text.trim().isEmpty
+                ? null
+                : int.tryParse(e.restCtrl.text),
             'notes': e.notesCtrl.text.trim(),
           },
         )
@@ -520,8 +526,8 @@ class _WorkoutFormState extends State<_WorkoutForm> {
       'durationMinutes': int.tryParse(_durationCtrl.text) ?? 0,
       'daysPerWeek': int.tryParse(_daysCtrl.text) ?? 0,
       'description': _descCtrl.text.trim(),
-      'assignedMemberId': _memberId ?? '',
-      'assignedMemberName': _memberName,
+      'assignedMemberId': _memberId,
+      'assignedMemberName': _memberId == null ? null : _memberName,
       'exercises': exercisesData,
     };
     try {

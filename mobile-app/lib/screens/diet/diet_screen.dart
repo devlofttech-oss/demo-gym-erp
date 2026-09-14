@@ -629,8 +629,8 @@ class _DietFormState extends State<_DietForm> {
       'carbs': double.tryParse(_carbsCtrl.text) ?? 0,
       'fat': double.tryParse(_fatCtrl.text) ?? 0,
       'description': _descCtrl.text.trim(),
-      'assignedMemberId': _memberId ?? '',
-      'assignedMemberName': _memberName,
+      'assignedMemberId': _memberId,
+      'assignedMemberName': _memberId == null ? null : _memberName,
       'meals': mealsData,
     };
     try {

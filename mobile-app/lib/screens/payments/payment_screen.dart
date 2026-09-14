@@ -188,8 +188,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'expiryDate': _expiryDate,
         'totalFees': effectiveTotal,
         'originalFees': _totalFees,
-        if (_discountAmt > 0) 'discountAmount': _discountAmt,
-        if (_discountPct > 0) 'discountPercent': _discountPct,
+        if (_discountAmt > 0) ...{
+          'discountAmount': _discountAmt,
+          'discountPercent': _discountPct,
+        },
         'paidAmount': _paidNum,
         'amount': _paidNum,
         'balanceFees': newBalance,
