@@ -10,6 +10,7 @@ import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import MeasurementForm from '../measurements/MeasurementForm';
 import { shareQrOnWhatsApp } from '../../utils/memberQr';
 import { unfreezePatch } from '../../utils/membership';
+import { gymInfo as resolveGymInfo } from '../../utils/compat';
 import { publishReceipt, openReceiptWhatsApp } from '../../utils/receiptShare';
 import { openWhatsApp } from '../../utils/whatsapp';
 
@@ -113,7 +114,7 @@ function ConfirmModal({ title, message, confirmLabel = 'Delete', confirmClass = 
 export default function MemberProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { gymId } = useAuth();
+  const { gymId, gymData } = useAuth();
   const [member, setMember] = useState(null);
   const [payments, setPayments] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -322,7 +323,7 @@ export default function MemberProfile() {
           getTenantDocument(gymId, 'settings', 'general'),
         ]);
         setMember(profileData);
-        if (settingsDoc?.gymInfo) setGymInfo(settingsDoc.gymInfo);
+        setGymInfo(resolveGymInfo(settingsDoc, gymData));
         const paymentsData = await getTenantCollection(gymId, 'payments', [{ field: 'memberId', op: '==', value: id }]);
         setPayments(paymentsData.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
 
@@ -341,7 +342,7 @@ export default function MemberProfile() {
       }
     };
     if (id) fetchData();
-  }, [id]);
+  }, [id, gymId, gymData]);
 
   // ── Freeze / Unfreeze ────────────────────────────────────────────────────
   const handleFreeze = async () => {

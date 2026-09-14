@@ -7,6 +7,7 @@ import { firebaseConfig } from '../../firebase/config';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import toast from 'react-hot-toast';
+import { certifications, commissionType, commissionPercent, staffAuthUid } from '../../utils/compat';
 
 const ROLES = ['Trainer', 'Staff', 'Manager', 'Receptionist'];
 const EMPTY_FORM = {
@@ -271,8 +272,9 @@ export default function StaffList() {
     try {
       const staffMember = staff.find(s => s.id === id);
       await deleteTenantDocument(gymId, 'staff', id);
-      if (staffMember?.authUid) {
-        await deleteDocumentFlat('users', staffMember.authUid);
+      const uid = staffAuthUid(staffMember);
+      if (uid) {
+        await deleteDocumentFlat('users', uid);
       }
       toast.success('Staff member deleted');
       setDeletingId(null);
@@ -483,9 +485,9 @@ export default function StaffList() {
           initial={{ name: editingStaff.name, role: editingStaff.role, phone: editingStaff.phone,
             email: editingStaff.email || '', address: editingStaff.address || '',
             joiningDate: editingStaff.joiningDate || '', salary: editingStaff.salary || '', photoUrl: editingStaff.photoUrl || '',
-            certifications: editingStaff.certifications || '', commissionType: editingStaff.commissionType || 'salary',
-            commissionPercent: editingStaff.commissionPercent || '',
-            authUid: editingStaff.authUid || null,
+            certifications: certifications(editingStaff.certifications), commissionType: commissionType(editingStaff.commissionType),
+            commissionPercent: commissionPercent(editingStaff),
+            authUid: staffAuthUid(editingStaff),
             loginEmail: editingStaff.email || '' }}
           onSave={handleEdit}
           onClose={() => setEditingStaff(null)}

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import PhotoUpload from '../../components/ui/PhotoUpload';
 import MemberQRModal from '../../components/ui/MemberQRModal';
 import { uploadMemberPhoto, uploadMemberDocument } from '../../utils/imagekit';
+import { planType } from '../../utils/compat';
 
 const TYPE_LABELS = {
   'gym': 'Gym',
@@ -533,7 +534,7 @@ export default function AddMember() {
                     <option value="" disabled>{formData.planName} (current)</option>
                   )}
                   {Object.entries(TYPE_LABELS).map(([type, label]) => {
-                    const group = plans.filter(p => p.type === type);
+                    const group = plans.filter(p => planType(p.type) === type);
                     if (!group.length) return null;
                     return (
                       <optgroup key={type} label={label}>

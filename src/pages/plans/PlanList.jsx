@@ -3,6 +3,7 @@ import { getTenantCollection, updateTenantDocument, deleteTenantDocument } from 
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import PlanForm from './PlanForm';
+import { planType } from '../../utils/compat';
 
 const FILTER_TABS = [
   { key: 'all', label: 'All' },
@@ -199,7 +200,7 @@ export default function PlanList() {
 
   const filtered = activeTab === 'all'
     ? plans
-    : plans.filter(p => p.type === activeTab);
+    : plans.filter(p => planType(p.type) === activeTab);
 
   const activePlans = plans.filter(p => p.isActive).length;
 
@@ -259,7 +260,7 @@ export default function PlanList() {
               <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
                 activeTab === tab.key ? 'bg-white/20 text-on-primary' : 'bg-surface-container-high text-on-surface-variant'
               }`}>
-                {plans.filter(p => p.type === tab.key).length}
+                {plans.filter(p => planType(p.type) === tab.key).length}
               </span>
             )}
           </button>

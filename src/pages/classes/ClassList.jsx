@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { getTenantCollection } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { time24 } from '../../utils/compat';
 
 const CLASS_TYPES = ['All', 'Zumba', 'Yoga', 'Dance', 'HIIT', 'Kids Dance', 'Gym', 'Other'];
 
 const fmt12 = (t) => {
-  if (!t) return '';
-  const [h, m] = t.split(':').map(Number);
+  const v = time24(t);
+  if (!v) return '';
+  const [h, m] = v.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 };
 

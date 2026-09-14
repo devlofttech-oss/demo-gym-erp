@@ -7,6 +7,7 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
 import * as XLSX from 'xlsx';
+import { leadStatus, leadSource } from '../../utils/compat';
 
 // ── Date helpers ──────────────────────────────────────────────────
 const toYYYYMM = (d) => d.toISOString().slice(0, 7);
@@ -129,11 +130,12 @@ export default function MonthlyReport() {
   const currLeads = filterByMonth(leads, 'createdAt', selectedMonth);
   const prevLeads = filterByMonth(leads, 'createdAt', prev);
   const leadsByStatus = currLeads.reduce((acc, l) => {
-    acc[l.status] = (acc[l.status] || 0) + 1;
+    const key = leadStatus(l.status);
+    acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
   const leadsBySource = currLeads.reduce((acc, l) => {
-    const src = l.source || 'unknown';
+    const src = leadSource(l.source) || 'unknown';
     acc[src] = (acc[src] || 0) + 1;
     return acc;
   }, {});
@@ -370,8 +372,8 @@ export default function MonthlyReport() {
                         <td className="py-2.5 pr-4 capitalize text-on-surface-variant">{l.source || '—'}</td>
                         <td className="py-2.5 pr-4">
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                            l.status === 'won' ? 'bg-emerald-100 text-emerald-700' :
-                            l.status === 'lost' ? 'bg-red-100 text-red-700' :
+                            leadStatus(l.status) === 'won' ? 'bg-emerald-100 text-emerald-700' :
+                            leadStatus(l.status) === 'lost' ? 'bg-red-100 text-red-700' :
                             'bg-blue-100 text-blue-700'
                           }`}>{l.status}</span>
                         </td>

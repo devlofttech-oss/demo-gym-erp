@@ -5,6 +5,7 @@ import { getTenantCollection, deleteTenantDocument } from '../../firebase/tenant
 import { useAuth } from '../../context/AuthContext';
 import { openWhatsApp } from '../../utils/whatsapp';
 import LeadForm from './LeadForm';
+import { leadStatus, leadSource } from '../../utils/compat';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'All' },
@@ -105,7 +106,7 @@ export default function LeadList() {
 
   const filtered = useMemo(() => {
     if (activeFilter === 'all') return leads;
-    return leads.filter((l) => l.status === activeFilter);
+    return leads.filter((l) => leadStatus(l.status) === activeFilter);
   }, [leads, activeFilter]);
 
   // Stat chips
@@ -113,7 +114,7 @@ export default function LeadList() {
   const monthPrefix = thisMonthISO();
   const totalCount = leads.length;
   const thisMonthCount = leads.filter((l) => inMonth(l.createdAt, monthPrefix)).length;
-  const wonCount = leads.filter((l) => l.status === 'won').length;
+  const wonCount = leads.filter((l) => leadStatus(l.status) === 'won').length;
   const followUpTodayCount = leads.filter(
     (l) => l.nextFollowUp === today && l.status !== 'won' && l.status !== 'lost'
   ).length;
@@ -228,7 +229,7 @@ export default function LeadList() {
             {f.label}
             {f.value !== 'all' && (
               <span className="ml-1.5 opacity-70">
-                ({leads.filter((l) => l.status === f.value).length})
+                ({leads.filter((l) => leadStatus(l.status) === f.value).length})
               </span>
             )}
           </button>
@@ -283,8 +284,8 @@ export default function LeadList() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[lead.status] ?? 'bg-surface-container text-on-surface-variant'}`}>
                       {lead.status}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${SOURCE_STYLES[lead.source] ?? 'bg-surface-container text-on-surface-variant'}`}>
-                      {SOURCE_LABELS[lead.source] ?? lead.source}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${SOURCE_STYLES[leadSource(lead.source)] ?? 'bg-surface-container text-on-surface-variant'}`}>
+                      {SOURCE_LABELS[leadSource(lead.source)] ?? lead.source}
                     </span>
                   </div>
                 </div>
@@ -408,10 +409,10 @@ export default function LeadList() {
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            SOURCE_STYLES[lead.source] ?? 'bg-surface-container text-on-surface-variant'
+                            SOURCE_STYLES[leadSource(lead.source)] ?? 'bg-surface-container text-on-surface-variant'
                           }`}
                         >
-                          {SOURCE_LABELS[lead.source] ?? lead.source}
+                          {SOURCE_LABELS[leadSource(lead.source)] ?? lead.source}
                         </span>
                       </td>
 
@@ -461,7 +462,7 @@ export default function LeadList() {
                       {/* Actions */}
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {(lead.status === 'won' || lead.status === 'interested') && (
+                          {(leadStatus(lead.status) === 'won' || leadStatus(lead.status) === 'interested') && (
                             <button
                               onClick={() => navigate(`/members/add?name=${encodeURIComponent(lead.name)}&phone=${encodeURIComponent(lead.phone)}&email=${encodeURIComponent(lead.email || '')}&plan=${encodeURIComponent(lead.interestedPlan || '')}`)}
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors text-xs font-medium"

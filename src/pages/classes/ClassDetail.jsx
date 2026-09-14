@@ -3,9 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getTenantDocument, getTenantCollection, updateTenantDocument, deleteTenantDocument } from '../../firebase/tenantDb';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { time24 } from '../../utils/compat';
 const fmt12 = (t) => {
-  if (!t) return '';
-  const [h, m] = t.split(':').map(Number);
+  const v = time24(t);
+  if (!v) return '';
+  const [h, m] = v.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
 };
