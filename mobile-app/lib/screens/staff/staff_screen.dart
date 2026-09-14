@@ -385,7 +385,10 @@ class _StaffFormState extends State<_StaffForm> {
       final comm = asNum(s['commission']);
       _commissionCtrl.text = comm == 0 ? '' : comm.toStringAsFixed(0);
       _addressCtrl.text = (s['address'] as String?) ?? '';
-      _certCtrl.text = (s['certifications'] as List?)?.join(', ') ?? '';
+      final certs = s['certifications'];
+      _certCtrl.text = certs is List
+          ? certs.join(', ')
+          : (certs as String?) ?? '';
       // Sanitise dropdown values so the form never crashes on unexpected data
       final storedRole = s['role'] as String? ?? '';
       _role = _validRoles.contains(storedRole) ? storedRole : 'Trainer';
@@ -492,13 +495,7 @@ class _StaffFormState extends State<_StaffForm> {
       'commissionType': _commissionType,
       'address': _addressCtrl.text.trim(),
       'joiningDate': _joiningDate,
-      'certifications': _certCtrl.text.trim().isEmpty
-          ? []
-          : _certCtrl.text
-                .split(',')
-                .map((e) => e.trim())
-                .where((e) => e.isNotEmpty)
-                .toList(),
+      'certifications': _certCtrl.text.trim(),
     };
     try {
       String staffDocId;

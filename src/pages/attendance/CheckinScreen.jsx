@@ -163,8 +163,14 @@ export default function CheckinScreen({ isKiosk = false }) {
   }, [loading, scannerKey, tabVisible]);
 
   // Core check-in/check-out logic — handles both members and staff
-  const processCheckin = async (scannedId) => {
+  const processCheckin = async (raw) => {
     if (checkingIn) return;
+
+    // Older mobile builds encoded member QRs as "kilos:member:<id>". Those
+    // codes are already saved on members' phones, so accept either form.
+    const scannedId = raw?.startsWith('kilos:member:')
+      ? raw.slice('kilos:member:'.length)
+      : raw;
 
     // Look up in members first, then staff (by qrId or doc id)
     const member = membersRef.current.find(m => m.id === scannedId);

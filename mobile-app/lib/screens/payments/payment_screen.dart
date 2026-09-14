@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/helpers.dart';
 import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
+import '../plans/plans_screen.dart' show canonPlanType, planTypeLabel;
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
@@ -165,12 +166,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       _toast('Please select a member');
       return;
     }
-    if (_paidNum <= 0) {
+    if (_paidNow.text.trim().isEmpty || _paidNum < 0) {
       _toast('Enter a valid paid amount');
       return;
     }
     final gymId = context.read<AuthProvider>().gymId!;
-    final effectiveTotal = _discountedTotal > 0 ? _discountedTotal : _totalFees;
+    final effectiveTotal = _discountedTotal;
     final currentBalance = asNum(_selected?['balanceFees']) > 0
         ? asNum(_selected!['balanceFees'])
         : effectiveTotal;
@@ -187,8 +188,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'expiryDate': _expiryDate,
         'totalFees': effectiveTotal,
         'originalFees': _totalFees,
-        if (_discountAmt > 0) 'discountAmt': _discountAmt,
-        if (_discountPct > 0) 'discountPct': _discountPct,
+        if (_discountAmt > 0) 'discountAmount': _discountAmt,
+        if (_discountPct > 0) 'discountPercent': _discountPct,
         'paidAmount': _paidNum,
         'amount': _paidNum,
         'balanceFees': newBalance,
@@ -594,11 +595,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // Plan type is stored as web's slug; canonPlanType folds older label-cased
+  // values so both spellings group under the same heading.
   static const _typeOrder = [
-    'Gym',
-    'Personal Training',
-    'Group Class',
-    'Addon',
+    'gym',
+    'personal-training',
+    'group-class',
+    'day-pass',
+    'addon',
   ];
 
   Widget _planDropdown() {
@@ -606,8 +610,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Group plans by type field; ungrouped plans fall under 'Gym'
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final p in _plans) {
-      final t = (p['type'] as String?) ?? (p['planType'] as String?) ?? 'Gym';
-      grouped.putIfAbsent(t, () => []).add(p);
+      final raw = (p['type'] as String?) ?? (p['planType'] as String?) ?? 'gym';
+      final t = canonPlanType(raw);
+      grouped.putIfAbsent(t.isEmpty ? 'gym' : t, () => []).add(p);
     }
     // Build ordered type list — known types first, then any extras
     final types = [
@@ -623,7 +628,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           enabled: false,
           value: '__hdr_$type',
           child: Text(
-            type.toUpperCase(),
+            planTypeLabel(type).toUpperCase(),
             style: TextStyle(
               color: c.onSurfaceVariant,
               fontSize: 11,
@@ -732,7 +737,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   onChanged: (v) {
                     final pct = num.tryParse(v) ?? 0;
-                    final amt = (_totalFees * pct / 100);
+                    final amt = (_totalFees * pct / 100).round();
                     setState(() {
                       _discountPct = pct.clamp(0, 100);
                       _discountAmt = amt.clamp(0, _totalFees);

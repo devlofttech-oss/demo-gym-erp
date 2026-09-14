@@ -8,15 +8,44 @@ import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
-const _planTypes = ['All', 'Gym', 'Personal Training', 'Group Class', 'Day Pass', 'Add-on'];
+// The stored value is web's slug (PlanForm.jsx TYPE_OPTIONS). Web filters with
+// a strict `p.type === activeTab`, so a plan saved under a display label is
+// invisible there — including in the member-enrollment plan picker.
+const _typeSlugs = [
+  'gym',
+  'personal-training',
+  'group-class',
+  'day-pass',
+  'addon',
+];
+
+const _typeLabels = {
+  'gym': 'Gym',
+  'personal-training': 'Personal Training',
+  'group-class': 'Group Class',
+  'day-pass': 'Day Pass',
+  'addon': 'Add-on',
+};
 
 const _typeColor = {
-  'Gym': TW.violet600,
-  'Personal Training': TW.blue600,
-  'Group Class': TW.emerald600,
-  'Day Pass': TW.amber600,
-  'Add-on': TW.rose600,
+  'gym': TW.violet600,
+  'personal-training': TW.blue600,
+  'group-class': TW.emerald600,
+  'day-pass': TW.amber600,
+  'addon': TW.rose600,
 };
+
+/// Folds any stored spelling — web's slug or a label written by an older
+/// mobile build — down to the canonical slug.
+String canonPlanType(String? raw) {
+  final t = (raw ?? '').trim().toLowerCase().replaceAll(RegExp(r'[\s_]+'), '-');
+  return t == 'add-on' ? 'addon' : t;
+}
+
+String planTypeLabel(String? raw) {
+  final slug = canonPlanType(raw);
+  return _typeLabels[slug] ?? (raw ?? '');
+}
 
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
@@ -45,19 +74,21 @@ class _PlansScreenState extends State<PlansScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
-  String _normalizeType(String? t) =>
-      (t ?? '').toLowerCase().replaceAll('-', ' ').replaceAll('_', ' ').trim();
-
   List<Map<String, dynamic>> get _filtered {
-    final sorted = [..._plans]..sort((a, b) {
+    final sorted = [..._plans]
+      ..sort((a, b) {
         final aActive = (a['isActive'] != false) ? 0 : 1;
         final bActive = (b['isActive'] != false) ? 0 : 1;
         if (aActive != bActive) return aActive.compareTo(bActive);
-        return (a['name'] as String? ?? '').compareTo(b['name'] as String? ?? '');
+        return (a['name'] as String? ?? '').compareTo(
+          b['name'] as String? ?? '',
+        );
       });
     if (_tab == 0) return sorted;
-    final t = _normalizeType(_planTypes[_tab]);
-    return sorted.where((p) => _normalizeType(p['type'] as String?) == t).toList();
+    final t = _typeSlugs[_tab - 1];
+    return sorted
+        .where((p) => canonPlanType(p['type'] as String?) == t)
+        .toList();
   }
 
   void _showForm([Map<String, dynamic>? plan]) {
@@ -90,7 +121,10 @@ class _PlansScreenState extends State<PlansScreen> {
         title: const Text('Delete Plan'),
         content: Text('Delete "${plan['name']}"? This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -100,7 +134,11 @@ class _PlansScreenState extends State<PlansScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'plans', plan['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'plans',
+        plan['id'],
+      );
       _fetch();
     }
   }
@@ -108,7 +146,9 @@ class _PlansScreenState extends State<PlansScreen> {
   Future<void> _toggleActive(Map<String, dynamic> plan) async {
     final gymId = context.read<AuthProvider>().gymId ?? '';
     final current = plan['isActive'] != false;
-    await TenantDb.updateDocument(gymId, 'plans', plan['id'] as String, {'isActive': !current});
+    await TenantDb.updateDocument(gymId, 'plans', plan['id'] as String, {
+      'isActive': !current,
+    });
     _fetch();
   }
 
@@ -141,13 +181,27 @@ class _PlansScreenState extends State<PlansScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: Row(children: [
-                  _StatChip(label: 'Total', count: _plans.length, color: c.primary),
-                  const SizedBox(width: 8),
-                  _StatChip(label: 'Active', count: totalActive, color: TW.emerald600),
-                  const SizedBox(width: 8),
-                  _StatChip(label: 'Inactive', count: totalInactive, color: TW.slate400),
-                ]),
+                child: Row(
+                  children: [
+                    _StatChip(
+                      label: 'Total',
+                      count: _plans.length,
+                      color: c.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    _StatChip(
+                      label: 'Active',
+                      count: totalActive,
+                      color: TW.emerald600,
+                    ),
+                    const SizedBox(width: 8),
+                    _StatChip(
+                      label: 'Inactive',
+                      count: totalInactive,
+                      color: TW.slate400,
+                    ),
+                  ],
+                ),
               ),
             ),
             SliverToBoxAdapter(
@@ -156,10 +210,12 @@ class _PlansScreenState extends State<PlansScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _planTypes.length,
+                  itemCount: _typeSlugs.length + 1,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) => FilterChip(
-                    label: Text(_planTypes[i]),
+                    label: Text(
+                      i == 0 ? 'All' : _typeLabels[_typeSlugs[i - 1]]!,
+                    ),
                     selected: _tab == i,
                     onSelected: (_) => setState(() => _tab = i),
                     showCheckmark: false,
@@ -174,7 +230,9 @@ class _PlansScreenState extends State<PlansScreen> {
               SliverFillRemaining(
                 child: KEmpty(
                   icon: MSym.loyalty,
-                  message: _tab == 0 ? 'No plans yet' : 'No ${_planTypes[_tab]} plans',
+                  message: _tab == 0
+                      ? 'No plans yet'
+                      : 'No ${_typeLabels[_typeSlugs[_tab - 1]]} plans',
                   action: _tab == 0
                       ? TextButton.icon(
                           onPressed: () => _showForm(),
@@ -213,13 +271,20 @@ class _PlanCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onDuplicate;
   final VoidCallback onToggleActive;
-  const _PlanCard({required this.plan, required this.onEdit, required this.onDelete, required this.onDuplicate, required this.onToggleActive});
+  const _PlanCard({
+    required this.plan,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onDuplicate,
+    required this.onToggleActive,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final type = plan['type'] as String? ?? 'Gym';
-    final color = _typeColor[type] ?? TW.violet600;
+    final type = planTypeLabel(plan['type'] as String?);
+    final color =
+        _typeColor[canonPlanType(plan['type'] as String?)] ?? TW.violet600;
     final isActive = plan['isActive'] != false;
     final price = asNum(plan['price']);
     final duration = asNum(plan['durationMonths']);
@@ -248,8 +313,13 @@ class _PlanCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(plan['name'] ?? '',
-                            style: KText.bodyLg.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          plan['name'] ?? '',
+                          style: KText.bodyLg.copyWith(
+                            color: c.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                       Pill(type, bg: color.withValues(alpha: 0.1), fg: color),
                     ],
@@ -259,17 +329,32 @@ class _PlanCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
-                      Text(rupees(price),
-                          style: KText.bodyMd.copyWith(color: c.primary, fontWeight: FontWeight.w700)),
+                      Text(
+                        rupees(price),
+                        style: KText.bodyMd.copyWith(
+                          color: c.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       if (duration > 0)
-                        Text('· ${duration.toInt()} month${duration > 1 ? 's' : ''}',
-                            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                        Text(
+                          '· ${duration.toInt()} month${duration > 1 ? 's' : ''}',
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
                       if (sessions > 0)
-                        Text('· ${sessions.toInt()} sessions',
-                            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                        Text(
+                          '· ${sessions.toInt()} sessions',
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
                       Pill(
                         isActive ? 'Active' : 'Inactive',
-                        bg: isActive ? TW.emerald500.withValues(alpha: 0.1) : TW.slate200,
+                        bg: isActive
+                            ? TW.emerald500.withValues(alpha: 0.1)
+                            : TW.slate200,
                         fg: isActive ? TW.emerald600 : TW.slate500,
                         dot: true,
                       ),
@@ -278,23 +363,44 @@ class _PlanCard extends StatelessWidget {
                   if ((plan['description'] ?? '').isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(plan['description'],
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        plan['description'],
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   if ((plan['features'] as List?)?.isNotEmpty == true)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: (plan['features'] as List).take(3).map((f) => Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('· ', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
-                            Expanded(child: Text(f.toString(), style: TextStyle(color: c.onSurfaceVariant, fontSize: 12))),
-                          ],
-                        )).toList(),
+                        children: (plan['features'] as List)
+                            .take(3)
+                            .map(
+                              (f) => Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '· ',
+                                    style: TextStyle(
+                                      color: c.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      f.toString(),
+                                      style: TextStyle(
+                                        color: c.onSurfaceVariant,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
                 ],
@@ -310,14 +416,23 @@ class _PlanCard extends StatelessWidget {
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                const PopupMenuItem(value: 'duplicate', child: Text('Duplicate')),
-                PopupMenuItem(
-                    value: 'toggle',
-                    child: Text(isActive ? 'Deactivate' : 'Activate',
-                        style: TextStyle(color: isActive ? TW.amber600 : TW.emerald600))),
                 const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                  value: 'duplicate',
+                  child: Text('Duplicate'),
+                ),
+                PopupMenuItem(
+                  value: 'toggle',
+                  child: Text(
+                    isActive ? 'Deactivate' : 'Activate',
+                    style: TextStyle(
+                      color: isActive ? TW.amber600 : TW.emerald600,
+                    ),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Delete', style: TextStyle(color: TW.rose600)),
+                ),
               ],
             ),
           ],
@@ -331,7 +446,11 @@ class _StatChip extends StatelessWidget {
   final String label;
   final int count;
   final Color color;
-  const _StatChip({required this.label, required this.count, required this.color});
+  const _StatChip({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -342,10 +461,27 @@ class _StatChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
-      child: Column(children: [
-        Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'PlusJakartaSans')),
-        Text(label, style: const TextStyle(color: TW.slate500, fontSize: 11, fontFamily: 'PlusJakartaSans')),
-      ]),
+      child: Column(
+        children: [
+          Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              fontFamily: 'PlusJakartaSans',
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: TW.slate500,
+              fontSize: 11,
+              fontFamily: 'PlusJakartaSans',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -370,7 +506,7 @@ class _PlanFormState extends State<_PlanForm> {
   final _descCtrl = TextEditingController();
   final _featureCtrl = TextEditingController();
   List<String> _features = [];
-  String _type = 'Gym';
+  String _type = 'gym';
   bool _isActive = true;
   bool _saving = false;
 
@@ -386,7 +522,8 @@ class _PlanFormState extends State<_PlanForm> {
       _durationCtrl.text = _nz(p['durationMonths']);
       _sessionsCtrl.text = _nz(p['sessions']);
       _descCtrl.text = p['description'] ?? '';
-      _type = p['type'] ?? 'Gym';
+      _type = canonPlanType(p['type'] as String?);
+      if (!_typeSlugs.contains(_type)) _type = 'gym';
       _isActive = p['isActive'] != false;
       _features = List<String>.from((p['features'] as List?) ?? []);
     }
@@ -427,7 +564,12 @@ class _PlanFormState extends State<_PlanForm> {
     };
     try {
       if (widget.plan != null) {
-        await TenantDb.updateDocument(widget.gymId, 'plans', widget.plan!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'plans',
+          widget.plan!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'plans', data);
       }
@@ -448,7 +590,11 @@ class _PlanFormState extends State<_PlanForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -456,16 +602,21 @@ class _PlanFormState extends State<_PlanForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Plan' : 'Add Plan',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Plan' : 'Add Plan',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -476,115 +627,160 @@ class _PlanFormState extends State<_PlanForm> {
             const SizedBox(height: 16),
             TextField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Plan Name *', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Plan Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-              items: _planTypes
-                  .skip(1)
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+              decoration: const InputDecoration(
+                labelText: 'Type',
+                border: OutlineInputBorder(),
+              ),
+              items: _typeSlugs
+                  .map(
+                    (t) => DropdownMenuItem(
+                      value: t,
+                      child: Text(_typeLabels[t]!),
+                    ),
+                  )
                   .toList(),
               onChanged: (v) => setState(() => _type = v!),
             ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _priceCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Price (₹)', border: OutlineInputBorder()),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _priceCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Price (₹)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _durationCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'Duration (months)', border: OutlineInputBorder()),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _durationCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Duration (months)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _joiningFeeCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'Joining Fee (₹)', border: OutlineInputBorder()),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _joiningFeeCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Joining Fee (₹)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _gstCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'GST %', border: OutlineInputBorder()),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _gstCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'GST %',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _sessionsCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                  labelText: 'Sessions (PT / Group Class)', border: OutlineInputBorder()),
+                labelText: 'Sessions (PT / Group Class)',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _descCtrl,
               maxLines: 2,
-              decoration:
-                  const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
-            Text('Plan Features', style: TextStyle(fontSize: 13, color: context.c.onSurfaceVariant)),
+            Text(
+              'Plan Features',
+              style: TextStyle(fontSize: 13, color: context.c.onSurfaceVariant),
+            ),
             const SizedBox(height: 8),
             if (_features.isNotEmpty)
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: _features.map((f) => Chip(
-                  label: Text(f, style: const TextStyle(fontSize: 12)),
-                  deleteIcon: const Icon(Icons.close, size: 14),
-                  onDeleted: () => setState(() => _features.remove(f)),
-                  padding: EdgeInsets.zero,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                )).toList(),
+                children: _features
+                    .map(
+                      (f) => Chip(
+                        label: Text(f, style: const TextStyle(fontSize: 12)),
+                        deleteIcon: const Icon(Icons.close, size: 14),
+                        onDeleted: () => setState(() => _features.remove(f)),
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    )
+                    .toList(),
               ),
             const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _featureCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a feature (e.g. Locker access)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _featureCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'Add a feature (e.g. Locker access)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    onSubmitted: (v) {
+                      final f = v.trim();
+                      if (f.isNotEmpty) {
+                        setState(() {
+                          _features.add(f);
+                          _featureCtrl.clear();
+                        });
+                      }
+                    },
                   ),
-                  onSubmitted: (v) {
-                    final f = v.trim();
-                    if (f.isNotEmpty) {
-                      setState(() { _features.add(f); _featureCtrl.clear(); });
-                    }
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Sym(MSym.add, size: 20, color: context.c.primary),
+                  onPressed: () {
+                    final f = _featureCtrl.text.trim();
+                    if (f.isNotEmpty)
+                      setState(() {
+                        _features.add(f);
+                        _featureCtrl.clear();
+                      });
                   },
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Sym(MSym.add, size: 20, color: context.c.primary),
-                onPressed: () {
-                  final f = _featureCtrl.text.trim();
-                  if (f.isNotEmpty) setState(() { _features.add(f); _featureCtrl.clear(); });
-                },
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 4),
             SwitchListTile(
               value: _isActive,
@@ -601,7 +797,11 @@ class _PlanFormState extends State<_PlanForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Plan'),
               ),
             ),

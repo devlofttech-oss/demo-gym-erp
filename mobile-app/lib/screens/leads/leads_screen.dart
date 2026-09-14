@@ -10,17 +10,69 @@ import '../../widgets/common.dart';
 import '../../widgets/whatsapp_sheet.dart';
 import '../members/add_member_screen.dart';
 
-const _statuses = ['All', 'New', 'Contacted', 'Follow-up', 'Interested', 'Won', 'Lost'];
-const _sources = ['Walk-in', 'Phone', 'WhatsApp', 'Website', 'Referral', 'Other'];
-const _lostReasons = ['Too expensive', 'Joined competitor', 'Not interested anymore', 'Location inconvenient', 'No response', 'Other'];
+// Status and source are stored as web's slugs (LeadForm.jsx STATUSES/SOURCES).
+// Web compares them strictly — `l.status === 'won'` drives the won count and
+// the Convert button — so a label-cased value is inert there.
+const _statusSlugs = [
+  'new',
+  'contacted',
+  'follow-up',
+  'interested',
+  'won',
+  'lost',
+];
+const _sourceSlugs = [
+  'walk-in',
+  'phone',
+  'whatsapp',
+  'website',
+  'referral',
+  'other',
+];
+
+const _statusLabels = {
+  'new': 'New',
+  'contacted': 'Contacted',
+  'follow-up': 'Follow-up',
+  'interested': 'Interested',
+  'won': 'Won',
+  'lost': 'Lost',
+};
+
+const _sourceLabels = {
+  'walk-in': 'Walk-in',
+  'phone': 'Phone',
+  'whatsapp': 'WhatsApp',
+  'website': 'Website',
+  'referral': 'Referral',
+  'other': 'Other',
+};
+
+/// Folds any stored spelling — web's slug or a label from an older mobile
+/// build — down to the canonical slug.
+String canonLead(String? raw) =>
+    (raw ?? '').trim().toLowerCase().replaceAll(RegExp(r'[\s_]+'), '-');
+
+String leadStatusLabel(String? raw) =>
+    _statusLabels[canonLead(raw)] ?? (raw ?? '');
+String leadSourceLabel(String? raw) =>
+    _sourceLabels[canonLead(raw)] ?? (raw ?? '');
+const _lostReasons = [
+  'Too expensive',
+  'Joined competitor',
+  'Not interested anymore',
+  'Location inconvenient',
+  'No response',
+  'Other',
+];
 
 const _statusColor = {
-  'New': TW.blue600,
-  'Contacted': TW.violet600,
-  'Follow-up': TW.amber600,
-  'Interested': TW.emerald600,
-  'Won': TW.emerald600,
-  'Lost': TW.rose600,
+  'new': TW.blue600,
+  'contacted': TW.violet600,
+  'follow-up': TW.amber600,
+  'interested': TW.emerald600,
+  'won': TW.emerald600,
+  'lost': TW.rose600,
 };
 
 class LeadsScreen extends StatefulWidget {
@@ -68,29 +120,38 @@ class _LeadsScreenState extends State<LeadsScreen> {
   List<Map<String, dynamic>> get _filtered {
     var list = _leads;
     if (_tab > 0) {
-      final s = _statuses[_tab];
-      list = list.where((l) => (l['status'] ?? '') == s).toList();
+      final s = _statusSlugs[_tab - 1];
+      list = list.where((l) => canonLead(l['status'] as String?) == s).toList();
     }
     if (_timeRange != 'All') {
       final now = DateTime.now();
       list = list.where((l) {
         final dt = toDate(l['createdAt']);
         if (dt == null) return false;
-        if (_timeRange == 'Today') return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+        if (_timeRange == 'Today')
+          return dt.year == now.year &&
+              dt.month == now.month &&
+              dt.day == now.day;
         if (_timeRange == 'This Week') return now.difference(dt).inDays <= 7;
-        if (_timeRange == 'This Month') return dt.year == now.year && dt.month == now.month;
+        if (_timeRange == 'This Month')
+          return dt.year == now.year && dt.month == now.month;
         return true;
       }).toList();
     }
     if (_source != 'All') {
-      list = list.where((l) => (l['source'] ?? '') == _source).toList();
+      list = list
+          .where((l) => canonLead(l['source'] as String?) == _source)
+          .toList();
     }
     if (_search.isNotEmpty) {
       final term = _search.toLowerCase();
       list = list
-          .where((l) =>
-              ((l['name'] as String?)?.toLowerCase().contains(term) ?? false) ||
-              ((l['phone'] as String?)?.contains(term) ?? false))
+          .where(
+            (l) =>
+                ((l['name'] as String?)?.toLowerCase().contains(term) ??
+                    false) ||
+                ((l['phone'] as String?)?.contains(term) ?? false),
+          )
           .toList();
     }
     return list;
@@ -99,11 +160,14 @@ class _LeadsScreenState extends State<LeadsScreen> {
   bool _followUpToday(Map<String, dynamic> lead) {
     final fu = lead['nextFollowUp'] as String?;
     if (fu == null || fu.isEmpty) return false;
+    final st = canonLead(lead['status'] as String?);
+    if (st == 'won' || st == 'lost') return false;
     return fu == todayStr();
   }
 
   int get _followUpTodayCount => _leads.where(_followUpToday).length;
-  int get _wonCount => _leads.where((l) => (l['status'] ?? '') == 'Won').length;
+  int get _wonCount =>
+      _leads.where((l) => canonLead(l['status'] as String?) == 'won').length;
   int get _thisMonthCount {
     final now = DateTime.now();
     return _leads.where((l) {
@@ -133,7 +197,10 @@ class _LeadsScreenState extends State<LeadsScreen> {
         title: const Text('Delete Lead'),
         content: Text('Delete "${lead['name']}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -143,7 +210,11 @@ class _LeadsScreenState extends State<LeadsScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'leads', lead['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'leads',
+        lead['id'],
+      );
       _fetch();
     }
   }
@@ -186,15 +257,17 @@ class _LeadsScreenState extends State<LeadsScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Row(children: [
-                  _LStat('Total', '${_leads.length}', TW.violet600),
-                  const SizedBox(width: 8),
-                  _LStat('This Month', '$_thisMonthCount', TW.blue600),
-                  const SizedBox(width: 8),
-                  _LStat('Won', '$_wonCount', TW.emerald600),
-                  const SizedBox(width: 8),
-                  _LStat('Follow-up', '$_followUpTodayCount', TW.amber600),
-                ]),
+                child: Row(
+                  children: [
+                    _LStat('Total', '${_leads.length}', TW.violet600),
+                    const SizedBox(width: 8),
+                    _LStat('This Month', '$_thisMonthCount', TW.blue600),
+                    const SizedBox(width: 8),
+                    _LStat('Won', '$_wonCount', TW.emerald600),
+                    const SizedBox(width: 8),
+                    _LStat('Follow-up', '$_followUpTodayCount', TW.amber600),
+                  ],
+                ),
               ),
             ),
             if (_followUpTodayCount > 0)
@@ -206,15 +279,21 @@ class _LeadsScreenState extends State<LeadsScreen> {
                     decoration: BoxDecoration(
                       color: TW.amber500.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: TW.amber500.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: TW.amber500.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Sym(MSym.alarm, size: 18, color: TW.amber600),
                         const SizedBox(width: 8),
-                        Text('$_followUpTodayCount follow-up${_followUpTodayCount > 1 ? 's' : ''} due today',
-                            style: KText.bodyMd
-                                .copyWith(color: TW.amber700, fontWeight: FontWeight.w600)),
+                        Text(
+                          '$_followUpTodayCount follow-up${_followUpTodayCount > 1 ? 's' : ''} due today',
+                          style: KText.bodyMd.copyWith(
+                            color: TW.amber700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -227,9 +306,15 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Search leads…',
-                    prefixIcon: Sym(MSym.search, size: 20, color: c.onSurfaceVariant),
+                    prefixIcon: Sym(
+                      MSym.search,
+                      size: 20,
+                      color: c.onSurfaceVariant,
+                    ),
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onChanged: (v) => setState(() => _search = v),
@@ -241,13 +326,26 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 height: 44,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  itemCount: _statuses.length,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  itemCount: _statusSlugs.length + 1,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    final cnt = i == 0 ? _leads.length : _leads.where((l) => (l['status'] ?? '') == _statuses[i]).length;
+                    final cnt = i == 0
+                        ? _leads.length
+                        : _leads
+                              .where(
+                                (l) =>
+                                    canonLead(l['status'] as String?) ==
+                                    _statusSlugs[i - 1],
+                              )
+                              .length;
                     return FilterChip(
-                      label: Text('${_statuses[i]} ($cnt)'),
+                      label: Text(
+                        '${i == 0 ? 'All' : _statusLabels[_statusSlugs[i - 1]]} ($cnt)',
+                      ),
                       selected: _tab == i,
                       onSelected: (_) => setState(() => _tab = i),
                       showCheckmark: false,
@@ -261,13 +359,24 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  itemCount: const ['All', 'Today', 'This Week', 'This Month'].length,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  itemCount: const [
+                    'All',
+                    'Today',
+                    'This Week',
+                    'This Month',
+                  ].length,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
                     const ranges = ['All', 'Today', 'This Week', 'This Month'];
                     return FilterChip(
-                      label: Text(ranges[i], style: const TextStyle(fontSize: 12)),
+                      label: Text(
+                        ranges[i],
+                        style: const TextStyle(fontSize: 12),
+                      ),
                       selected: _timeRange == ranges[i],
                       onSelected: (_) => setState(() => _timeRange = ranges[i]),
                       showCheckmark: false,
@@ -282,13 +391,19 @@ class _LeadsScreenState extends State<LeadsScreen> {
                 height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  itemCount: _sources.length + 1,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  itemCount: _sourceSlugs.length + 1,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    final src = i == 0 ? 'All' : _sources[i - 1];
+                    final src = i == 0 ? 'All' : _sourceSlugs[i - 1];
                     return FilterChip(
-                      label: Text(src, style: const TextStyle(fontSize: 12)),
+                      label: Text(
+                        i == 0 ? 'All' : _sourceLabels[src]!,
+                        style: const TextStyle(fontSize: 12),
+                      ),
                       selected: _source == src,
                       onSelected: (_) => setState(() => _source = src),
                       showCheckmark: false,
@@ -305,7 +420,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
               SliverFillRemaining(
                 child: KEmpty(
                   icon: MSym.personSearch,
-                  message: _search.isNotEmpty ? 'No leads found' : 'No leads yet',
+                  message: _search.isNotEmpty
+                      ? 'No leads found'
+                      : 'No leads yet',
                   action: _search.isEmpty
                       ? TextButton.icon(
                           onPressed: () => _showForm(),
@@ -326,14 +443,15 @@ class _LeadsScreenState extends State<LeadsScreen> {
                       onEdit: () => _showForm(filtered[i]),
                       onDelete: () => _delete(filtered[i]),
                       onConvert: () => _convertToMember(filtered[i]),
-                      onWhatsApp: (filtered[i]['phone'] as String?)?.isNotEmpty == true
+                      onWhatsApp:
+                          (filtered[i]['phone'] as String?)?.isNotEmpty == true
                           ? () => showWhatsAppSheet(
-                                context,
-                                phone: filtered[i]['phone'],
-                                defaultMessage:
-                                    'Hi ${filtered[i]['name']}, thanks for your interest in our gym! We\'d love to have you join us.',
-                                recipientLabel: filtered[i]['name'] ?? '',
-                              )
+                              context,
+                              phone: filtered[i]['phone'],
+                              defaultMessage:
+                                  'Hi ${filtered[i]['name']}, thanks for your interest in our gym! We\'d love to have you join us.',
+                              recipientLabel: filtered[i]['name'] ?? '',
+                            )
                           : null,
                     ),
                     childCount: filtered.length,
@@ -366,11 +484,12 @@ class _LeadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final status = lead['status'] as String? ?? 'New';
-    final statusColor = _statusColor[status] ?? TW.slate500;
+    final status = leadStatusLabel(lead['status'] as String?);
+    final statusColor =
+        _statusColor[canonLead(lead['status'] as String?)] ?? TW.slate500;
     final name = lead['name'] as String? ?? '';
     final phone = lead['phone'] as String? ?? '';
-    final source = lead['source'] as String? ?? '';
+    final source = leadSourceLabel(lead['source'] as String?);
     final followUp = lead['nextFollowUp'] as String? ?? '';
     final budget = asNum(lead['budget']);
     final notes = lead['notes'] as String? ?? '';
@@ -396,12 +515,15 @@ class _LeadCard extends StatelessWidget {
                   children: [
                     Sym(MSym.alarm, size: 14, color: TW.amber600),
                     const SizedBox(width: 4),
-                    Text('Follow-up today',
-                        style: const TextStyle(
-                            color: TW.amber700,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'PlusJakartaSans')),
+                    Text(
+                      'Follow-up today',
+                      style: const TextStyle(
+                        color: TW.amber700,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'PlusJakartaSans',
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -409,10 +531,11 @@ class _LeadCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 InitialAvatar(
-                    name: name,
-                    size: 44,
-                    bg: statusColor.withValues(alpha: 0.12),
-                    fg: statusColor),
+                  name: name,
+                  size: 44,
+                  bg: statusColor.withValues(alpha: 0.12),
+                  fg: statusColor,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -421,41 +544,76 @@ class _LeadCard extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(name,
-                                style: KText.bodyLg.copyWith(
-                                    color: c.onSurface, fontWeight: FontWeight.w600)),
+                            child: Text(
+                              name,
+                              style: KText.bodyLg.copyWith(
+                                color: c.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                          Pill(status, bg: statusColor.withValues(alpha: 0.1), fg: statusColor,
-                              dot: true),
+                          Pill(
+                            status,
+                            bg: statusColor.withValues(alpha: 0.1),
+                            fg: statusColor,
+                            dot: true,
+                          ),
                         ],
                       ),
                       if (phone.isNotEmpty)
-                        Text(phone, style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                      Wrap(spacing: 8, runSpacing: 4, children: [
-                        if (source.isNotEmpty)
-                          Pill(source, bg: TW.slate200, fg: TW.slate500),
-                        if (budget > 0)
-                          Pill('₹${grouped(budget)}', bg: TW.emerald50, fg: TW.emerald700),
-                        if (lostReason.isNotEmpty)
-                          Pill(lostReason, bg: TW.rose50, fg: TW.rose600),
-                        if (followUp.isNotEmpty)
-                          Text('Follow-up: ${fmtDate(followUp)}',
+                        Text(
+                          phone,
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (source.isNotEmpty)
+                            Pill(source, bg: TW.slate200, fg: TW.slate500),
+                          if (budget > 0)
+                            Pill(
+                              '₹${grouped(budget)}',
+                              bg: TW.emerald50,
+                              fg: TW.emerald700,
+                            ),
+                          if (lostReason.isNotEmpty)
+                            Pill(lostReason, bg: TW.rose50, fg: TW.rose600),
+                          if (followUp.isNotEmpty)
+                            Text(
+                              'Follow-up: ${fmtDate(followUp)}',
                               style: KText.bodyMd.copyWith(
-                                  color: isFollowUpToday ? TW.amber600 : c.onSurfaceVariant)),
-                      ]),
+                                color: isFollowUpToday
+                                    ? TW.amber600
+                                    : c.onSurfaceVariant,
+                              ),
+                            ),
+                        ],
+                      ),
                       if (notes.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(notes,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: KText.bodyMd.copyWith(color: c.onSurfaceVariant, fontSize: 12)),
+                          child: Text(
+                            notes,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: KText.bodyMd.copyWith(
+                              color: c.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
+                  icon: Sym(
+                    MSym.expandMore,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
@@ -463,36 +621,49 @@ class _LeadCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: TW.rose600),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
             if (canConvert || onWhatsApp != null) ...[
               const SizedBox(height: 8),
-              Row(children: [
-                if (onWhatsApp != null)
-                  OutlinedButton.icon(
-                    onPressed: onWhatsApp,
-                    icon: Sym(MSym.chat, size: 16, color: TW.whatsapp),
-                    label: const Text('WhatsApp'),
-                    style: OutlinedButton.styleFrom(
+              Row(
+                children: [
+                  if (onWhatsApp != null)
+                    OutlinedButton.icon(
+                      onPressed: onWhatsApp,
+                      icon: Sym(MSym.chat, size: 16, color: TW.whatsapp),
+                      label: const Text('WhatsApp'),
+                      style: OutlinedButton.styleFrom(
                         foregroundColor: TW.whatsapp,
-                        side: const BorderSide(color: TW.whatsapp)),
-                  ),
-                if (canConvert) ...[
-                  if (onWhatsApp != null) const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: onConvert,
-                      icon: Sym(MSym.personAdd, size: 16, color: Colors.white),
-                      label: const Text('Convert to Member'),
-                      style: FilledButton.styleFrom(backgroundColor: TW.emerald600),
+                        side: const BorderSide(color: TW.whatsapp),
+                      ),
                     ),
-                  ),
+                  if (canConvert) ...[
+                    if (onWhatsApp != null) const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: onConvert,
+                        icon: Sym(
+                          MSym.personAdd,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        label: const Text('Convert to Member'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: TW.emerald600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ]),
+              ),
             ],
           ],
         ),
@@ -518,8 +689,8 @@ class _LeadFormState extends State<_LeadForm> {
   final _planCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
-  String _status = 'New';
-  String _source = 'Walk-in';
+  String _status = 'new';
+  String _source = 'walk-in';
   String _lostReason = '';
   String _followUpDate = '';
   bool _saving = false;
@@ -533,9 +704,13 @@ class _LeadFormState extends State<_LeadForm> {
       _phoneCtrl.text = l['phone'] ?? '';
       _emailCtrl.text = l['email'] ?? '';
       _planCtrl.text = l['interestedPlan'] ?? '';
-      _budgetCtrl.text = asNum(l['budget']) == 0 ? '' : asNum(l['budget']).toString();
-      _status = l['status'] ?? 'New';
-      _source = l['source'] ?? 'Walk-in';
+      _budgetCtrl.text = asNum(l['budget']) == 0
+          ? ''
+          : asNum(l['budget']).toString();
+      _status = canonLead(l['status'] as String?);
+      if (!_statusSlugs.contains(_status)) _status = 'new';
+      _source = canonLead(l['source'] as String?);
+      if (!_sourceSlugs.contains(_source)) _source = 'walk-in';
       _lostReason = l['lostReason'] ?? '';
       _followUpDate = l['nextFollowUp'] ?? '';
       _notesCtrl.text = l['notes'] ?? '';
@@ -562,7 +737,8 @@ class _LeadFormState extends State<_LeadForm> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (d != null) setState(() => _followUpDate = d.toIso8601String().split('T').first);
+    if (d != null)
+      setState(() => _followUpDate = d.toIso8601String().split('T').first);
   }
 
   Future<void> _save() async {
@@ -578,11 +754,17 @@ class _LeadFormState extends State<_LeadForm> {
       'budget': num.tryParse(_budgetCtrl.text) ?? 0,
       'nextFollowUp': _followUpDate,
       'notes': _notesCtrl.text.trim(),
-      if (_status == 'Lost' && _lostReason.isNotEmpty) 'lostReason': _lostReason,
+      if (_status == 'lost' && _lostReason.isNotEmpty)
+        'lostReason': _lostReason,
     };
     try {
       if (widget.lead != null) {
-        await TenantDb.updateDocument(widget.gymId, 'leads', widget.lead!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'leads',
+          widget.lead!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'leads', data);
       }
@@ -603,7 +785,11 @@ class _LeadFormState extends State<_LeadForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -611,16 +797,21 @@ class _LeadFormState extends State<_LeadForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Lead' : 'Add Lead',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Lead' : 'Add Lead',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -631,101 +822,143 @@ class _LeadFormState extends State<_LeadForm> {
             const SizedBox(height: 16),
             TextField(
               controller: _nameCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Name *', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  decoration:
-                      const InputDecoration(labelText: 'Phone', border: OutlineInputBorder()),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration:
-                      const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _status,
-                  decoration:
-                      const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
-                  items: _statuses
-                      .skip(1)
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _status = v!),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _status,
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _statusSlugs
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(_statusLabels[s]!),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _status = v!),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _source,
-                  decoration:
-                      const InputDecoration(labelText: 'Source', border: OutlineInputBorder()),
-                  items: _sources
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _source = v!),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _source,
+                    decoration: const InputDecoration(
+                      labelText: 'Source',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _sourceSlugs
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(_sourceLabels[s]!),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _source = v!),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
             if (_status == 'Lost')
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: DropdownButtonFormField<String>(
                   initialValue: _lostReason.isEmpty ? null : _lostReason,
-                  decoration: const InputDecoration(labelText: 'Lost Reason', border: OutlineInputBorder()),
-                  items: _lostReasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                  decoration: const InputDecoration(
+                    labelText: 'Lost Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _lostReasons
+                      .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                      .toList(),
                   onChanged: (v) => setState(() => _lostReason = v ?? ''),
                 ),
               ),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _planCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Interested Plan', border: OutlineInputBorder()),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _planCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Interested Plan',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _budgetCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'Budget (₹)', border: OutlineInputBorder()),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _budgetCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Budget (₹)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _notesCtrl,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder(), alignLabelWithHint: true),
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
+              ),
             ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickFollowUp,
               child: InputDecorator(
                 decoration: const InputDecoration(
-                    labelText: 'Next Follow-up Date', border: OutlineInputBorder()),
+                  labelText: 'Next Follow-up Date',
+                  border: OutlineInputBorder(),
+                ),
                 child: Text(
-                    _followUpDate.isEmpty ? 'Tap to set' : fmtDate(_followUpDate),
-                    style: KText.bodyMd.copyWith(
-                        color: _followUpDate.isEmpty ? TW.slate400 : c.onSurface)),
+                  _followUpDate.isEmpty ? 'Tap to set' : fmtDate(_followUpDate),
+                  style: KText.bodyMd.copyWith(
+                    color: _followUpDate.isEmpty ? TW.slate400 : c.onSurface,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -737,7 +970,11 @@ class _LeadFormState extends State<_LeadForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Lead'),
               ),
             ),
@@ -764,11 +1001,27 @@ class _LStat extends StatelessWidget {
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 18)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(color: c.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.w500)),
-        ]),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: c.onSurfaceVariant,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
