@@ -52,7 +52,11 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         TenantDb.getCollection(gymId, 'workouts'),
         TenantDb.getCollection(gymId, 'members'),
       ]);
-      if (mounted) setState(() { _workouts = res[0]; _members = res[1]; });
+      if (mounted)
+        setState(() {
+          _workouts = res[0];
+          _members = res[1];
+        });
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -66,9 +70,15 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
     if (_search.isNotEmpty) {
       final term = _search.toLowerCase();
       list = list
-          .where((w) =>
-              ((w['name'] as String?)?.toLowerCase().contains(term) ?? false) ||
-              ((w['assignedMemberName'] as String?)?.toLowerCase().contains(term) ?? false))
+          .where(
+            (w) =>
+                ((w['name'] as String?)?.toLowerCase().contains(term) ??
+                    false) ||
+                ((w['assignedMemberName'] as String?)?.toLowerCase().contains(
+                      term,
+                    ) ??
+                    false),
+          )
           .toList();
     }
     return list;
@@ -96,7 +106,10 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
         title: const Text('Delete Workout'),
         content: Text('Delete "${workout['name']}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -106,7 +119,11 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'workouts', workout['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'workouts',
+        workout['id'],
+      );
       _fetch();
     }
   }
@@ -153,9 +170,15 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Search workouts…',
-                    prefixIcon: Sym(MSym.search, size: 20, color: c.onSurfaceVariant),
+                    prefixIcon: Sym(
+                      MSym.search,
+                      size: 20,
+                      color: c.onSurfaceVariant,
+                    ),
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onChanged: (v) => setState(() => _search = v),
@@ -174,7 +197,9 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                     final label = _workoutLevels[i];
                     final cnt = i == 0
                         ? _workouts.length
-                        : _workouts.where((w) => (w['level'] ?? '') == label).length;
+                        : _workouts
+                              .where((w) => (w['level'] ?? '') == label)
+                              .length;
                     return FilterChip(
                       label: Text(i == 0 ? label : '$label ($cnt)'),
                       selected: _levelFilter == i,
@@ -227,11 +252,12 @@ class _WorkoutCard extends StatelessWidget {
   final Color levelColor;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _WorkoutCard(
-      {required this.workout,
-      required this.levelColor,
-      required this.onEdit,
-      required this.onDelete});
+  const _WorkoutCard({
+    required this.workout,
+    required this.levelColor,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -260,17 +286,29 @@ class _WorkoutCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(workout['name'] ?? '',
-                          style: KText.bodyLg.copyWith(
-                              color: c.onSurface, fontWeight: FontWeight.w600)),
+                      Text(
+                        workout['name'] ?? '',
+                        style: KText.bodyLg.copyWith(
+                          color: c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       if ((workout['assignedMemberName'] ?? '').isNotEmpty)
-                        Text(workout['assignedMemberName'],
-                            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                        Text(
+                          workout['assignedMemberName'],
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
+                  icon: Sym(
+                    MSym.expandMore,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
@@ -278,8 +316,12 @@ class _WorkoutCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: TW.rose600),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -290,19 +332,27 @@ class _WorkoutCard extends StatelessWidget {
               runSpacing: 4,
               children: [
                 if (workout['level'] != null)
-                  Pill(workout['level'],
-                      bg: levelColor.withValues(alpha: 0.08), fg: levelColor),
+                  Pill(
+                    workout['level'],
+                    bg: levelColor.withValues(alpha: 0.08),
+                    fg: levelColor,
+                  ),
                 if ((workout['goal'] ?? '').isNotEmpty)
-                  Pill(workout['goal'],
-                      bg: TW.violet600.withValues(alpha: 0.08), fg: TW.violet600),
+                  Pill(
+                    workout['goal'],
+                    bg: TW.violet600.withValues(alpha: 0.08),
+                    fg: TW.violet600,
+                  ),
               ],
             ),
             if ((workout['description'] ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(workout['description'],
-                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                workout['description'],
+                style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
             const SizedBox(height: 6),
             Row(
@@ -310,21 +360,27 @@ class _WorkoutCard extends StatelessWidget {
                 if (asNum(workout['durationMinutes']) > 0) ...[
                   Sym(MSym.schedule, size: 14, color: c.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('${asNum(workout['durationMinutes']).toStringAsFixed(0)} min',
-                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  Text(
+                    '${asNum(workout['durationMinutes']).toStringAsFixed(0)} min',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
                   const SizedBox(width: 12),
                 ],
                 if (asNum(workout['daysPerWeek']) > 0) ...[
                   Sym(MSym.calendarMonth, size: 14, color: c.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('${asNum(workout['daysPerWeek']).toStringAsFixed(0)}x/week',
-                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  Text(
+                    '${asNum(workout['daysPerWeek']).toStringAsFixed(0)}x/week',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
                   const SizedBox(width: 12),
                 ],
                 Sym(MSym.fitnessCenter, size: 14, color: c.onSurfaceVariant),
                 const SizedBox(width: 4),
-                Text('${exercises.length} exercises',
-                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  '${exercises.length} exercises',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
               ],
             ),
           ],
@@ -341,8 +397,12 @@ class _WorkoutForm extends StatefulWidget {
   final String gymId;
   final List<Map<String, dynamic>> members;
   final VoidCallback onSaved;
-  const _WorkoutForm(
-      {this.workout, required this.gymId, required this.members, required this.onSaved});
+  const _WorkoutForm({
+    this.workout,
+    required this.gymId,
+    required this.members,
+    required this.onSaved,
+  });
 
   @override
   State<_WorkoutForm> createState() => _WorkoutFormState();
@@ -366,10 +426,12 @@ class _WorkoutFormState extends State<_WorkoutForm> {
     final w = widget.workout;
     if (w != null) {
       _nameCtrl.text = w['name'] ?? '';
-      _durationCtrl.text =
-          asNum(w['durationMinutes']) == 0 ? '' : asNum(w['durationMinutes']).toString();
-      _daysCtrl.text =
-          asNum(w['daysPerWeek']) == 0 ? '' : asNum(w['daysPerWeek']).toString();
+      _durationCtrl.text = asNum(w['durationMinutes']) == 0
+          ? ''
+          : asNum(w['durationMinutes']).toString();
+      _daysCtrl.text = asNum(w['daysPerWeek']) == 0
+          ? ''
+          : asNum(w['daysPerWeek']).toString();
       _descCtrl.text = w['description'] ?? '';
       _level = w['level'] ?? 'Beginner';
       _goal = w['goal'] ?? 'General Fitness';
@@ -381,11 +443,20 @@ class _WorkoutFormState extends State<_WorkoutForm> {
         return _ExerciseEntry(
           nameCtrl: TextEditingController(text: ep['name'] ?? ''),
           setsCtrl: TextEditingController(
-              text: asNum(ep['sets']) == 0 ? '' : asNum(ep['sets']).toInt().toString()),
+            text: asNum(ep['sets']) == 0
+                ? ''
+                : asNum(ep['sets']).toInt().toString(),
+          ),
           repsCtrl: TextEditingController(
-              text: asNum(ep['reps']) == 0 ? '' : asNum(ep['reps']).toInt().toString()),
+            text: asNum(ep['reps']) == 0
+                ? ''
+                : asNum(ep['reps']).toInt().toString(),
+          ),
           restCtrl: TextEditingController(
-              text: asNum(ep['restSeconds']) == 0 ? '' : asNum(ep['restSeconds']).toInt().toString()),
+            text: asNum(ep['restSeconds']) == 0
+                ? ''
+                : asNum(ep['restSeconds']).toInt().toString(),
+          ),
           notesCtrl: TextEditingController(text: ep['notes'] ?? ''),
         );
       }).toList();
@@ -411,13 +482,17 @@ class _WorkoutFormState extends State<_WorkoutForm> {
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
     setState(() => _saving = true);
-    final exercisesData = _exercises.map((e) => {
-          'name': e.nameCtrl.text.trim(),
-          'sets': int.tryParse(e.setsCtrl.text) ?? 0,
-          'reps': int.tryParse(e.repsCtrl.text) ?? 0,
-          'restSeconds': int.tryParse(e.restCtrl.text) ?? 0,
-          'notes': e.notesCtrl.text.trim(),
-        }).toList();
+    final exercisesData = _exercises
+        .map(
+          (e) => {
+            'name': e.nameCtrl.text.trim(),
+            'sets': int.tryParse(e.setsCtrl.text) ?? 0,
+            'reps': int.tryParse(e.repsCtrl.text) ?? 0,
+            'restSeconds': int.tryParse(e.restCtrl.text) ?? 0,
+            'notes': e.notesCtrl.text.trim(),
+          },
+        )
+        .toList();
     final data = {
       'name': _nameCtrl.text.trim(),
       'level': _level,
@@ -431,7 +506,12 @@ class _WorkoutFormState extends State<_WorkoutForm> {
     };
     try {
       if (widget.workout != null) {
-        await TenantDb.updateDocument(widget.gymId, 'workouts', widget.workout!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'workouts',
+          widget.workout!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'workouts', data);
       }
@@ -452,7 +532,11 @@ class _WorkoutFormState extends State<_WorkoutForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -460,16 +544,21 @@ class _WorkoutFormState extends State<_WorkoutForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Workout' : 'Add Workout',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Workout' : 'Add Workout',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -481,24 +570,33 @@ class _WorkoutFormState extends State<_WorkoutForm> {
             TextField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
-                  labelText: 'Workout Name *', border: OutlineInputBorder()),
+                labelText: 'Workout Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _level,
-              decoration:
-                  const InputDecoration(labelText: 'Level', border: OutlineInputBorder()),
-              items: _workoutLevels.skip(1).map((l) =>
-                  DropdownMenuItem(value: l, child: Text(l))).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Level',
+                border: OutlineInputBorder(),
+              ),
+              items: _workoutLevels
+                  .skip(1)
+                  .map((l) => DropdownMenuItem(value: l, child: Text(l)))
+                  .toList(),
               onChanged: (v) => setState(() => _level = v ?? 'Beginner'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _goal,
-              decoration:
-                  const InputDecoration(labelText: 'Goal', border: OutlineInputBorder()),
-              items: _workoutGoals.map((g) =>
-                  DropdownMenuItem(value: g, child: Text(g))).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Goal',
+                border: OutlineInputBorder(),
+              ),
+              items: _workoutGoals
+                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                  .toList(),
               onChanged: (v) => setState(() => _goal = v ?? 'General Fitness'),
             ),
             const SizedBox(height: 12),
@@ -506,19 +604,27 @@ class _WorkoutFormState extends State<_WorkoutForm> {
               DropdownButtonFormField<String>(
                 initialValue: _memberId,
                 decoration: const InputDecoration(
-                    labelText: 'Assign to Member', border: OutlineInputBorder()),
+                  labelText: 'Assign to Member',
+                  border: OutlineInputBorder(),
+                ),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('No member')),
-                  ...widget.members.map((m) =>
-                      DropdownMenuItem(value: m['id'] as String, child: Text(m['name'] ?? ''))),
+                  ...widget.members.map(
+                    (m) => DropdownMenuItem(
+                      value: m['id'] as String,
+                      child: Text(m['name'] ?? ''),
+                    ),
+                  ),
                 ],
                 onChanged: (v) => setState(() {
                   _memberId = v;
                   _memberName = v == null
                       ? ''
-                      : (widget.members.firstWhere((m) => m['id'] == v,
-                              orElse: () => {})['name'] ??
-                          '');
+                      : (widget.members.firstWhere(
+                              (m) => m['id'] == v,
+                              orElse: () => {},
+                            )['name'] ??
+                            '');
                 }),
               ),
             const SizedBox(height: 12),
@@ -529,7 +635,9 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                     controller: _durationCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Duration (min)', border: OutlineInputBorder()),
+                      labelText: 'Duration (min)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -538,7 +646,9 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                     controller: _daysCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Days/week', border: OutlineInputBorder()),
+                      labelText: 'Days/week',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
               ],
@@ -548,21 +658,30 @@ class _WorkoutFormState extends State<_WorkoutForm> {
               controller: _descCtrl,
               maxLines: 2,
               decoration: const InputDecoration(
-                  labelText: 'Description', border: OutlineInputBorder()),
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('Exercises', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  'Exercises',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () => setState(() => _exercises.add(_ExerciseEntry(
-                    nameCtrl: TextEditingController(),
-                    setsCtrl: TextEditingController(),
-                    repsCtrl: TextEditingController(),
-                    restCtrl: TextEditingController(),
-                    notesCtrl: TextEditingController(),
-                  ))),
+                  onPressed: () => setState(
+                    () => _exercises.add(
+                      _ExerciseEntry(
+                        nameCtrl: TextEditingController(),
+                        setsCtrl: TextEditingController(),
+                        repsCtrl: TextEditingController(),
+                        restCtrl: TextEditingController(),
+                        notesCtrl: TextEditingController(),
+                      ),
+                    ),
+                  ),
                   icon: Sym(MSym.add, size: 16, color: c.primary),
                   label: const Text('Add Exercise'),
                 ),
@@ -581,13 +700,18 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                   children: [
                     Row(
                       children: [
-                        Text('Exercise ${i + 1}',
-                            style: KText.bodyMd.copyWith(
-                                color: c.onSurface, fontWeight: FontWeight.w600)),
+                        Text(
+                          'Exercise ${i + 1}',
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const Spacer(),
                         IconButton(
                           icon: Sym(MSym.close, size: 16, color: TW.rose600),
-                          onPressed: () => setState(() => _exercises.removeAt(i)),
+                          onPressed: () =>
+                              setState(() => _exercises.removeAt(i)),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -597,7 +721,10 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                     TextField(
                       controller: _exercises[i].nameCtrl,
                       decoration: const InputDecoration(
-                          labelText: 'Exercise Name', border: OutlineInputBorder(), isDense: true),
+                        labelText: 'Exercise Name',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -607,7 +734,10 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                             controller: _exercises[i].setsCtrl,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                                labelText: 'Sets', border: OutlineInputBorder(), isDense: true),
+                              labelText: 'Sets',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -616,7 +746,10 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                             controller: _exercises[i].repsCtrl,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                                labelText: 'Reps', border: OutlineInputBorder(), isDense: true),
+                              labelText: 'Reps',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -625,7 +758,10 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                             controller: _exercises[i].restCtrl,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                                labelText: 'Rest (s)', border: OutlineInputBorder(), isDense: true),
+                              labelText: 'Rest (s)',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
                           ),
                         ),
                       ],
@@ -634,7 +770,10 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                     TextField(
                       controller: _exercises[i].notesCtrl,
                       decoration: const InputDecoration(
-                          labelText: 'Notes', border: OutlineInputBorder(), isDense: true),
+                        labelText: 'Notes',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ],
                 ),
@@ -649,7 +788,11 @@ class _WorkoutFormState extends State<_WorkoutForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Workout'),
               ),
             ),

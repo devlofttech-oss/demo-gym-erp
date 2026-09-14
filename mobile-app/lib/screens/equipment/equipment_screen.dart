@@ -45,7 +45,15 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
   List<Map<String, dynamic>> get _filtered {
     var list = _search.isEmpty
         ? List<Map<String, dynamic>>.from(_equipment)
-        : _equipment.where((e) => (e['name'] as String?)?.toLowerCase().contains(_search.toLowerCase()) ?? false).toList();
+        : _equipment
+              .where(
+                (e) =>
+                    (e['name'] as String?)?.toLowerCase().contains(
+                      _search.toLowerCase(),
+                    ) ??
+                    false,
+              )
+              .toList();
     list.sort((a, b) {
       final da = (a['nextServiceDate'] as String?) ?? '';
       final db = (b['nextServiceDate'] as String?) ?? '';
@@ -95,7 +103,10 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
         title: const Text('Delete Equipment'),
         content: Text('Delete "${eq['name']}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -105,7 +116,11 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'equipment', eq['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'equipment',
+        eq['id'],
+      );
       _fetch();
     }
   }
@@ -168,9 +183,15 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Search equipment…',
-                    prefixIcon: Sym(MSym.search, size: 20, color: c.onSurfaceVariant),
+                    prefixIcon: Sym(
+                      MSym.search,
+                      size: 20,
+                      color: c.onSurfaceVariant,
+                    ),
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onChanged: (v) => setState(() => _search = v),
@@ -219,7 +240,11 @@ class _AlertBanner extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String message;
-  const _AlertBanner({required this.icon, required this.color, required this.message});
+  const _AlertBanner({
+    required this.icon,
+    required this.color,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -235,8 +260,13 @@ class _AlertBanner extends StatelessWidget {
           Sym(icon, size: 18, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message,
-                style: KText.bodyMd.copyWith(color: color, fontWeight: FontWeight.w500)),
+            child: Text(
+              message,
+              style: KText.bodyMd.copyWith(
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
@@ -249,11 +279,12 @@ class _EquipmentCard extends StatelessWidget {
   final _ServiceStatus status;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _EquipmentCard(
-      {required this.equipment,
-      required this.status,
-      required this.onEdit,
-      required this.onDelete});
+  const _EquipmentCard({
+    required this.equipment,
+    required this.status,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   Color get _statusColor {
     switch (status) {
@@ -303,9 +334,13 @@ class _EquipmentCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(equipment['name'] ?? '',
-                          style: KText.bodyLg.copyWith(
-                              color: c.onSurface, fontWeight: FontWeight.w600)),
+                      Text(
+                        equipment['name'] ?? '',
+                        style: KText.bodyLg.copyWith(
+                          color: c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       Row(
                         children: [
                           Pill(
@@ -319,7 +354,11 @@ class _EquipmentCard extends StatelessWidget {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
+                  icon: Sym(
+                    MSym.expandMore,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
@@ -327,8 +366,12 @@ class _EquipmentCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: TW.rose600),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -339,15 +382,19 @@ class _EquipmentCard extends StatelessWidget {
                 if (asNum(equipment['price']) > 0) ...[
                   Sym(MSym.payments, size: 14, color: c.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('₹${grouped(asNum(equipment['price']))}',
-                      style: KText.bodyMd.copyWith(color: c.onSurface)),
+                  Text(
+                    '₹${grouped(asNum(equipment['price']))}',
+                    style: KText.bodyMd.copyWith(color: c.onSurface),
+                  ),
                   const SizedBox(width: 12),
                 ],
                 if ((equipment['purchaseDate'] ?? '').isNotEmpty) ...[
                   Sym(MSym.calendarToday, size: 14, color: c.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('Purchased: ${fmtDate(equipment['purchaseDate'])}',
-                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  Text(
+                    'Purchased: ${fmtDate(equipment['purchaseDate'])}',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
                 ],
               ],
             ),
@@ -355,26 +402,36 @@ class _EquipmentCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Sym(MSym.build, size: 14,
-                      color: status == _ServiceStatus.ok ? c.onSurfaceVariant : _statusColor),
+                  Sym(
+                    MSym.build,
+                    size: 14,
+                    color: status == _ServiceStatus.ok
+                        ? c.onSurfaceVariant
+                        : _statusColor,
+                  ),
                   const SizedBox(width: 4),
-                  Text('Next service: ${fmtDate(equipment['nextServiceDate'])}',
-                      style: KText.bodyMd.copyWith(
-                          color: status == _ServiceStatus.ok
-                              ? c.onSurfaceVariant
-                              : _statusColor,
-                          fontWeight: status == _ServiceStatus.ok
-                              ? FontWeight.normal
-                              : FontWeight.w600)),
+                  Text(
+                    'Next service: ${fmtDate(equipment['nextServiceDate'])}',
+                    style: KText.bodyMd.copyWith(
+                      color: status == _ServiceStatus.ok
+                          ? c.onSurfaceVariant
+                          : _statusColor,
+                      fontWeight: status == _ServiceStatus.ok
+                          ? FontWeight.normal
+                          : FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ],
             if ((equipment['notes'] ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(equipment['notes'],
-                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                equipment['notes'],
+                style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ],
         ),
@@ -389,7 +446,11 @@ class _EquipmentForm extends StatefulWidget {
   final Map<String, dynamic>? equipment;
   final String gymId;
   final VoidCallback onSaved;
-  const _EquipmentForm({this.equipment, required this.gymId, required this.onSaved});
+  const _EquipmentForm({
+    this.equipment,
+    required this.gymId,
+    required this.onSaved,
+  });
 
   @override
   State<_EquipmentForm> createState() => _EquipmentFormState();
@@ -409,7 +470,9 @@ class _EquipmentFormState extends State<_EquipmentForm> {
     final eq = widget.equipment;
     if (eq != null) {
       _nameCtrl.text = eq['name'] ?? '';
-      _priceCtrl.text = asNum(eq['price']) == 0 ? '' : asNum(eq['price']).toString();
+      _priceCtrl.text = asNum(eq['price']) == 0
+          ? ''
+          : asNum(eq['price']).toString();
       _notesCtrl.text = eq['notes'] ?? '';
       if ((eq['purchaseDate'] ?? '').isNotEmpty) {
         _purchaseDate = DateTime.tryParse(eq['purchaseDate']);
@@ -433,10 +496,11 @@ class _EquipmentFormState extends State<_EquipmentForm> {
         ? (_nextServiceDate ?? DateTime.now().add(const Duration(days: 90)))
         : (_purchaseDate ?? DateTime.now());
     final d = await showDatePicker(
-        context: context,
-        initialDate: initial,
-        firstDate: DateTime(2000),
-        lastDate: DateTime(2040));
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2040),
+    );
     if (d != null && mounted) {
       setState(() {
         if (isService) {
@@ -455,12 +519,18 @@ class _EquipmentFormState extends State<_EquipmentForm> {
       'name': _nameCtrl.text.trim(),
       'price': double.tryParse(_priceCtrl.text) ?? 0,
       'purchaseDate': _purchaseDate?.toIso8601String().substring(0, 10) ?? '',
-      'nextServiceDate': _nextServiceDate?.toIso8601String().substring(0, 10) ?? '',
+      'nextServiceDate':
+          _nextServiceDate?.toIso8601String().substring(0, 10) ?? '',
       'notes': _notesCtrl.text.trim(),
     };
     try {
       if (widget.equipment != null) {
-        await TenantDb.updateDocument(widget.gymId, 'equipment', widget.equipment!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'equipment',
+          widget.equipment!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'equipment', data);
       }
@@ -481,7 +551,11 @@ class _EquipmentFormState extends State<_EquipmentForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -489,16 +563,21 @@ class _EquipmentFormState extends State<_EquipmentForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Equipment' : 'Add Equipment',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Equipment' : 'Add Equipment',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -510,14 +589,18 @@ class _EquipmentFormState extends State<_EquipmentForm> {
             TextField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
-                  labelText: 'Equipment Name *', border: OutlineInputBorder()),
+                labelText: 'Equipment Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _priceCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                  labelText: 'Price (₹)', border: OutlineInputBorder()),
+                labelText: 'Price (₹)',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             GestureDetector(
@@ -527,12 +610,17 @@ class _EquipmentFormState extends State<_EquipmentForm> {
                   decoration: InputDecoration(
                     labelText: 'Purchase Date',
                     border: const OutlineInputBorder(),
-                    suffixIcon: Sym(MSym.calendarToday, size: 18, color: c.onSurfaceVariant),
+                    suffixIcon: Sym(
+                      MSym.calendarToday,
+                      size: 18,
+                      color: c.onSurfaceVariant,
+                    ),
                   ),
                   controller: TextEditingController(
-                      text: _purchaseDate != null
-                          ? _purchaseDate!.toIso8601String().substring(0, 10)
-                          : ''),
+                    text: _purchaseDate != null
+                        ? _purchaseDate!.toIso8601String().substring(0, 10)
+                        : '',
+                  ),
                 ),
               ),
             ),
@@ -544,12 +632,17 @@ class _EquipmentFormState extends State<_EquipmentForm> {
                   decoration: InputDecoration(
                     labelText: 'Next Service Date',
                     border: const OutlineInputBorder(),
-                    suffixIcon: Sym(MSym.build, size: 18, color: c.onSurfaceVariant),
+                    suffixIcon: Sym(
+                      MSym.build,
+                      size: 18,
+                      color: c.onSurfaceVariant,
+                    ),
                   ),
                   controller: TextEditingController(
-                      text: _nextServiceDate != null
-                          ? _nextServiceDate!.toIso8601String().substring(0, 10)
-                          : ''),
+                    text: _nextServiceDate != null
+                        ? _nextServiceDate!.toIso8601String().substring(0, 10)
+                        : '',
+                  ),
                 ),
               ),
             ),
@@ -558,7 +651,9 @@ class _EquipmentFormState extends State<_EquipmentForm> {
               controller: _notesCtrl,
               maxLines: 2,
               decoration: const InputDecoration(
-                  labelText: 'Notes', border: OutlineInputBorder()),
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -569,7 +664,11 @@ class _EquipmentFormState extends State<_EquipmentForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Equipment'),
               ),
             ),

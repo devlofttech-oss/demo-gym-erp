@@ -37,7 +37,8 @@ class SubscriptionPlan {
     this.sortOrder = 99,
   });
 
-  factory SubscriptionPlan.fromDoc(String id, Map<String, dynamic> d) => SubscriptionPlan(
+  factory SubscriptionPlan.fromDoc(String id, Map<String, dynamic> d) =>
+      SubscriptionPlan(
         id: id,
         name: (d['name'] ?? id) as String,
         priceInr: (d['priceInr'] as num?)?.toInt() ?? 0,
@@ -54,13 +55,17 @@ class PlanFeature {
   final String label;
   final bool highlight;
 
-  const PlanFeature({required this.icon, required this.label, this.highlight = false});
+  const PlanFeature({
+    required this.icon,
+    required this.label,
+    this.highlight = false,
+  });
 
   factory PlanFeature.fromMap(Map<String, dynamic> m) => PlanFeature(
-        icon: (m['icon'] ?? 'check') as String,
-        label: (m['label'] ?? '') as String,
-        highlight: m['highlight'] == true,
-      );
+    icon: (m['icon'] ?? 'check') as String,
+    label: (m['label'] ?? '') as String,
+    highlight: m['highlight'] == true,
+  );
 }
 
 /// Days until the gym's plan lapses. Negative once expired, null if unset.
@@ -68,8 +73,9 @@ int? daysLeft(String? planEndDate) {
   if (planEndDate == null || planEndDate.isEmpty) return null;
   final end = DateTime.tryParse(planEndDate);
   if (end == null) return null;
-  final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59);
-  return endOfDay.difference(DateTime.now()).inDays;
+  final endOfDay = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
+  // Web ceils this; truncating showed "0 days left" on the final day.
+  return (endOfDay.difference(DateTime.now()).inMilliseconds / 86400000).ceil();
 }
 
 class SubscriptionApi {
@@ -83,7 +89,10 @@ class SubscriptionApi {
     };
   }
 
-  static Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
+  static Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     final res = await http.post(
       Uri.parse('$kApiBase$path'),
       headers: await _headers(),
@@ -96,7 +105,9 @@ class SubscriptionApi {
       data = {};
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception(data['error'] ?? 'Request failed (HTTP ${res.statusCode})');
+      throw Exception(
+        data['error'] ?? 'Request failed (HTTP ${res.statusCode})',
+      );
     }
     return data;
   }
@@ -106,7 +117,10 @@ class SubscriptionApi {
     required String gymId,
     required String planId,
   }) async {
-    final d = await _post('/api/phonepe/create-order', {'gymId': gymId, 'planId': planId});
+    final d = await _post('/api/phonepe/create-order', {
+      'gymId': gymId,
+      'planId': planId,
+    });
     return (
       merchantOrderId: d['merchantOrderId'] as String,
       redirectUrl: d['redirectUrl'] as String,
@@ -117,10 +131,8 @@ class SubscriptionApi {
   ///
   /// Called when the app comes back to the foreground: coming back from the
   /// browser says nothing about whether money moved, so the app never assumes.
-  static Future<({String state, bool applied, String? planEndDate})> checkOrder({
-    required String gymId,
-    required String merchantOrderId,
-  }) async {
+  static Future<({String state, bool applied, String? planEndDate})>
+  checkOrder({required String gymId, required String merchantOrderId}) async {
     final d = await _post('/api/phonepe/status', {
       'gymId': gymId,
       'merchantOrderId': merchantOrderId,

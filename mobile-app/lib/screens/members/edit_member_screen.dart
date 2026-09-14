@@ -18,7 +18,7 @@ const _fitnessGoals = [
   'General Fitness',
   'Stamina',
   'Flexibility',
-  'Rehabilitation'
+  'Rehabilitation',
 ];
 const _editGenders = ['Male', 'Female', 'Other'];
 const _editBatches = ['Morning', 'Noon', 'Evening', 'Night'];
@@ -80,9 +80,10 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
               title: const Text('Take photo'),
               onTap: () async {
                 final f = await picker.pickImage(
-                    source: ImageSource.camera,
-                    imageQuality: 70,
-                    maxWidth: 600);
+                  source: ImageSource.camera,
+                  imageQuality: 70,
+                  maxWidth: 600,
+                );
                 if (ctx.mounted) Navigator.pop(ctx, f);
               },
             ),
@@ -91,17 +92,21 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
               title: const Text('Choose from gallery'),
               onTap: () async {
                 final f = await picker.pickImage(
-                    source: ImageSource.gallery,
-                    imageQuality: 70,
-                    maxWidth: 600);
+                  source: ImageSource.gallery,
+                  imageQuality: 70,
+                  maxWidth: 600,
+                );
                 if (ctx.mounted) Navigator.pop(ctx, f);
               },
             ),
-            if (_photoFile != null || (widget.member['photoUrl'] as String? ?? '').isNotEmpty)
+            if (_photoFile != null ||
+                (widget.member['photoUrl'] as String? ?? '').isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Remove photo',
-                    style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Remove photo',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () => Navigator.pop(ctx),
               ),
           ],
@@ -116,8 +121,9 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
   Future<String?> _uploadPhoto(String gymId, String memberId) async {
     if (_photoFile == null) return null;
     try {
-      final ref = FirebaseStorage.instance
-          .ref('gyms/$gymId/members/$memberId/photo.jpg');
+      final ref = FirebaseStorage.instance.ref(
+        'gyms/$gymId/members/$memberId/photo.jpg',
+      );
       await ref.putFile(_photoFile!);
       return await ref.getDownloadURL();
     } catch (_) {
@@ -126,7 +132,8 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
   }
 
   Future<void> _pickDob() async {
-    final init = DateTime.tryParse(_dob.text) ??
+    final init =
+        DateTime.tryParse(_dob.text) ??
         DateTime.now().subtract(const Duration(days: 365 * 25));
     final picked = await showDatePicker(
       context: context,
@@ -141,8 +148,9 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
 
   Future<void> _save() async {
     if (_phone.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone number is required')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Phone number is required')));
       return;
     }
     final gymId = context.read<AuthProvider>().gymId ?? '';
@@ -168,15 +176,17 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Member updated'),
-              backgroundColor: TW.emerald600),
+            content: Text('Member updated'),
+            backgroundColor: TW.emerald600,
+          ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
     if (mounted) setState(() => _saving = false);
@@ -196,7 +206,10 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
           icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Edit Member', style: KText.h3.copyWith(color: c.onSurface)),
+        title: Text(
+          'Edit Member',
+          style: KText.h3.copyWith(color: c.onSurface),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -207,7 +220,10 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Save'),
             ),
           ),
@@ -228,9 +244,10 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                     backgroundImage: _photoFile != null
                         ? FileImage(_photoFile!) as ImageProvider
                         : (existingPhoto != null && existingPhoto.isNotEmpty
-                            ? NetworkImage(existingPhoto)
-                            : null),
-                    child: (_photoFile == null &&
+                              ? NetworkImage(existingPhoto)
+                              : null),
+                    child:
+                        (_photoFile == null &&
                             (existingPhoto == null || existingPhoto.isEmpty))
                         ? Sym(MSym.addAPhoto, size: 28, color: c.primary)
                         : null,
@@ -242,10 +259,15 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                       width: 26,
                       height: 26,
                       decoration: BoxDecoration(
-                          color: c.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: c.surface, width: 2)),
-                      child: const Sym(MSym.edit, size: 13, color: Colors.white),
+                        color: c.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: c.surface, width: 2),
+                      ),
+                      child: const Sym(
+                        MSym.edit,
+                        size: 13,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -263,20 +285,51 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
                 _field('Full Name *', _name, c),
                 _field('Phone *', _phone, c, type: TextInputType.phone),
                 _field('Email', _email, c, type: TextInputType.emailAddress),
-                _editDropdown<String?>('Gender', _gender, [
-                  const DropdownMenuItem(value: null, child: Text('Select gender...')),
-                  ..._editGenders.map((g) => DropdownMenuItem(value: g, child: Text(g))),
-                ], (v) => setState(() => _gender = v), c),
+                _editDropdown<String?>(
+                  'Gender',
+                  _gender,
+                  [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Select gender...'),
+                    ),
+                    ..._editGenders.map(
+                      (g) => DropdownMenuItem(value: g, child: Text(g)),
+                    ),
+                  ],
+                  (v) => setState(() => _gender = v),
+                  c,
+                ),
                 _dateTapField('Date of Birth', _dob.text, _pickDob, c),
-                _field('Emergency Contact', _emergency, c,
-                    hint: 'Name & phone'),
-                _editDropdown<String?>('Batch', _batch, [
-                  const DropdownMenuItem(value: null, child: Text('Select batch...')),
-                  ..._editBatches.map((b) => DropdownMenuItem(value: b, child: Text(b))),
-                ], (v) => setState(() => _batch = v), c),
+                _field(
+                  'Emergency Contact',
+                  _emergency,
+                  c,
+                  hint: 'Name & phone',
+                ),
+                _editDropdown<String?>(
+                  'Batch',
+                  _batch,
+                  [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Select batch...'),
+                    ),
+                    ..._editBatches.map(
+                      (b) => DropdownMenuItem(value: b, child: Text(b)),
+                    ),
+                  ],
+                  (v) => setState(() => _batch = v),
+                  c,
+                ),
                 _dropdown(c),
-                _field('Health Notes', _health, c,
-                    hint: 'Conditions, injuries...', maxLines: 3),
+                _field(
+                  'Health Notes',
+                  _health,
+                  c,
+                  hint: 'Conditions, injuries...',
+                  maxLines: 3,
+                ),
               ],
             ),
           ),
@@ -286,160 +339,223 @@ class _EditMemberScreenState extends State<EditMemberScreen> {
   }
 
   Widget _sectionHeader(IconData icon, String label, AppColors c) {
-    return Row(children: [
-      Sym(icon, size: 16, color: c.onSurfaceVariant),
-      const SizedBox(width: 8),
-      Text(label.toUpperCase(),
-          style: KText.labelCaps
-              .copyWith(color: c.onSurfaceVariant, letterSpacing: 1)),
-    ]);
+    return Row(
+      children: [
+        Sym(icon, size: 16, color: c.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          label.toUpperCase(),
+          style: KText.labelCaps.copyWith(
+            color: c.onSurfaceVariant,
+            letterSpacing: 1,
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _field(String label, TextEditingController ctrl, AppColors c,
-      {TextInputType? type, String? hint, int maxLines = 1}) {
+  Widget _field(
+    String label,
+    TextEditingController ctrl,
+    AppColors c, {
+    TextInputType? type,
+    String? hint,
+    int maxLines = 1,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
             style: TextStyle(
-                color: c.onSurface,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          keyboardType: type,
-          maxLines: maxLines,
-          decoration: _dec(hint, c),
-        ),
-      ]),
+              color: c.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: ctrl,
+            keyboardType: type,
+            maxLines: maxLines,
+            decoration: _dec(hint, c),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _dateTapField(
-      String label, String value, VoidCallback onTap, AppColors c) {
+    String label,
+    String value,
+    VoidCallback onTap,
+    AppColors c,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
             style: TextStyle(
-                color: c.onSurface,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              color: c.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: c.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: c.outlineVariant.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    value.isEmpty ? 'Select date' : fmtDate(value),
+                    style: TextStyle(
+                      color: value.isEmpty
+                          ? c.onSurfaceVariant.withValues(alpha: 0.6)
+                          : c.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  Sym(MSym.calendarMonth, size: 18, color: c.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _editDropdown<T>(
+    String label,
+    T value,
+    List<DropdownMenuItem<T>> items,
+    ValueChanged<T?> onChanged,
+    AppColors c,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: c.surfaceContainer,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                  color: c.outlineVariant.withValues(alpha: 0.3)),
-            ),
-            child: Row(children: [
-              Text(
-                value.isEmpty ? 'Select date' : fmtDate(value),
-                style: TextStyle(
-                    color: value.isEmpty
-                        ? c.onSurfaceVariant.withValues(alpha: 0.6)
-                        : c.onSurface),
+                color: c.outlineVariant.withValues(alpha: 0.3),
               ),
-              const Spacer(),
-              Sym(MSym.calendarMonth, size: 18, color: c.onSurfaceVariant),
-            ]),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  Widget _editDropdown<T>(String label, T value, List<DropdownMenuItem<T>> items, ValueChanged<T?> onChanged, AppColors c) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: c.surfaceContainer,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<T>(
-              value: value,
-              isExpanded: true,
-              dropdownColor: c.surfaceContainerLowest,
-              style: TextStyle(color: c.onSurface, fontFamily: 'PlusJakartaSans', fontSize: 14),
-              items: items,
-              onChanged: onChanged,
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<T>(
+                value: value,
+                isExpanded: true,
+                dropdownColor: c.surfaceContainerLowest,
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14,
+                ),
+                items: items,
+                onChanged: onChanged,
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
   Widget _dropdown(AppColors c) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Fitness Goal',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Fitness Goal',
             style: TextStyle(
-                color: c.onSurface,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: c.surfaceContainer,
-            borderRadius: BorderRadius.circular(8),
-            border:
-                Border.all(color: c.outlineVariant.withValues(alpha: 0.3)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String?>(
-              value: _fitnessGoal,
-              isExpanded: true,
-              dropdownColor: c.surfaceContainerLowest,
-              hint: Text('Select goal',
-                  style: TextStyle(color: c.onSurfaceVariant)),
-              style: TextStyle(
-                  color: c.onSurface,
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 14),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('No goal')),
-                ..._fitnessGoals.map((g) =>
-                    DropdownMenuItem(value: g, child: Text(g))),
-              ],
-              onChanged: (v) => setState(() => _fitnessGoal = v),
+              color: c.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
-      ]),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: c.surfaceContainer,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: c.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                value: _fitnessGoal,
+                isExpanded: true,
+                dropdownColor: c.surfaceContainerLowest,
+                hint: Text(
+                  'Select goal',
+                  style: TextStyle(color: c.onSurfaceVariant),
+                ),
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14,
+                ),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('No goal')),
+                  ..._fitnessGoals.map(
+                    (g) => DropdownMenuItem(value: g, child: Text(g)),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _fitnessGoal = v),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   InputDecoration _dec(String? hint, AppColors c) => InputDecoration(
-        isDense: true,
-        hintText: hint,
-        hintStyle: TextStyle(
-            color: c.onSurfaceVariant.withValues(alpha: 0.6)),
-        filled: true,
-        fillColor: c.surfaceContainer,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(
-                color: c.outlineVariant.withValues(alpha: 0.3))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: c.primary, width: 2)),
-      );
+    isDense: true,
+    hintText: hint,
+    hintStyle: TextStyle(color: c.onSurfaceVariant.withValues(alpha: 0.6)),
+    filled: true,
+    fillColor: c.surfaceContainer,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: c.outlineVariant.withValues(alpha: 0.3)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: c.primary, width: 2),
+    ),
+  );
 }

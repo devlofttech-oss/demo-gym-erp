@@ -57,7 +57,12 @@ class _UpdateBannerState extends State<UpdateBanner> {
             if (downloading)
               const KSpinner(size: 18, color: TW.blue600)
             else
-              const Sym(MSym.checkCircle, size: 18, color: TW.emerald600, fill: true),
+              const Sym(
+                MSym.checkCircle,
+                size: 18,
+                color: TW.emerald600,
+                fill: true,
+              ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

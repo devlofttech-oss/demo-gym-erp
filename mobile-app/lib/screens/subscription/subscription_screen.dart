@@ -17,13 +17,17 @@ import '../../widgets/common.dart';
 /// the app asks the server what actually happened — returning from the browser
 /// says nothing about whether money moved.
 class SubscriptionScreen extends StatefulWidget {
-  const SubscriptionScreen({super.key});
+  /// Set when this screen is the whole app because the plan has lapsed — there
+  /// is no drawer behind it, so it has to offer its own way out.
+  final bool showSignOut;
+  const SubscriptionScreen({super.key, this.showSignOut = false});
 
   @override
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
-class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBindingObserver {
+class _SubscriptionScreenState extends State<SubscriptionScreen>
+    with WidgetsBindingObserver {
   List<SubscriptionPlan> _plans = [];
   List<PlanFeature> _features = [];
   int _visibleCount = 8;
@@ -86,11 +90,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
       final plansSnap = results[0] as QuerySnapshot<Map<String, dynamic>>;
       final configSnap = results[1] as DocumentSnapshot<Map<String, dynamic>>;
 
-      final plans = plansSnap.docs
-          .map((d) => SubscriptionPlan.fromDoc(d.id, d.data()))
-          .where((p) => p.isUsable)
-          .toList()
-        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      final plans =
+          plansSnap.docs
+              .map((d) => SubscriptionPlan.fromDoc(d.id, d.data()))
+              .where((p) => p.isUsable)
+              .toList()
+            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
       final cfg = configSnap.data() ?? {};
       final features = ((cfg['features'] as List?) ?? [])
@@ -124,7 +129,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
 
     setState(() => _busy = true);
     try {
-      final order = await SubscriptionApi.createOrder(gymId: gymId, planId: _selected!);
+      final order = await SubscriptionApi.createOrder(
+        gymId: gymId,
+        planId: _selected!,
+      );
       _pendingOrderId = order.merchantOrderId;
       await launchUrl(
         Uri.parse(order.redirectUrl),
@@ -144,13 +152,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
     if (gymId == null || orderId == null) return;
 
     try {
-      final res = await SubscriptionApi.checkOrder(gymId: gymId, merchantOrderId: orderId);
+      final res = await SubscriptionApi.checkOrder(
+        gymId: gymId,
+        merchantOrderId: orderId,
+      );
       if (res.state == 'COMPLETED') {
         _pendingOrderId = null;
         await auth.refreshGym();
-        _toast(res.planEndDate != null
-            ? 'Payment received — active until ${res.planEndDate}'
-            : 'Payment received');
+        _toast(
+          res.planEndDate != null
+              ? 'Payment received — active until ${res.planEndDate}'
+              : 'Payment received',
+        );
       } else if (res.state == 'FAILED') {
         _pendingOrderId = null;
         _toast('Payment did not go through. Nothing was charged.');
@@ -168,10 +181,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
     final auth = context.watch<AuthProvider>();
     final left = daysLeft(auth.gymData?['planEndDate'] as String?);
     final plan = _plans.where((p) => p.id == _selected).firstOrNull;
-    final shown = _expanded ? _features : _features.take(_visibleCount).toList();
+    final shown = _expanded
+        ? _features
+        : _features.take(_visibleCount).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Subscription')),
+      appBar: AppBar(
+        title: const Text('Subscription'),
+        actions: [
+          if (widget.showSignOut)
+            TextButton(
+              onPressed: () => context.read<AuthProvider>().logout(),
+              child: const Text('Sign Out'),
+            ),
+        ],
+      ),
       body: _loading
           ? const KLoading()
           : ListView(
@@ -205,8 +229,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
                             f.label,
                             style: TextStyle(
                               fontSize: 14,
-                              color: f.highlight ? c.onSurface : c.onSurfaceVariant,
-                              fontWeight: f.highlight ? FontWeight.w600 : FontWeight.w400,
+                              color: f.highlight
+                                  ? c.onSurface
+                                  : c.onSurfaceVariant,
+                              fontWeight: f.highlight
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                             ),
                           ),
                         ),
@@ -218,9 +246,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
                     alignment: Alignment.centerLeft,
                     child: TextButton(
                       onPressed: () => setState(() => _expanded = !_expanded),
-                      child: Text(_expanded
-                          ? 'View less'
-                          : 'View more (${_features.length - _visibleCount})'),
+                      child: Text(
+                        _expanded
+                            ? 'View less'
+                            : 'View more (${_features.length - _visibleCount})',
+                      ),
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -229,10 +259,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with WidgetsBin
                   icon: _busy
                       ? const SizedBox(width: 18, height: 18, child: KSpinner())
                       : const Sym(MSym.shoppingCart, size: 20),
-                  label: Text(_busy
-                      ? 'Starting…'
-                      : 'Pay ₹${plan?.priceInr ?? 0}'),
-                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                  label: Text(
+                    _busy ? 'Starting…' : 'Pay ₹${plan?.priceInr ?? 0}',
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -264,9 +296,15 @@ class _StatusLine extends StatelessWidget {
       children: [
         Sym(MSym.workspacePremium, size: 20, color: colour),
         const SizedBox(width: 8),
-        Text(text, style: TextStyle(color: colour, fontWeight: FontWeight.w600)),
+        Text(
+          text,
+          style: TextStyle(color: colour, fontWeight: FontWeight.w600),
+        ),
         const Spacer(),
-        Text('Kilos Pro', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+        Text(
+          'Kilos Pro',
+          style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+        ),
       ],
     );
   }
@@ -276,7 +314,11 @@ class _PlanTile extends StatelessWidget {
   final SubscriptionPlan plan;
   final bool selected;
   final VoidCallback onTap;
-  const _PlanTile({required this.plan, required this.selected, required this.onTap});
+  const _PlanTile({
+    required this.plan,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +331,9 @@ class _PlanTile extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? c.primary : c.outlineVariant.withValues(alpha: 0.5),
+            color: selected
+                ? c.primary
+                : c.outlineVariant.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
           ),
           color: selected ? c.primary.withValues(alpha: 0.06) : null,
@@ -300,23 +344,37 @@ class _PlanTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Text(plan.name,
-                        style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600)),
-                    if (plan.badge.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Pill(plan.badge, bg: c.primaryContainer, fg: c.primary),
+                  Row(
+                    children: [
+                      Text(
+                        plan.name,
+                        style: TextStyle(
+                          color: c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (plan.badge.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Pill(plan.badge, bg: c.primaryContainer, fg: c.primary),
+                      ],
                     ],
-                  ]),
+                  ),
                   const SizedBox(height: 2),
-                  Text('${plan.durationDays} days',
-                      style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+                  Text(
+                    '${plan.durationDays} days',
+                    style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+                  ),
                 ],
               ),
             ),
-            Text('₹${plan.priceInr}',
-                style: TextStyle(
-                    color: c.onSurface, fontSize: 20, fontWeight: FontWeight.w700)),
+            Text(
+              '₹${plan.priceInr}',
+              style: TextStyle(
+                color: c.onSurface,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),

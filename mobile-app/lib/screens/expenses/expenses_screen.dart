@@ -74,7 +74,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     if (mounted) setState(() => _loading = true);
     try {
       final res = await TenantDb.getCollection(gymId, 'expenses');
-      res.sort((a, b) => (b['date'] as String? ?? '').compareTo(a['date'] as String? ?? ''));
+      res.sort(
+        (a, b) =>
+            (b['date'] as String? ?? '').compareTo(a['date'] as String? ?? ''),
+      );
       if (mounted) setState(() => _expenses = res);
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -86,7 +89,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   bool _inMonth(dynamic d) {
     final s = d as String?;
     if (s == null || s.isEmpty) return false;
-    return s.startsWith('${_month.year}-${_month.month.toString().padLeft(2, '0')}');
+    return s.startsWith(
+      '${_month.year}-${_month.month.toString().padLeft(2, '0')}',
+    );
   }
 
   List<Map<String, dynamic>> get _filtered {
@@ -98,10 +103,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return list;
   }
 
-  num get _monthTotal => _monthExpenses.fold<num>(0, (s, e) => s + asNum(e['amount']));
-  int get _recurringCount => _monthExpenses.where((e) => e['isRecurring'] == true).length;
+  num get _monthTotal =>
+      _monthExpenses.fold<num>(0, (s, e) => s + asNum(e['amount']));
+  int get _recurringCount =>
+      _monthExpenses.where((e) => e['isRecurring'] == true).length;
 
-  void _prevMonth() => setState(() => _month = DateTime(_month.year, _month.month - 1));
+  void _prevMonth() =>
+      setState(() => _month = DateTime(_month.year, _month.month - 1));
   void _nextMonth() {
     final now = DateTime.now();
     if (_month.year == now.year && _month.month == now.month) return;
@@ -111,7 +119,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   Future<void> _exportCsv() async {
     final data = _filtered;
     if (data.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No expenses to export')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No expenses to export')));
       return;
     }
     final label = DateFormat('MMMM yyyy').format(_month);
@@ -130,11 +140,16 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
     try {
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/expenses_${DateFormat('yyyy-MM').format(_month)}.csv');
+      final file = File(
+        '${dir.path}/expenses_${DateFormat('yyyy-MM').format(_month)}.csv',
+      );
       await file.writeAsString(buf.toString());
       await Share.shareXFiles([XFile(file.path)], text: 'Expenses — $label');
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export failed')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Export failed')));
     }
   }
 
@@ -147,7 +162,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       builder: (_) => _ExpenseForm(
         expense: expense,
         gymId: context.read<AuthProvider>().gymId ?? '',
-        defaultDate: '${_month.year}-${_month.month.toString().padLeft(2, '0')}-01',
+        defaultDate:
+            '${_month.year}-${_month.month.toString().padLeft(2, '0')}-01',
         onSaved: _fetch,
       ),
     );
@@ -158,9 +174,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Expense'),
-        content: Text('Delete this ${e['category']} expense of ${rupees(asNum(e['amount']))}?'),
+        content: Text(
+          'Delete this ${e['category']} expense of ${rupees(asNum(e['amount']))}?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -170,7 +191,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'expenses', e['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'expenses',
+        e['id'],
+      );
       _fetch();
     }
   }
@@ -209,7 +234,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             // Month picker
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -217,13 +245,17 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       onPressed: _prevMonth,
                     ),
                     Expanded(
-                      child: Text(monthLabel,
-                          textAlign: TextAlign.center,
-                          style: KText.h3.copyWith(color: c.onSurface)),
+                      child: Text(
+                        monthLabel,
+                        textAlign: TextAlign.center,
+                        style: KText.h3.copyWith(color: c.onSurface),
+                      ),
                     ),
                     IconButton(
-                      icon: Sym(MSym.chevronRight,
-                          color: isCurrentMonth ? TW.slate400 : c.onSurface),
+                      icon: Sym(
+                        MSym.chevronRight,
+                        color: isCurrentMonth ? TW.slate400 : c.onSurface,
+                      ),
                       onPressed: isCurrentMonth ? null : _nextMonth,
                     ),
                   ],
@@ -234,36 +266,43 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Column(children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          label: 'This month',
-                          value: rupees(_monthTotal),
-                          color: TW.rose600,
-                          icon: MSym.receiptLong,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SummaryCard(
+                            label: 'This month',
+                            value: rupees(_monthTotal),
+                            color: TW.rose600,
+                            icon: MSym.receiptLong,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _SummaryCard(
+                            label: 'Recurring',
+                            value: '$_recurringCount entries',
+                            color: TW.amber600,
+                            icon: MSym.repeat,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _SummaryCard(
+                      label: 'Total All Time',
+                      value: rupees(
+                        _expenses.fold<num>(
+                          0,
+                          (s, e) => s + asNum(e['amount']),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _SummaryCard(
-                          label: 'Recurring',
-                          value: '$_recurringCount entries',
-                          color: TW.amber600,
-                          icon: MSym.repeat,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _SummaryCard(
-                    label: 'Total All Time',
-                    value: rupees(_expenses.fold<num>(0, (s, e) => s + asNum(e['amount']))),
-                    color: TW.violet600,
-                    icon: MSym.payments,
-                  ),
-                ]),
+                      color: TW.violet600,
+                      icon: MSym.payments,
+                    ),
+                  ],
+                ),
               ),
             ),
             // Category filter
@@ -320,15 +359,27 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: Row(children: [
-                    Text('Total (${filtered.length} records):',
-                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                    const SizedBox(width: 8),
-                    Text(
-                      rupees(filtered.fold<num>(0, (s, e) => s + asNum(e['amount']))),
-                      style: KText.bodyMd.copyWith(color: TW.rose600, fontWeight: FontWeight.w700),
-                    ),
-                  ]),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Total (${filtered.length} records):',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        rupees(
+                          filtered.fold<num>(
+                            0,
+                            (s, e) => s + asNum(e['amount']),
+                          ),
+                        ),
+                        style: KText.bodyMd.copyWith(
+                          color: TW.rose600,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -344,8 +395,12 @@ class _SummaryCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
-  const _SummaryCard(
-      {required this.label, required this.value, required this.color, required this.icon});
+  const _SummaryCard({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -368,10 +423,18 @@ class _SummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value,
-                    style: KText.bodyLg.copyWith(color: c.onSurface, fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis),
-                Text(label, style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  value,
+                  style: KText.bodyLg.copyWith(
+                    color: c.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  label,
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
               ],
             ),
           ),
@@ -385,7 +448,11 @@ class _ExpenseCard extends StatelessWidget {
   final Map<String, dynamic> expense;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _ExpenseCard({required this.expense, required this.onEdit, required this.onDelete});
+  const _ExpenseCard({
+    required this.expense,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -422,31 +489,52 @@ class _ExpenseCard extends StatelessWidget {
                       Pill(cat, bg: color.withValues(alpha: 0.1), fg: color),
                       if (isRecurring) ...[
                         const SizedBox(width: 6),
-                        Pill('Recurring',
-                            bg: TW.amber500.withValues(alpha: 0.1), fg: TW.amber600,
-                            icon: MSym.repeat),
+                        Pill(
+                          'Recurring',
+                          bg: TW.amber500.withValues(alpha: 0.1),
+                          fg: TW.amber600,
+                          icon: MSym.repeat,
+                        ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(rupees(amount),
-                      style: KText.bodyLg.copyWith(
-                          color: c.onSurface, fontWeight: FontWeight.w700)),
+                  Text(
+                    rupees(amount),
+                    style: KText.bodyLg.copyWith(
+                      color: c.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   Row(
                     children: [
-                      Text(fmtDate(expense['date']),
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        fmtDate(expense['date']),
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                       if (mode.isNotEmpty) ...[
-                        Text(' · ', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                        Text(mode, style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                        Text(
+                          ' · ',
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          mode,
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ],
                   ),
                   if (desc.isNotEmpty)
-                    Text(desc,
-                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      desc,
+                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
@@ -459,8 +547,9 @@ class _ExpenseCard extends StatelessWidget {
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                 const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                  value: 'delete',
+                  child: Text('Delete', style: TextStyle(color: TW.rose600)),
+                ),
               ],
             ),
           ],
@@ -475,8 +564,12 @@ class _ExpenseForm extends StatefulWidget {
   final String gymId;
   final String defaultDate;
   final VoidCallback onSaved;
-  const _ExpenseForm(
-      {this.expense, required this.gymId, required this.defaultDate, required this.onSaved});
+  const _ExpenseForm({
+    this.expense,
+    required this.gymId,
+    required this.defaultDate,
+    required this.onSaved,
+  });
 
   @override
   State<_ExpenseForm> createState() => _ExpenseFormState();
@@ -496,7 +589,9 @@ class _ExpenseFormState extends State<_ExpenseForm> {
     super.initState();
     final e = widget.expense;
     if (e != null) {
-      _amountCtrl.text = asNum(e['amount']) == 0 ? '' : asNum(e['amount']).toString();
+      _amountCtrl.text = asNum(e['amount']) == 0
+          ? ''
+          : asNum(e['amount']).toString();
       _descCtrl.text = e['description'] ?? '';
       _category = e['category'] ?? 'Rent';
       _payMode = e['paymentMode'] ?? 'Cash';
@@ -537,7 +632,12 @@ class _ExpenseFormState extends State<_ExpenseForm> {
     };
     try {
       if (widget.expense != null) {
-        await TenantDb.updateDocument(widget.gymId, 'expenses', widget.expense!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'expenses',
+          widget.expense!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'expenses', data);
       }
@@ -558,7 +658,11 @@ class _ExpenseFormState extends State<_ExpenseForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -566,16 +670,21 @@ class _ExpenseFormState extends State<_ExpenseForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Expense' : 'Log Expense',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Expense' : 'Log Expense',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -586,7 +695,10 @@ class _ExpenseFormState extends State<_ExpenseForm> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                border: OutlineInputBorder(),
+              ),
               items: _categories
                   .skip(1)
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -598,40 +710,52 @@ class _ExpenseFormState extends State<_ExpenseForm> {
               controller: _amountCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                  labelText: 'Amount (₹) *', border: OutlineInputBorder()),
+                labelText: 'Amount (₹) *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: InkWell(
-                  onTap: _pickDate,
-                  child: InputDecorator(
-                    decoration:
-                        const InputDecoration(labelText: 'Date', border: OutlineInputBorder()),
-                    child: Text(fmtDate(_date),
-                        style: KText.bodyMd.copyWith(color: c.onSurface)),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickDate,
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Date',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Text(
+                        fmtDate(_date),
+                        style: KText.bodyMd.copyWith(color: c.onSurface),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _payMode,
-                  decoration: const InputDecoration(
-                      labelText: 'Payment Mode', border: OutlineInputBorder()),
-                  items: _payModes
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _payMode = v!),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _payMode,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Mode',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _payModes
+                        .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _payMode = v!),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _descCtrl,
               maxLines: 2,
-              decoration:
-                  const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 4),
             SwitchListTile(
@@ -649,7 +773,11 @@ class _ExpenseFormState extends State<_ExpenseForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Log Expense'),
               ),
             ),

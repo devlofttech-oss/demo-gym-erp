@@ -181,8 +181,10 @@ class KD {
   static const primaryTint = Color(0xFFEAE7FF);
   static const ink = Color(0xFF1A1B1E);
   static const inkSoft = Color(0xFF5C5D6E);
+
   /// Dark dock / FAB background gradient start.
   static const dockStart = Color(0xFF1E1B2E);
+
   /// Dark dock / FAB background gradient end.
   static const dockEnd = Color(0xFF0B0C10);
 }
@@ -192,13 +194,44 @@ class KText {
   KText._();
   static const _body = 'PlusJakartaSans';
 
-  static TextStyle get h1 => GoogleFonts.spaceGrotesk(fontSize: 32, height: 1.2, fontWeight: FontWeight.w700);
-  static TextStyle get h2 => GoogleFonts.spaceGrotesk(fontSize: 24, height: 1.3, fontWeight: FontWeight.w700);
-  static TextStyle get h3 => GoogleFonts.spaceGrotesk(fontSize: 20, height: 1.4, fontWeight: FontWeight.w600);
-  static TextStyle get statValue => GoogleFonts.spaceGrotesk(fontSize: 28, height: 1.0, fontWeight: FontWeight.w700);
-  static const bodyLg = TextStyle(fontFamily: _body, fontSize: 16, height: 1.6, fontWeight: FontWeight.w400);
-  static const bodyMd = TextStyle(fontFamily: _body, fontSize: 14, height: 1.5, fontWeight: FontWeight.w400);
-  static const labelCaps = TextStyle(fontFamily: _body, fontSize: 12, height: 1.0, fontWeight: FontWeight.w600);
+  static TextStyle get h1 => GoogleFonts.spaceGrotesk(
+    fontSize: 32,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+  );
+  static TextStyle get h2 => GoogleFonts.spaceGrotesk(
+    fontSize: 24,
+    height: 1.3,
+    fontWeight: FontWeight.w700,
+  );
+  static TextStyle get h3 => GoogleFonts.spaceGrotesk(
+    fontSize: 20,
+    height: 1.4,
+    fontWeight: FontWeight.w600,
+  );
+  static TextStyle get statValue => GoogleFonts.spaceGrotesk(
+    fontSize: 28,
+    height: 1.0,
+    fontWeight: FontWeight.w700,
+  );
+  static const bodyLg = TextStyle(
+    fontFamily: _body,
+    fontSize: 16,
+    height: 1.6,
+    fontWeight: FontWeight.w400,
+  );
+  static const bodyMd = TextStyle(
+    fontFamily: _body,
+    fontSize: 14,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+  );
+  static const labelCaps = TextStyle(
+    fontFamily: _body,
+    fontSize: 12,
+    height: 1.0,
+    fontWeight: FontWeight.w600,
+  );
 }
 
 /// Spacing constants from `@theme` (--spacing-*).
@@ -227,16 +260,14 @@ ThemeData _base(AppColors c, Brightness b) {
     brightness: b,
     fontFamily: 'PlusJakartaSans',
     scaffoldBackgroundColor: c.background,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: c.primary,
-      brightness: b,
-    ).copyWith(
-      primary: c.primary,
-      onPrimary: c.onPrimary,
-      surface: c.surface,
-      onSurface: c.onSurface,
-      error: c.error,
-    ),
+    colorScheme: ColorScheme.fromSeed(seedColor: c.primary, brightness: b)
+        .copyWith(
+          primary: c.primary,
+          onPrimary: c.onPrimary,
+          surface: c.surface,
+          onSurface: c.onSurface,
+          error: c.error,
+        ),
     extensions: [c],
     splashFactory: InkRipple.splashFactory,
   );

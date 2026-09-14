@@ -58,16 +58,19 @@ class NotificationBell extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: TW.rose600,
                     shape: BoxShape.circle,
-                    border:
-                        Border.all(color: c.surfaceContainerLowest, width: 1.5),
+                    border: Border.all(
+                      color: c.surfaceContainerLowest,
+                      width: 1.5,
+                    ),
                   ),
                   child: Center(
                     child: Text(
                       count > 9 ? '9+' : '$count',
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700),
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -129,8 +132,7 @@ class _NotificationPanelState extends State<_NotificationPanel> {
   }
 
   Future<void> _markAllRead() async {
-    final unread =
-        _notifications.where((n) => n['isRead'] != true).toList();
+    final unread = _notifications.where((n) => n['isRead'] != true).toList();
     for (final n in unread) {
       await FirebaseFirestore.instance
           .collection('gyms')
@@ -179,37 +181,50 @@ class _NotificationPanelState extends State<_NotificationPanel> {
         children: [
           const SizedBox(height: 8),
           Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: TW.slate200,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Text('Notifications',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  'Notifications',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 if (unread > 0) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                        color: TW.rose600, borderRadius: BorderRadius.circular(10)),
-                    child: Text('$unread',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700)),
+                      color: TW.rose600,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$unread',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
                 const Spacer(),
                 if (_notifications.isNotEmpty) ...[
                   if (unread > 0)
                     TextButton(
-                        onPressed: _markAllRead,
-                        child: const Text('Mark all read')),
+                      onPressed: _markAllRead,
+                      child: const Text('Mark all read'),
+                    ),
                   TextButton(
                     onPressed: () async {
                       final ok = await showDialog<bool>(
@@ -217,14 +232,17 @@ class _NotificationPanelState extends State<_NotificationPanel> {
                         builder: (_) => AlertDialog(
                           title: const Text('Clear All'),
                           content: const Text(
-                              'Delete all notifications? This cannot be undone.'),
+                            'Delete all notifications? This cannot be undone.',
+                          ),
                           actions: [
                             TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel')),
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
                             FilledButton(
                               style: FilledButton.styleFrom(
-                                  backgroundColor: TW.rose600),
+                                backgroundColor: TW.rose600,
+                              ),
                               onPressed: () => Navigator.pop(context, true),
                               child: const Text('Clear'),
                             ),
@@ -233,8 +251,10 @@ class _NotificationPanelState extends State<_NotificationPanel> {
                       );
                       if (ok == true) _clearAll();
                     },
-                    child:
-                        Text('Clear all', style: TextStyle(color: TW.rose600)),
+                    child: Text(
+                      'Clear all',
+                      style: TextStyle(color: TW.rose600),
+                    ),
                   ),
                 ],
               ],
@@ -245,62 +265,76 @@ class _NotificationPanelState extends State<_NotificationPanel> {
             child: _loading
                 ? const KLoading()
                 : _notifications.isEmpty
-                    ? KEmpty(
-                        icon: MSym.notifications,
-                        message: 'No notifications',
-                      )
-                    : ListView.separated(
-                        padding: EdgeInsets.zero,
-                        itemCount: _notifications.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: c.outlineVariant.withValues(alpha: 0.3)),
-                        itemBuilder: (_, i) {
-                          final n = _notifications[i];
-                          final isRead = n['isRead'] == true;
-                          final nType = n['type'] as String? ?? '';
-                          return ListTile(
-                            leading: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: _typeColor(nType).withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Sym(_typeIcon(nType),
-                                  size: 18, color: _typeColor(nType)),
-                            ),
-                            title: Text(n['title'] ?? n['message'] ?? '',
+                ? KEmpty(icon: MSym.notifications, message: 'No notifications')
+                : ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: _notifications.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: c.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                    itemBuilder: (_, i) {
+                      final n = _notifications[i];
+                      final isRead = n['isRead'] == true;
+                      final nType = n['type'] as String? ?? '';
+                      return ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _typeColor(nType).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Sym(
+                            _typeIcon(nType),
+                            size: 18,
+                            color: _typeColor(nType),
+                          ),
+                        ),
+                        title: Text(
+                          n['title'] ?? n['message'] ?? '',
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurface,
+                            fontWeight: isRead
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                          ),
+                        ),
+                        subtitle:
+                            n['message'] != null && n['message'] != n['title']
+                            ? Text(
+                                n['message'],
                                 style: KText.bodyMd.copyWith(
-                                    color: c.onSurface,
-                                    fontWeight: isRead
-                                        ? FontWeight.normal
-                                        : FontWeight.w600)),
-                            subtitle: n['message'] != null &&
-                                    n['message'] != n['title']
-                                ? Text(n['message'],
-                                    style: KText.bodyMd.copyWith(
-                                        color: c.onSurfaceVariant, fontSize: 12),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis)
-                                : Text(fmtDate(n['createdAt']),
-                                    style: KText.bodyMd.copyWith(
-                                        color: c.onSurfaceVariant, fontSize: 11)),
-                            tileColor: isRead
-                                ? null
-                                : c.primary.withValues(alpha: 0.04),
-                            onTap: isRead ? null : () => _markRead(n['id']),
-                            trailing: isRead
-                                ? null
-                                : Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                        color: c.primary,
-                                        shape: BoxShape.circle),
-                                  ),
-                          );
-                        },
-                      ),
+                                  color: c.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            : Text(
+                                fmtDate(n['createdAt']),
+                                style: KText.bodyMd.copyWith(
+                                  color: c.onSurfaceVariant,
+                                  fontSize: 11,
+                                ),
+                              ),
+                        tileColor: isRead
+                            ? null
+                            : c.primary.withValues(alpha: 0.04),
+                        onTap: isRead ? null : () => _markRead(n['id']),
+                        trailing: isRead
+                            ? null
+                            : Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: c.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

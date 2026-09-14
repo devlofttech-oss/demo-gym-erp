@@ -32,10 +32,18 @@ Future<void> showWhatsAppApiSheet(
   );
 }
 
-String _typeLabel(String type) => type == 'payment' ? 'Payment reminder' : 'Renewal reminder';
+String _typeLabel(String type) =>
+    type == 'payment' ? 'Payment reminder' : 'Renewal reminder';
 
-String _previewText(String type, Map<String, dynamic> m, String gym, Map<String, dynamic>? extra) {
-  final name = (m['name'] as String?)?.trim().isNotEmpty == true ? m['name'] : 'there';
+String _previewText(
+  String type,
+  Map<String, dynamic> m,
+  String gym,
+  Map<String, dynamic>? extra,
+) {
+  final name = (m['name'] as String?)?.trim().isNotEmpty == true
+      ? m['name']
+      : 'there';
   if (type == 'payment') {
     final amt = extra?['amount'] ?? m['balanceFees'] ?? 0;
     return 'Hi $name, this is a payment reminder from $gym. You have a pending balance of ₹$amt. Please clear your dues at your earliest convenience.';
@@ -67,10 +75,10 @@ class _WhatsAppApiSheetState extends State<_WhatsAppApiSheet> {
   bool _sending = false;
 
   List<Map<String, dynamic>> get _valid => widget.recipients.where((r) {
-        final id = r['id'];
-        final digits = (r['phone']?.toString() ?? '').replaceAll(RegExp(r'\D'), '');
-        return id != null && digits.length >= 10;
-      }).toList();
+    final id = r['id'];
+    final digits = (r['phone']?.toString() ?? '').replaceAll(RegExp(r'\D'), '');
+    return id != null && digits.length >= 10;
+  }).toList();
 
   Future<void> _send() async {
     final valid = _valid;
@@ -87,11 +95,21 @@ class _WhatsAppApiSheetState extends State<_WhatsAppApiSheet> {
     Navigator.pop(context);
     final messenger = ScaffoldMessenger.of(context);
     if (res.ok) {
-      messenger.showSnackBar(SnackBar(content: Text('Sent to ${res.sent} member${res.sent == 1 ? '' : 's'}')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Sent to ${res.sent} member${res.sent == 1 ? '' : 's'}',
+          ),
+        ),
+      );
     } else if (res.sent > 0) {
-      messenger.showSnackBar(SnackBar(content: Text('Sent ${res.sent}, failed ${res.failed}')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Sent ${res.sent}, failed ${res.failed}')),
+      );
     } else {
-      messenger.showSnackBar(SnackBar(content: Text(res.error ?? 'Failed to send')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(res.error ?? 'Failed to send')),
+      );
     }
   }
 
@@ -115,56 +133,117 @@ class _WhatsAppApiSheetState extends State<_WhatsAppApiSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(color: TW.whatsapp.withValues(alpha: 0.15), shape: BoxShape.circle),
-              child: Sym(MSym.chat, size: 20, color: TW.whatsapp, fill: true),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Send ${_typeLabel(widget.type)}', style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w700)),
-                Text(
-                  widget.recipientLabel.isNotEmpty
-                      ? widget.recipientLabel
-                      : '${valid.length} recipient${valid.length == 1 ? '' : 's'} · WhatsApp',
-                  style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: TW.whatsapp.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
                 ),
-              ]),
-            ),
-            IconButton(onPressed: () => Navigator.pop(context), icon: Sym(MSym.close, size: 18, color: c.onSurfaceVariant)),
-          ]),
+                child: Sym(MSym.chat, size: 20, color: TW.whatsapp, fill: true),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Send ${_typeLabel(widget.type)}',
+                      style: TextStyle(
+                        color: c.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      widget.recipientLabel.isNotEmpty
+                          ? widget.recipientLabel
+                          : '${valid.length} recipient${valid.length == 1 ? '' : 's'} · WhatsApp',
+                      style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Sym(MSym.close, size: 18, color: c.onSurfaceVariant),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           if (valid.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: TW.amber50, borderRadius: BorderRadius.circular(12), border: Border.all(color: TW.amber200)),
-              child: const Text('No recipients with a valid phone number.', style: TextStyle(color: TW.amber700, fontSize: 13)),
+              decoration: BoxDecoration(
+                color: TW.amber50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: TW.amber200),
+              ),
+              child: const Text(
+                'No recipients with a valid phone number.',
+                style: TextStyle(color: TW.amber700, fontSize: 13),
+              ),
             ),
-          Text('Message preview', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            'Message preview',
+            style: TextStyle(
+              color: c.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFE7FFDB), borderRadius: BorderRadius.circular(12)),
-            child: Text(preview, style: const TextStyle(color: Color(0xFF1E293B), fontSize: 14, height: 1.4)),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7FFDB),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              preview,
+              style: const TextStyle(
+                color: Color(0xFF1E293B),
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
           ),
           const SizedBox(height: 6),
-          Text('Sent as an approved WhatsApp template — filled in per member.',
-              style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
+          Text(
+            'Sent as an approved WhatsApp template — filled in per member.',
+            style: TextStyle(color: c.onSurfaceVariant, fontSize: 11),
+          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: TW.whatsapp, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: FilledButton.styleFrom(
+                backgroundColor: TW.whatsapp,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               onPressed: _sending || valid.isEmpty ? null : _send,
               icon: _sending
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.send, size: 18),
-              label: Text(_sending ? 'Sending…' : (valid.length == 1 ? 'Send message' : 'Send to ${valid.length} members')),
+              label: Text(
+                _sending
+                    ? 'Sending…'
+                    : (valid.length == 1
+                          ? 'Send message'
+                          : 'Send to ${valid.length} members'),
+              ),
             ),
           ),
           const SizedBox(height: 8),

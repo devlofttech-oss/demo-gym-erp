@@ -44,12 +44,11 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
       final days = daysUntilExpiry(m['expiryDate'] as String?);
       if (days == null) return false;
       return days <= _range;
-    }).toList()
-      ..sort((a, b) {
-        final da = daysUntilExpiry(a['expiryDate'] as String?) ?? 0;
-        final db = daysUntilExpiry(b['expiryDate'] as String?) ?? 0;
-        return da.compareTo(db);
-      });
+    }).toList()..sort((a, b) {
+      final da = daysUntilExpiry(a['expiryDate'] as String?) ?? 0;
+      final db = daysUntilExpiry(b['expiryDate'] as String?) ?? 0;
+      return da.compareTo(db);
+    });
   }
 
   List<Map<String, dynamic>> get _frozen =>
@@ -58,7 +57,9 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
   void _renew(Map<String, dynamic> member) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PaymentScreen(memberId: member['id'] as String?)),
+      MaterialPageRoute(
+        builder: (_) => PaymentScreen(memberId: member['id'] as String?),
+      ),
     ).then((_) => _fetch());
   }
 
@@ -90,18 +91,12 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
 
   Future<void> _unfreeze(Map<String, dynamic> member) async {
     final gymId = context.read<AuthProvider>().gymId ?? '';
-    final frozenOn = toDate(member['frozenOn']);
-    final resume = toDate(member['resumeDate']);
-    String? newExpiry;
-    if (frozenOn != null && resume != null && (member['expiryDate'] as String?)?.isNotEmpty == true) {
-      final frozen = resume.difference(frozenOn).inDays;
-      newExpiry = addDays(member['expiryDate'] as String, frozen);
-    }
+    // Web clears the freeze without touching expiryDate. Extending it here gave
+    // members unfrozen from the phone days the web app would not have granted.
     await TenantDb.updateDocument(gymId, 'members', member['id'] as String, {
       'status': 'Active',
       'frozenOn': null,
       'resumeDate': null,
-      if (newExpiry != null) 'expiryDate': newExpiry,
     });
     _fetch();
   }
@@ -129,7 +124,10 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Row(
                   children: [
-                    Text('Expiring within:', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    Text(
+                      'Expiring within:',
+                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                    ),
                     const SizedBox(width: 8),
                     for (final d in [7, 14, 30]) ...[
                       const SizedBox(width: 8),
@@ -151,17 +149,35 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                   children: [
                     _StatChip(
                       label: 'Expired',
-                      count: expiring.where((m) => (daysUntilExpiry(m['expiryDate'] as String?) ?? 0) < 0).length,
+                      count: expiring
+                          .where(
+                            (m) =>
+                                (daysUntilExpiry(m['expiryDate'] as String?) ??
+                                    0) <
+                                0,
+                          )
+                          .length,
                       color: TW.rose600,
                     ),
                     const SizedBox(width: 8),
                     _StatChip(
                       label: 'Expiring soon',
-                      count: expiring.where((m) => (daysUntilExpiry(m['expiryDate'] as String?) ?? 0) >= 0).length,
+                      count: expiring
+                          .where(
+                            (m) =>
+                                (daysUntilExpiry(m['expiryDate'] as String?) ??
+                                    0) >=
+                                0,
+                          )
+                          .length,
                       color: TW.amber600,
                     ),
                     const SizedBox(width: 8),
-                    _StatChip(label: 'Frozen', count: frozen.length, color: TW.blue600),
+                    _StatChip(
+                      label: 'Frozen',
+                      count: frozen.length,
+                      color: TW.blue600,
+                    ),
                   ],
                 ),
               ),
@@ -181,8 +197,12 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text('Due for renewal',
-                          style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+                      child: Text(
+                        'Due for renewal',
+                        style: KText.labelCaps.copyWith(
+                          color: c.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ),
                   SliverPadding(
@@ -192,7 +212,9 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                         (_, i) => _RenewalCard(
                           member: expiring[i],
                           onRenew: () => _renew(expiring[i]),
-                          onWhatsApp: (expiring[i]['phone'] as String?)?.isNotEmpty == true
+                          onWhatsApp:
+                              (expiring[i]['phone'] as String?)?.isNotEmpty ==
+                                  true
                               ? () => _whatsApp(expiring[i])
                               : null,
                           onFreeze: () => _showFreezeSheet(expiring[i]),
@@ -206,8 +228,12 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text('Frozen members',
-                          style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+                      child: Text(
+                        'Frozen members',
+                        style: KText.labelCaps.copyWith(
+                          color: c.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ),
                   SliverPadding(
@@ -217,8 +243,13 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
                         (_, i) => _FrozenCard(
                           member: frozen[i],
                           onUnfreeze: () => _unfreeze(frozen[i]),
-                          onView: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => MemberDetailScreen(member: frozen[i]))),
+                          onView: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  MemberDetailScreen(member: frozen[i]),
+                            ),
+                          ),
                         ),
                         childCount: frozen.length,
                       ),
@@ -238,7 +269,11 @@ class _StatChip extends StatelessWidget {
   final String label;
   final int count;
   final Color color;
-  const _StatChip({required this.label, required this.count, required this.color});
+  const _StatChip({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -251,15 +286,23 @@ class _StatChip extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('$count',
-              style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                  fontFamily: 'PlusJakartaSans')),
-          Text(label,
-              style: const TextStyle(
-                  color: TW.slate500, fontSize: 11, fontFamily: 'PlusJakartaSans')),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              fontFamily: 'PlusJakartaSans',
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: TW.slate500,
+              fontSize: 11,
+              fontFamily: 'PlusJakartaSans',
+            ),
+          ),
         ],
       ),
     );
@@ -271,11 +314,12 @@ class _RenewalCard extends StatelessWidget {
   final VoidCallback onRenew;
   final VoidCallback? onWhatsApp;
   final VoidCallback onFreeze;
-  const _RenewalCard(
-      {required this.member,
-      required this.onRenew,
-      this.onWhatsApp,
-      required this.onFreeze});
+  const _RenewalCard({
+    required this.member,
+    required this.onRenew,
+    this.onWhatsApp,
+    required this.onFreeze,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -285,10 +329,10 @@ class _RenewalCard extends StatelessWidget {
     final daysLabel = days == null
         ? '—'
         : days == 0
-            ? 'Expires today'
-            : isExpired
-                ? 'Expired ${(-days).abs()} day${days.abs() != 1 ? 's' : ''} ago'
-                : 'Expires in $days day${days != 1 ? 's' : ''}';
+        ? 'Expires today'
+        : isExpired
+        ? 'Expired ${(-days).abs()} day${days.abs() != 1 ? 's' : ''} ago'
+        : 'Expires in $days day${days != 1 ? 's' : ''}';
     final chipColor = isExpired ? TW.rose600 : TW.amber600;
 
     return Padding(
@@ -300,77 +344,100 @@ class _RenewalCard extends StatelessWidget {
             Row(
               children: [
                 InitialAvatar(
-                    name: member['name'] ?? '',
-                    size: 44,
-                    bg: chipColor.withValues(alpha: 0.12),
-                    fg: chipColor),
+                  name: member['name'] ?? '',
+                  size: 44,
+                  bg: chipColor.withValues(alpha: 0.12),
+                  fg: chipColor,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(member['name'] ?? '',
-                          style: KText.bodyLg.copyWith(
-                              color: c.onSurface, fontWeight: FontWeight.w600)),
-                      Text(member['phone'] ?? '',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        member['name'] ?? '',
+                        style: KText.bodyLg.copyWith(
+                          color: c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        member['phone'] ?? '',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     ],
                   ),
                 ),
-                Pill(daysLabel,
-                    bg: chipColor.withValues(alpha: 0.1), fg: chipColor, dot: true),
+                Pill(
+                  daysLabel,
+                  bg: chipColor.withValues(alpha: 0.1),
+                  fg: chipColor,
+                  dot: true,
+                ),
               ],
             ),
             const SizedBox(height: 6),
-            Row(children: [
-              if ((member['planName'] ?? member['plan'] ?? '').isNotEmpty) ...[
-                Sym(MSym.loyalty, size: 12, color: c.onSurfaceVariant),
-                const SizedBox(width: 4),
-                Text(member['planName'] ?? member['plan'] ?? '',
-                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                const SizedBox(width: 12),
+            Row(
+              children: [
+                if ((member['planName'] ?? member['plan'] ?? '')
+                    .isNotEmpty) ...[
+                  Sym(MSym.loyalty, size: 12, color: c.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    member['planName'] ?? member['plan'] ?? '',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                if ((member['expiryDate'] as String?)?.isNotEmpty == true) ...[
+                  Sym(MSym.calendarToday, size: 12, color: c.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    fmtDate(member['expiryDate']),
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
+                ],
               ],
-              if ((member['expiryDate'] as String?)?.isNotEmpty == true) ...[
-                Sym(MSym.calendarToday, size: 12, color: c.onSurfaceVariant),
-                const SizedBox(width: 4),
-                Text(fmtDate(member['expiryDate']),
-                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-              ],
-            ]),
+            ),
             const SizedBox(height: 10),
-            Row(children: [
-              if (onWhatsApp != null)
-                OutlinedButton.icon(
-                  onPressed: onWhatsApp,
-                  icon: Sym(MSym.chat, size: 14, color: TW.whatsapp),
-                  label: const Text('Remind'),
-                  style: OutlinedButton.styleFrom(
+            Row(
+              children: [
+                if (onWhatsApp != null)
+                  OutlinedButton.icon(
+                    onPressed: onWhatsApp,
+                    icon: Sym(MSym.chat, size: 14, color: TW.whatsapp),
+                    label: const Text('Remind'),
+                    style: OutlinedButton.styleFrom(
                       foregroundColor: TW.whatsapp,
                       side: const BorderSide(color: TW.whatsapp),
-                      visualDensity: VisualDensity.compact),
-                ),
-              const SizedBox(width: 6),
-              OutlinedButton.icon(
-                onPressed: onFreeze,
-                icon: Sym(MSym.acUnit, size: 14, color: TW.blue600),
-                label: const Text('Freeze'),
-                style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  onPressed: onFreeze,
+                  icon: Sym(MSym.acUnit, size: 14, color: TW.blue600),
+                  label: const Text('Freeze'),
+                  style: OutlinedButton.styleFrom(
                     foregroundColor: TW.blue600,
                     side: const BorderSide(color: TW.blue600),
-                    visualDensity: VisualDensity.compact),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onRenew,
-                  icon: Sym(MSym.autorenew, size: 14, color: Colors.white),
-                  label: const Text('Renew'),
-                  style: FilledButton.styleFrom(
-                      backgroundColor: TW.emerald600,
-                      visualDensity: VisualDensity.compact),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
-              ),
-            ]),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onRenew,
+                    icon: Sym(MSym.autorenew, size: 14, color: Colors.white),
+                    label: const Text('Renew'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: TW.emerald600,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -382,7 +449,11 @@ class _FrozenCard extends StatelessWidget {
   final Map<String, dynamic> member;
   final VoidCallback onUnfreeze;
   final VoidCallback onView;
-  const _FrozenCard({required this.member, required this.onUnfreeze, required this.onView});
+  const _FrozenCard({
+    required this.member,
+    required this.onUnfreeze,
+    required this.onView,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -409,31 +480,42 @@ class _FrozenCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(member['name'] ?? '',
-                      style: KText.bodyLg.copyWith(
-                          color: c.onSurface, fontWeight: FontWeight.w600)),
+                  Text(
+                    member['name'] ?? '',
+                    style: KText.bodyLg.copyWith(
+                      color: c.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   if (frozenOn != null)
-                    Text('Frozen: ${fmtDate(frozenOn)}',
-                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                    Text(
+                      'Frozen: ${fmtDate(frozenOn)}',
+                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                    ),
                   if (resume != null)
-                    Text('Resumes: ${fmtDate(resume)}',
-                        style: KText.bodyMd.copyWith(color: TW.blue600)),
+                    Text(
+                      'Resumes: ${fmtDate(resume)}',
+                      style: KText.bodyMd.copyWith(color: TW.blue600),
+                    ),
                 ],
               ),
             ),
             OutlinedButton(
               onPressed: onView,
               style: OutlinedButton.styleFrom(
-                  foregroundColor: TW.blue600,
-                  side: const BorderSide(color: TW.blue600),
-                  visualDensity: VisualDensity.compact),
+                foregroundColor: TW.blue600,
+                side: const BorderSide(color: TW.blue600),
+                visualDensity: VisualDensity.compact,
+              ),
               child: const Text('View'),
             ),
             const SizedBox(width: 8),
             FilledButton(
               onPressed: onUnfreeze,
               style: FilledButton.styleFrom(
-                  backgroundColor: TW.blue600, visualDensity: VisualDensity.compact),
+                backgroundColor: TW.blue600,
+                visualDensity: VisualDensity.compact,
+              ),
               child: const Text('Unfreeze'),
             ),
           ],
@@ -447,45 +529,43 @@ class _FreezeSheet extends StatefulWidget {
   final Map<String, dynamic> member;
   final String gymId;
   final VoidCallback onSaved;
-  const _FreezeSheet({required this.member, required this.gymId, required this.onSaved});
+  const _FreezeSheet({
+    required this.member,
+    required this.gymId,
+    required this.onSaved,
+  });
 
   @override
   State<_FreezeSheet> createState() => _FreezeSheetState();
 }
 
 class _FreezeSheetState extends State<_FreezeSheet> {
-  String _frozenOn = todayStr();
+  final String _frozenOn = todayStr();
   String _resumeDate = addDays(todayStr(), 30);
   bool _saving = false;
-
-  Future<void> _pickFrozenOn() async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: DateTime.tryParse(_frozenOn) ?? DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 7)),
-      lastDate: DateTime.now(),
-    );
-    if (d != null) setState(() => _frozenOn = d.toIso8601String().split('T').first);
-  }
 
   Future<void> _pickResume() async {
     final d = await showDatePicker(
       context: context,
-      initialDate: DateTime.tryParse(_resumeDate) ?? DateTime.now().add(const Duration(days: 30)),
+      initialDate:
+          DateTime.tryParse(_resumeDate) ??
+          DateTime.now().add(const Duration(days: 30)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (d != null) setState(() => _resumeDate = d.toIso8601String().split('T').first);
+    if (d != null)
+      setState(() => _resumeDate = d.toIso8601String().split('T').first);
   }
 
   Future<void> _freeze() async {
     setState(() => _saving = true);
     try {
-      await TenantDb.updateDocument(widget.gymId, 'members', widget.member['id'], {
-        'status': 'Frozen',
-        'frozenOn': _frozenOn,
-        'resumeDate': _resumeDate,
-      });
+      await TenantDb.updateDocument(
+        widget.gymId,
+        'members',
+        widget.member['id'],
+        {'status': 'Frozen', 'frozenOn': _frozenOn, 'resumeDate': _resumeDate},
+      );
       if (mounted) Navigator.pop(context);
       widget.onSaved();
     } catch (_) {}
@@ -501,25 +581,34 @@ class _FreezeSheetState extends State<_FreezeSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: TW.slate200,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Sym(MSym.acUnit, color: TW.blue600, size: 22),
               const SizedBox(width: 8),
-              Text('Freeze — ${widget.member['name']}',
-                  style: KText.h3.copyWith(color: c.onSurface)),
+              Text(
+                'Freeze — ${widget.member['name']}',
+                style: KText.h3.copyWith(color: c.onSurface),
+              ),
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
@@ -529,34 +618,42 @@ class _FreezeSheetState extends State<_FreezeSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-              'The member\'s expiry date will be extended by the number of frozen days when unfrozen.',
-              style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+            'The membership is paused until the resume date. Expiry is unchanged.',
+            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-              child: InkWell(
-                onTap: _pickFrozenOn,
+          Row(
+            children: [
+              Expanded(
                 child: InputDecorator(
                   decoration: const InputDecoration(
-                      labelText: 'Freeze From', border: OutlineInputBorder()),
-                  child: Text(fmtDate(_frozenOn),
-                      style: KText.bodyMd.copyWith(color: c.onSurface)),
+                    labelText: 'Freeze From',
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    fmtDate(_frozenOn),
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: InkWell(
-                onTap: _pickResume,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                      labelText: 'Resume Date', border: OutlineInputBorder()),
-                  child: Text(fmtDate(_resumeDate),
-                      style: KText.bodyMd.copyWith(color: c.onSurface)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: _pickResume,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Resume Date',
+                      border: OutlineInputBorder(),
+                    ),
+                    child: Text(
+                      fmtDate(_resumeDate),
+                      style: KText.bodyMd.copyWith(color: c.onSurface),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ]),
+            ],
+          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -567,7 +664,11 @@ class _FreezeSheetState extends State<_FreezeSheet> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Freeze Membership'),
             ),
           ),

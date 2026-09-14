@@ -42,8 +42,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _savePlan() async {
     final name = _planName.text.trim();
     final price = double.tryParse(_planPrice.text.trim());
-    if (name.isEmpty) { _err('Plan name is required'); return; }
-    if (price == null || price <= 0) { _err('Enter a valid price'); return; }
+    if (name.isEmpty) {
+      _err('Plan name is required');
+      return;
+    }
+    if (price == null || price <= 0) {
+      _err('Enter a valid price');
+      return;
+    }
 
     final gymId = context.read<AuthProvider>().gymId;
     if (gymId == null) return;
@@ -60,18 +66,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'isActive': true,
       });
       _savedPlan = plan;
-      if (mounted) setState(() { _step = 1; _saving = false; });
+      if (mounted)
+        setState(() {
+          _step = 1;
+          _saving = false;
+        });
     } catch (e) {
-      if (mounted) { _err('Failed to save plan'); setState(() => _saving = false); }
+      if (mounted) {
+        _err('Failed to save plan');
+        setState(() => _saving = false);
+      }
     }
   }
 
   Future<void> _saveMember() async {
     final name = _memName.text.trim();
-    if (name.isEmpty) { _err('Member name is required'); return; }
+    if (name.isEmpty) {
+      _err('Member name is required');
+      return;
+    }
 
     final gymId = context.read<AuthProvider>().gymId;
-    if (gymId == null) { setState(() => _step = 2); return; }
+    if (gymId == null) {
+      setState(() => _step = 2);
+      return;
+    }
     setState(() => _saving = true);
     try {
       await TenantDb.createDocument(gymId, 'members', {
@@ -82,15 +101,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         'status': 'active',
         'startDate': DateTime.now().toIso8601String().substring(0, 10),
       });
-      if (mounted) setState(() { _step = 2; _saving = false; });
+      if (mounted)
+        setState(() {
+          _step = 2;
+          _saving = false;
+        });
     } catch (e) {
-      if (mounted) { _err('Failed to save member'); setState(() => _saving = false); }
+      if (mounted) {
+        _err('Failed to save member');
+        setState(() => _saving = false);
+      }
     }
   }
 
   void _err(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: TW.rose600));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: TW.rose600));
   }
 
   @override
@@ -111,11 +138,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: [
-                _buildAddPlan(),
-                _buildAddMember(),
-                _buildDone(),
-              ][_step],
+              child: [_buildAddPlan(), _buildAddMember(), _buildDone()][_step],
             ),
           ),
         ],
@@ -131,48 +154,73 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         KCard(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Add a Plan', style: KText.h2.copyWith(color: c.onSurface, fontSize: 20)),
-            const SizedBox(height: 4),
-            Text(
-              'Create at least one membership plan so you can add members to it later.',
-              style: TextStyle(color: c.onSurfaceVariant, fontSize: 13),
-            ),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add a Plan',
+                style: KText.h2.copyWith(color: c.onSurface, fontSize: 20),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Create at least one membership plan so you can add members to it later.',
+                style: TextStyle(color: c.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 14),
         KCard(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Gym Plan Creation Instructions',
-                style: KText.h3.copyWith(color: c.onSurface, fontSize: 14)),
-            const SizedBox(height: 10),
-            _inst('1. Set plan name and price', 'Example: "6 Month Premium" – 5000'),
-            _inst('2. Choose duration in months or days', 'Example: 6 months or 180 days'),
-            _inst('3. Plans will be assigned to gym members',
-                'Example: Assign "6 Month Premium" to new members'),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Gym Plan Creation Instructions',
+                style: KText.h3.copyWith(color: c.onSurface, fontSize: 14),
+              ),
+              const SizedBox(height: 10),
+              _inst(
+                '1. Set plan name and price',
+                'Example: "6 Month Premium" – 5000',
+              ),
+              _inst(
+                '2. Choose duration in months or days',
+                'Example: 6 months or 180 days',
+              ),
+              _inst(
+                '3. Plans will be assigned to gym members',
+                'Example: Assign "6 Month Premium" to new members',
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         _field(_planName, 'Plan Name *', Icons.badge_outlined),
         const SizedBox(height: 12),
-        _field(_planPrice, 'Price *', Icons.currency_rupee,
-            type: TextInputType.number),
+        _field(
+          _planPrice,
+          'Price *',
+          Icons.currency_rupee,
+          type: TextInputType.number,
+        ),
         const SizedBox(height: 12),
-        Row(children: [
-          Icon(Icons.calendar_today_outlined, color: c.primary, size: 20),
-          const SizedBox(width: 10),
-          ChoiceChip(
-            label: const Text('Months'),
-            selected: _durUnit == 'months',
-            onSelected: (_) => setState(() => _durUnit = 'months'),
-          ),
-          const SizedBox(width: 8),
-          ChoiceChip(
-            label: const Text('Days'),
-            selected: _durUnit == 'days',
-            onSelected: (_) => setState(() => _durUnit = 'days'),
-          ),
-        ]),
+        Row(
+          children: [
+            Icon(Icons.calendar_today_outlined, color: c.primary, size: 20),
+            const SizedBox(width: 10),
+            ChoiceChip(
+              label: const Text('Months'),
+              selected: _durUnit == 'months',
+              onSelected: (_) => setState(() => _durUnit = 'months'),
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: const Text('Days'),
+              selected: _durUnit == 'days',
+              onSelected: (_) => setState(() => _durUnit = 'days'),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         _field(
           _durValue,
@@ -194,14 +242,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         KCard(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Add a Member', style: KText.h2.copyWith(color: c.onSurface, fontSize: 20)),
-            const SizedBox(height: 4),
-            Text(
-              'Add your first gym member. You can skip this step and add members later.',
-              style: TextStyle(color: c.onSurfaceVariant, fontSize: 13),
-            ),
-          ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add a Member',
+                style: KText.h2.copyWith(color: c.onSurface, fontSize: 20),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Add your first gym member. You can skip this step and add members later.',
+                style: TextStyle(color: c.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 14),
         if (_savedPlan != null)
@@ -212,17 +266,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               color: KD.primaryTint,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(children: [
-              const Icon(Icons.check_circle, color: KD.primary, size: 18),
-              const SizedBox(width: 8),
-              Text('Plan: ${_savedPlan!['name']}',
-                  style: const TextStyle(color: KD.primary, fontWeight: FontWeight.w600)),
-            ]),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: KD.primary, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Plan: ${_savedPlan!['name']}',
+                  style: const TextStyle(
+                    color: KD.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         _field(_memName, 'Member Name *', Icons.person_outline),
         const SizedBox(height: 12),
-        _field(_memPhone, 'Phone Number', Icons.phone_outlined,
-            type: TextInputType.phone),
+        _field(
+          _memPhone,
+          'Phone Number',
+          Icons.phone_outlined,
+          type: TextInputType.phone,
+        ),
         const SizedBox(height: 24),
         _saveBtn('Add Member & Continue', _saving, _saveMember),
         const SizedBox(height: 12),
@@ -248,18 +313,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Container(
           width: 88,
           height: 88,
-          decoration: const BoxDecoration(color: KD.primaryTint, shape: BoxShape.circle),
+          decoration: const BoxDecoration(
+            color: KD.primaryTint,
+            shape: BoxShape.circle,
+          ),
           child: const Center(
             child: Text('🎉', style: TextStyle(fontSize: 40)),
           ),
         ),
         const SizedBox(height: 24),
-        Text("You're all set!", style: KText.h1.copyWith(color: c.onSurface, fontSize: 26)),
+        Text(
+          "You're all set!",
+          style: KText.h1.copyWith(color: c.onSurface, fontSize: 26),
+        ),
         const SizedBox(height: 8),
         Text(
           'Your gym is ready to manage.\nLet\'s get started!',
           textAlign: TextAlign.center,
-          style: TextStyle(color: c.onSurfaceVariant, fontSize: 15, height: 1.5),
+          style: TextStyle(
+            color: c.onSurfaceVariant,
+            fontSize: 15,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 40),
         _saveBtn('Go to Dashboard', false, widget.onComplete),
@@ -292,13 +367,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final c = context.c;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
             style: TextStyle(
-                color: c.onSurface, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text(sub,
-            style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
-      ]),
+              color: c.onSurface,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+          Text(sub, style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+        ],
+      ),
     );
   }
 
@@ -310,8 +392,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         onPressed: loading ? null : onTap,
         child: loading
             ? const KSpinner(size: 20, color: Colors.white)
-            : Text(label,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }
@@ -333,48 +420,57 @@ class _StepBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surfaceContainerLowest,
         border: Border(
-            bottom: BorderSide(color: c.outlineVariant.withValues(alpha: 0.3))),
+          bottom: BorderSide(color: c.outlineVariant.withValues(alpha: 0.3)),
+        ),
       ),
       child: Row(
         children: [
           for (int i = 0; i < _labels.length; i++) ...[
             Expanded(
-              child: Column(children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: i <= step ? KD.primary : Colors.transparent,
-                    border: Border.all(
-                      color: i <= step ? KD.primary : c.outlineVariant,
-                      width: 1.5,
+              child: Column(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i <= step ? KD.primary : Colors.transparent,
+                      border: Border.all(
+                        color: i <= step ? KD.primary : c.outlineVariant,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: i < step
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 14,
+                            )
+                          : Text(
+                              '${i + 1}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: i <= step
+                                    ? Colors.white
+                                    : c.onSurfaceVariant,
+                              ),
+                            ),
                     ),
                   ),
-                  child: Center(
-                    child: i < step
-                        ? const Icon(Icons.check, color: Colors.white, size: 14)
-                        : Text(
-                            '${i + 1}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: i <= step ? Colors.white : c.onSurfaceVariant,
-                            ),
-                          ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _labels[i],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: i == step ? FontWeight.w700 : FontWeight.w400,
+                      color: i <= step ? KD.primary : c.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _labels[i],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: i == step ? FontWeight.w700 : FontWeight.w400,
-                    color: i <= step ? KD.primary : c.onSurfaceVariant,
-                  ),
-                ),
-              ]),
+                ],
+              ),
             ),
             if (i < _labels.length - 1)
               Expanded(

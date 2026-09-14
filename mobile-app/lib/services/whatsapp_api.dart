@@ -27,7 +27,10 @@ Future<WhatsAppApiResult> sendWhatsAppApi({
 }) async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) {
-    return WhatsAppApiResult(failed: memberIds.length, error: 'You must be signed in');
+    return WhatsAppApiResult(
+      failed: memberIds.length,
+      error: 'You must be signed in',
+    );
   }
 
   try {
@@ -49,7 +52,9 @@ Future<WhatsAppApiResult> sendWhatsAppApi({
     Map<String, dynamic> data = {};
     try {
       data = jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (_) {/* non-JSON body */}
+    } catch (_) {
+      /* non-JSON body */
+    }
 
     if (res.statusCode != 200) {
       return WhatsAppApiResult(

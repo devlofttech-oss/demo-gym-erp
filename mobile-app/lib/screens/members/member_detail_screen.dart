@@ -110,12 +110,22 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       final auth = context.read<AuthProvider>();
       final gymId = auth.gymId ?? '';
       final gymData = auth.gymData ?? {};
+      final settings = await TenantDb.getDocument(gymId, 'settings', 'general');
+      final info =
+          (settings?['gymInfo'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{};
+      String info2(String key, String legacy) {
+        final v = info[key];
+        if (v is String && v.trim().isNotEmpty) return v;
+        return (gymData[legacy] as String?) ?? '';
+      }
+
       final memberId = _m['id'] as String? ?? '';
       await TenantDb.setRootDocument('receipts', memberId, {
-        'gymName': gymData['name'] ?? '',
-        'gymAddress': gymData['location'] ?? gymData['address'] ?? '',
-        'gymPhone': gymData['contact'] ?? gymData['phone'] ?? '',
-        'gymLogoUrl': gymData['logoUrl'] ?? '',
+        'gymName': info2('name', 'name'),
+        'gymAddress': info2('location', 'address'),
+        'gymPhone': info2('contact', 'phone'),
+        'gymLogoUrl': info2('logoUrl', 'logoUrl'),
         'memberName': _m['name'] ?? '',
         'memberPhone': _m['phone'] ?? '',
         'membershipId': _m['membershipId'] ?? '',
@@ -134,10 +144,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       final gymName = (gymData['name'] as String?) ?? 'our gym';
       final msg =
           'Hi $name! 🏋️\nHere is your membership receipt from *$gymName*.\n\nView your receipt:\n$receiptUrl\n\nThank you! 💪';
-      final num = phone.replaceAll(RegExp(r'\D'), '');
-      final last10 = num.length > 10 ? num.substring(num.length - 10) : num;
+      final digits = phone.replaceAll(RegExp(r'\D'), '');
+      final wa = digits.length == 10 ? '91$digits' : digits;
       final waUri = Uri.parse(
-        'https://wa.me/91$last10?text=${Uri.encodeComponent(msg)}',
+        'https://wa.me/$wa?text=${Uri.encodeComponent(msg)}',
       );
       if (mounted) await launchUrl(waUri, mode: LaunchMode.externalApplication);
     } catch (_) {

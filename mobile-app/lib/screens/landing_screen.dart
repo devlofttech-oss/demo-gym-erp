@@ -14,9 +14,9 @@ class LandingScreen extends StatelessWidget {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open link')));
       }
     }
   }
@@ -48,7 +48,10 @@ class LandingScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                 ),
                 padding: const EdgeInsets.all(14),
-                child: Image.asset('assets/images/kilos_logo.png', fit: BoxFit.contain),
+                child: Image.asset(
+                  'assets/images/kilos_logo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
               const SizedBox(height: 28),
 
@@ -87,18 +90,24 @@ class LandingScreen extends StatelessWidget {
                       height: 54,
                       child: ElevatedButton(
                         onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: KD.primaryDeep,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(27)),
+                            borderRadius: BorderRadius.circular(27),
+                          ),
                           elevation: 0,
                         ),
                         child: const Text(
                           'Login',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -111,13 +120,18 @@ class LandingScreen extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                           side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.45)),
+                            color: Colors.white.withValues(alpha: 0.45),
+                          ),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(27)),
+                            borderRadius: BorderRadius.circular(27),
+                          ),
                         ),
                         child: const Text(
                           'Register New Account',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -133,8 +147,9 @@ class LandingScreen extends StatelessWidget {
                 child: RichText(
                   text: TextSpan(
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.50),
-                        fontSize: 13.5),
+                      color: Colors.white.withValues(alpha: 0.50),
+                      fontSize: 13.5,
+                    ),
                     children: const [
                       TextSpan(text: 'Need help? '),
                       TextSpan(
@@ -153,7 +168,9 @@ class LandingScreen extends StatelessWidget {
               Text(
                 'Powered by Kilos  ·  v1.0.5',
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.30), fontSize: 11.5),
+                  color: Colors.white.withValues(alpha: 0.30),
+                  fontSize: 11.5,
+                ),
               ),
               const SizedBox(height: 36),
             ],

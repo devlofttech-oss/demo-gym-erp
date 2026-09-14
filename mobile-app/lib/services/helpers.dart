@@ -43,10 +43,11 @@ String addMonths(String dateStr, int months) {
   final firstOfTarget = DateTime(d.year, d.month + months, 1);
   final lastDay = DateTime(firstOfTarget.year, firstOfTarget.month + 1, 0).day;
   final day = d.day > lastDay ? lastDay : d.day;
-  return DateTime(firstOfTarget.year, firstOfTarget.month, day)
-      .toIso8601String()
-      .split('T')
-      .first;
+  return DateTime(
+    firstOfTarget.year,
+    firstOfTarget.month,
+    day,
+  ).toIso8601String().split('T').first;
 }
 
 /// Entry eligibility from the live expiry date (not the stale status field).
@@ -102,7 +103,11 @@ List<dynamic> paginationPages(int page, int total) {
   if (total <= 7) return List.generate(total, (i) => i + 1);
   final pages = <dynamic>[1];
   if (page > 3) pages.add('...');
-  for (var p = (page - 1).clamp(2, total); p <= (page + 1).clamp(0, total - 1); p++) {
+  for (
+    var p = (page - 1).clamp(2, total);
+    p <= (page + 1).clamp(0, total - 1);
+    p++
+  ) {
     pages.add(p);
   }
   if (page < total - 2) pages.add('...');

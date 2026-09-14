@@ -26,6 +26,12 @@ class AuthProvider extends ChangeNotifier {
   bool loading = true;
   bool inactiveGymError = false;
 
+  /// Mirrors web's isPlanBlocked: the plan has not started yet, or has run out.
+  /// The session stays alive so an admin can still reach the subscription
+  /// screen and pay — signing them out would lock them away from renewing.
+  bool isPlanBlocked = false;
+  String? planBlockReason; // 'plan_not_started' | 'plan_expired'
+
   AuthProvider() {
     _auth.authStateChanges().listen(_onAuthChanged);
   }
@@ -43,6 +49,8 @@ class AuthProvider extends ChangeNotifier {
       gymIds = [];
       gymBranches = [];
       isSuperAdmin = false;
+      isPlanBlocked = false;
+      planBlockReason = null;
       loading = false;
       notifyListeners();
       return;
@@ -64,6 +72,8 @@ class AuthProvider extends ChangeNotifier {
       if (userRole == 'superadmin') {
         role = 'superadmin';
         isSuperAdmin = true;
+        isPlanBlocked = false;
+        planBlockReason = null;
         gymId = null;
         gymIds = [];
         gymBranches = [];
@@ -104,6 +114,7 @@ class AuthProvider extends ChangeNotifier {
           }
           gymData = activeGym;
           inactiveGymError = false;
+          _applyPlanWindow(activeGym);
         }
         role = userRole;
         userName =
@@ -121,6 +132,38 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _applyPlanWindow(Map<String, dynamic> gym) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    var blocked = false;
+    String? reason;
+
+    final startRaw = gym['planStartDate'] as String?;
+    if (startRaw != null && startRaw.isNotEmpty) {
+      final start = DateTime.tryParse(startRaw);
+      if (start != null &&
+          today.isBefore(DateTime(start.year, start.month, start.day))) {
+        blocked = true;
+        reason = 'plan_not_started';
+      }
+    }
+
+    if (!blocked) {
+      final endRaw = gym['planEndDate'] as String?;
+      if (endRaw != null && endRaw.isNotEmpty) {
+        final end = DateTime.tryParse(endRaw);
+        if (end != null &&
+            today.isAfter(DateTime(end.year, end.month, end.day))) {
+          blocked = true;
+          reason = 'plan_expired';
+        }
+      }
+    }
+
+    isPlanBlocked = blocked;
+    planBlockReason = blocked ? reason : null;
+  }
+
   Future<void> login(String email, String password) async {
     inactiveGymError = false;
     await _auth.signInWithEmailAndPassword(email: email, password: password);
@@ -134,6 +177,7 @@ class AuthProvider extends ChangeNotifier {
     final fresh = await TenantDb.getTopDocument('gyms', id);
     if (fresh == null) return;
     gymData = fresh;
+    if (!isSuperAdmin) _applyPlanWindow(fresh);
     notifyListeners();
   }
 

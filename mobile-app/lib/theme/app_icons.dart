@@ -1,4 +1,4 @@
-﻿// GENERATED - Material Symbols Outlined icon map (mirrors icons used in the React app).
+// GENERATED - Material Symbols Outlined icon map (mirrors icons used in the React app).
 import 'package:flutter/widgets.dart';
 
 class MSym {
@@ -48,7 +48,10 @@ class MSym {
   static const IconData monitorWeight = IconData(0xf039, fontFamily: _f);
   static const IconData monitoring = IconData(0xf190, fontFamily: _f);
   static const IconData musicNote = IconData(0xe405, fontFamily: _f);
-  static const IconData notificationImportant = IconData(0xe004, fontFamily: _f);
+  static const IconData notificationImportant = IconData(
+    0xe004,
+    fontFamily: _f,
+  );
   static const IconData notifications = IconData(0xe7f5, fontFamily: _f);
   static const IconData openInNew = IconData(0xe89e, fontFamily: _f);
   static const IconData payment = IconData(0xe8a1, fontFamily: _f);

@@ -13,7 +13,14 @@ import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
-const _fitnessGoals = ['Weight Loss', 'Muscle Gain', 'General Fitness', 'Stamina', 'Flexibility', 'Rehabilitation'];
+const _fitnessGoals = [
+  'Weight Loss',
+  'Muscle Gain',
+  'General Fitness',
+  'Stamina',
+  'Flexibility',
+  'Rehabilitation',
+];
 const _payModes = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque'];
 const _genders = ['Male', 'Female', 'Other'];
 const _batches = ['Morning', 'Noon', 'Evening', 'Night'];
@@ -68,7 +75,18 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _emergency, _health, _joiningFees, _discount, _discountAmt, _nextDays, _paidNow]) {
+    for (final c in [
+      _name,
+      _phone,
+      _email,
+      _emergency,
+      _health,
+      _joiningFees,
+      _discount,
+      _discountAmt,
+      _nextDays,
+      _paidNow,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -99,7 +117,9 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   void _recalcExpiry() {
     setState(() {
-      _expiryDate = _durationMonths > 0 ? addMonths(_planActiveFrom, _durationMonths) : addDays(_planActiveFrom, 30);
+      _expiryDate = _durationMonths > 0
+          ? addMonths(_planActiveFrom, _durationMonths)
+          : addDays(_planActiveFrom, 30);
     });
   }
 
@@ -139,20 +159,40 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     DateTime firstDate = DateTime(2020);
     DateTime lastDate = DateTime(2100);
     if (which == 'dob') {
-      init = _dob.isEmpty ? DateTime.now().subtract(const Duration(days: 365 * 25)) : DateTime.tryParse(_dob);
+      init = _dob.isEmpty
+          ? DateTime.now().subtract(const Duration(days: 365 * 25))
+          : DateTime.tryParse(_dob);
       firstDate = DateTime(1940);
       lastDate = DateTime.now();
     } else {
-      init = DateTime.tryParse(which == 'join' ? _joinDate : which == 'active' ? _planActiveFrom : _expiryDate) ?? DateTime.now();
+      init =
+          DateTime.tryParse(
+            which == 'join'
+                ? _joinDate
+                : which == 'active'
+                ? _planActiveFrom
+                : _expiryDate,
+          ) ??
+          DateTime.now();
     }
-    final picked = await showDatePicker(context: context, initialDate: init ?? DateTime.now(), firstDate: firstDate, lastDate: lastDate);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: init ?? DateTime.now(),
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
     if (picked == null) return;
     final iso = picked.toIso8601String().split('T').first;
     setState(() {
-      if (which == 'join') _joinDate = iso;
-      else if (which == 'active') { _planActiveFrom = iso; _recalcExpiry(); }
-      else if (which == 'dob') _dob = iso;
-      else _expiryDate = iso;
+      if (which == 'join')
+        _joinDate = iso;
+      else if (which == 'active') {
+        _planActiveFrom = iso;
+        _recalcExpiry();
+      } else if (which == 'dob')
+        _dob = iso;
+      else
+        _expiryDate = iso;
     });
   }
 
@@ -168,7 +208,11 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
               leading: const Icon(Icons.camera_alt),
               title: const Text('Take photo'),
               onTap: () async {
-                final f = await picker.pickImage(source: ImageSource.camera, imageQuality: 70, maxWidth: 600);
+                final f = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 70,
+                  maxWidth: 600,
+                );
                 if (ctx.mounted) Navigator.pop(ctx, f);
               },
             ),
@@ -176,14 +220,21 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
               leading: const Icon(Icons.photo_library),
               title: const Text('Choose from gallery'),
               onTap: () async {
-                final f = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 600);
+                final f = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 70,
+                  maxWidth: 600,
+                );
                 if (ctx.mounted) Navigator.pop(ctx, f);
               },
             ),
             if (_photoFile != null)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Remove photo',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () => Navigator.pop(ctx),
               ),
           ],
@@ -198,7 +249,9 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
   Future<String?> _uploadPhoto(String gymId, String memberId) async {
     if (_photoFile == null) return null;
     try {
-      final ref = FirebaseStorage.instance.ref('gyms/$gymId/members/$memberId/photo.jpg');
+      final ref = FirebaseStorage.instance.ref(
+        'gyms/$gymId/members/$memberId/photo.jpg',
+      );
       await ref.putFile(_photoFile!);
       return await ref.getDownloadURL();
     } catch (_) {
@@ -214,12 +267,17 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     final gymId = context.read<AuthProvider>().gymId!;
     final base = _totalFees;
     final discountAmt = (num.tryParse(_discountAmt.text) ?? 0).clamp(0, base);
-    final discountPct = base > 0 ? double.parse((discountAmt * 100 / base).toStringAsFixed(1)) : 0;
+    final discountPct = base > 0
+        ? double.parse((discountAmt * 100 / base).toStringAsFixed(1))
+        : 0;
     final joiningFees = _joiningFeesAmt;
-    final totalFees = (base - discountAmt).clamp(0, double.infinity) + joiningFees;
+    final totalFees =
+        (base - discountAmt).clamp(0, double.infinity) + joiningFees;
     final paid = _paidNum;
     final balance = (totalFees - paid).clamp(0, double.infinity);
-    final nextPaymentDate = _nextDays.text.isNotEmpty ? addDays(_joinDate, int.tryParse(_nextDays.text) ?? 0) : null;
+    final nextPaymentDate = _nextDays.text.isNotEmpty
+        ? addDays(_joinDate, int.tryParse(_nextDays.text) ?? 0)
+        : null;
 
     setState(() => _saving = true);
     try {
@@ -252,7 +310,8 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         if (discountAmt > 0) 'discountAmount': discountAmt,
         if (discountAmt > 0) 'discountPercent': discountPct,
         if (nextPaymentDate != null) 'nextPaymentDate': nextPaymentDate,
-        if (_emergency.text.isNotEmpty) 'emergencyContact': _emergency.text.trim(),
+        if (_emergency.text.isNotEmpty)
+          'emergencyContact': _emergency.text.trim(),
         if (_fitnessGoal != null) 'fitnessGoal': _fitnessGoal,
         if (_gender != null) 'gender': _gender,
         if (_batch != null) 'batch': _batch,
@@ -263,7 +322,9 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
         final memberId = member['id'] as String? ?? '';
         final url = await _uploadPhoto(gymId, memberId);
         if (url != null && memberId.isNotEmpty) {
-          await TenantDb.updateDocument(gymId, 'members', memberId, {'photoUrl': url});
+          await TenantDb.updateDocument(gymId, 'members', memberId, {
+            'photoUrl': url,
+          });
         }
       }
       await TenantDb.createDocument(gymId, 'payments', {
@@ -292,7 +353,8 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     }
   }
 
-  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  void _toast(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   @override
   Widget build(BuildContext context) {
@@ -302,10 +364,20 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
       appBar: AppBar(
         backgroundColor: c.background,
         elevation: 0,
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          Text('Add New Member', style: KText.h3.copyWith(color: c.onSurface)),
-          Text('Register a member and record their first payment', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
-        ]),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Add New Member',
+              style: KText.h3.copyWith(color: c.onSurface),
+            ),
+            Text(
+              'Register a member and record their first payment',
+              style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+            ),
+          ],
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(KSpace.gutter),
@@ -319,44 +391,139 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                 _photoPicker(),
                 const SizedBox(height: 16),
                 _field('Full Name *', _name, hint: 'e.g. Rahul Sharma'),
-                _field('Phone Number *', _phone, hint: 'e.g. 9876543210', keyboard: TextInputType.phone),
-                _field('Email (optional)', _email, hint: 'e.g. rahul@email.com', keyboard: TextInputType.emailAddress),
+                _field(
+                  'Phone Number *',
+                  _phone,
+                  hint: 'e.g. 9876543210',
+                  keyboard: TextInputType.phone,
+                ),
+                _field(
+                  'Email (optional)',
+                  _email,
+                  hint: 'e.g. rahul@email.com',
+                  keyboard: TextInputType.emailAddress,
+                ),
                 _dropdown<String?>('Gender', _gender, [
-                  const DropdownMenuItem(value: null, child: Text('Select gender...')),
-                  ..._genders.map((g) => DropdownMenuItem(value: g, child: Text(g))),
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('Select gender...'),
+                  ),
+                  ..._genders.map(
+                    (g) => DropdownMenuItem(value: g, child: Text(g)),
+                  ),
                 ], (v) => setState(() => _gender = v)),
-                _dateField('Date of Birth', _dob.isEmpty ? '' : _dob, () => _pickDate('dob'), allowEmpty: true),
-                _dateField('Date of Joining', _joinDate, () => _pickDate('join')),
+                _dateField(
+                  'Date of Birth',
+                  _dob.isEmpty ? '' : _dob,
+                  () => _pickDate('dob'),
+                  allowEmpty: true,
+                ),
+                _dateField(
+                  'Date of Joining',
+                  _joinDate,
+                  () => _pickDate('join'),
+                ),
                 _field('Emergency Contact', _emergency, hint: 'Name & phone'),
-                _dropdown<String?>('Fitness Goal', _fitnessGoal, [
-                  const DropdownMenuItem(value: null, child: Text('Select goal...')),
-                  ..._fitnessGoals.map((g) => DropdownMenuItem(value: g, child: Text(g))),
-                ], (v) => setState(() => _fitnessGoal = v)),
+                _dropdown<String?>(
+                  'Fitness Goal',
+                  _fitnessGoal,
+                  [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Select goal...'),
+                    ),
+                    ..._fitnessGoals.map(
+                      (g) => DropdownMenuItem(value: g, child: Text(g)),
+                    ),
+                  ],
+                  (v) => setState(() => _fitnessGoal = v),
+                ),
                 _dropdown<String?>('Batch', _batch, [
-                  const DropdownMenuItem(value: null, child: Text('Select batch...')),
-                  ..._batches.map((b) => DropdownMenuItem(value: b, child: Text(b))),
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('Select batch...'),
+                  ),
+                  ..._batches.map(
+                    (b) => DropdownMenuItem(value: b, child: Text(b)),
+                  ),
                 ], (v) => setState(() => _batch = v)),
-                _field('Health Notes (optional)', _health, hint: 'Conditions, injuries...'),
+                _field(
+                  'Health Notes (optional)',
+                  _health,
+                  hint: 'Conditions, injuries...',
+                ),
                 const Divider(height: 32),
                 _sectionTitle(MSym.cardMembership, 'Plan & Payment'),
                 const SizedBox(height: 16),
                 _planDropdown(),
-                _field('Joining Fees (₹)', _joiningFees, hint: '0', keyboard: TextInputType.number, onChanged: (_) => setState(() {}), numbersOnly: true),
-                Row(children: [
-                  Expanded(child: _field('Discount (%)', _discount, hint: '0', keyboard: TextInputType.number, onChanged: _onDiscountPctChanged, numbersOnly: true)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _field('Discount (₹)', _discountAmt, hint: '0', keyboard: TextInputType.number, onChanged: _onDiscountAmtChanged, numbersOnly: true)),
-                ]),
-                _field('Next Payment (days)', _nextDays, hint: 'e.g. 30', keyboard: TextInputType.number, numbersOnly: true),
+                _field(
+                  'Joining Fees (₹)',
+                  _joiningFees,
+                  hint: '0',
+                  keyboard: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  numbersOnly: true,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _field(
+                        'Discount (%)',
+                        _discount,
+                        hint: '0',
+                        keyboard: TextInputType.number,
+                        onChanged: _onDiscountPctChanged,
+                        numbersOnly: true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _field(
+                        'Discount (₹)',
+                        _discountAmt,
+                        hint: '0',
+                        keyboard: TextInputType.number,
+                        onChanged: _onDiscountAmtChanged,
+                        numbersOnly: true,
+                      ),
+                    ),
+                  ],
+                ),
+                _field(
+                  'Next Payment (days)',
+                  _nextDays,
+                  hint: 'e.g. 30',
+                  keyboard: TextInputType.number,
+                  numbersOnly: true,
+                ),
                 _feesRow(),
-                Row(children: [
-                  Expanded(child: _dateField('Active From', _planActiveFrom, () => _pickDate('active'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: _dateField('Expiry Date', _expiryDate, () => _pickDate('expiry'))),
-                ]),
-                _dropdown<String>('Payment Mode', _paymentMode,
-                    _payModes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                    (v) => setState(() => _paymentMode = v!)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _dateField(
+                        'Active From',
+                        _planActiveFrom,
+                        () => _pickDate('active'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _dateField(
+                        'Expiry Date',
+                        _expiryDate,
+                        () => _pickDate('expiry'),
+                      ),
+                    ),
+                  ],
+                ),
+                _dropdown<String>(
+                  'Payment Mode',
+                  _paymentMode,
+                  _payModes
+                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                      .toList(),
+                  (v) => setState(() => _paymentMode = v!),
+                ),
                 const SizedBox(height: 16),
                 _summary(),
               ],
@@ -366,10 +533,17 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
           SizedBox(
             height: 50,
             child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: c.primary, foregroundColor: c.onPrimary),
+              style: FilledButton.styleFrom(
+                backgroundColor: c.primary,
+                foregroundColor: c.onPrimary,
+              ),
               onPressed: _saving ? null : _submit,
-              icon: _saving ? const KSpinner(size: 18, color: Colors.white) : const Sym(MSym.personAdd, size: 18),
-              label: Text(_saving ? 'Saving...' : 'Add Member & Record Payment'),
+              icon: _saving
+                  ? const KSpinner(size: 18, color: Colors.white)
+                  : const Sym(MSym.personAdd, size: 18),
+              label: Text(
+                _saving ? 'Saving...' : 'Add Member & Record Payment',
+              ),
             ),
           ),
         ],
@@ -387,7 +561,9 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
             CircleAvatar(
               radius: 44,
               backgroundColor: c.primaryContainer,
-              backgroundImage: _photoFile != null ? FileImage(_photoFile!) : null,
+              backgroundImage: _photoFile != null
+                  ? FileImage(_photoFile!)
+                  : null,
               child: _photoFile == null
                   ? Sym(MSym.addAPhoto, size: 28, color: c.primary)
                   : null,
@@ -399,9 +575,10 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
                 width: 26,
                 height: 26,
                 decoration: BoxDecoration(
-                    color: c.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: c.surface, width: 2)),
+                  color: c.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: c.surface, width: 2),
+                ),
                 child: const Sym(MSym.edit, size: 13, color: Colors.white),
               ),
             ),
@@ -413,81 +590,160 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
 
   Widget _sectionTitle(IconData icon, String t) {
     final c = context.c;
-    return Row(children: [
-      Sym(icon, size: 16, color: c.onSurfaceVariant),
-      const SizedBox(width: 8),
-      Text(t.toUpperCase(), style: KText.labelCaps.copyWith(color: c.onSurfaceVariant, letterSpacing: 1)),
-    ]);
-  }
-
-  Widget _field(String label, TextEditingController ctrl, {String? hint, TextInputType? keyboard, ValueChanged<String>? onChanged, bool numbersOnly = false}) {
-    final c = context.c;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: c.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          keyboardType: keyboard,
-          onChanged: onChanged,
-          inputFormatters: numbersOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
-          style: TextStyle(color: c.onSurface),
-          decoration: _inputDec(hint),
+    return Row(
+      children: [
+        Sym(icon, size: 16, color: c.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          t.toUpperCase(),
+          style: KText.labelCaps.copyWith(
+            color: c.onSurfaceVariant,
+            letterSpacing: 1,
+          ),
         ),
-      ]),
+      ],
     );
   }
 
-  Widget _dateField(String label, String value, VoidCallback onTap, {bool allowEmpty = false}) {
+  Widget _field(
+    String label,
+    TextEditingController ctrl, {
+    String? hint,
+    TextInputType? keyboard,
+    ValueChanged<String>? onChanged,
+    bool numbersOnly = false,
+  }) {
+    final c = context.c;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: ctrl,
+            keyboardType: keyboard,
+            onChanged: onChanged,
+            inputFormatters: numbersOnly
+                ? [FilteringTextInputFormatter.digitsOnly]
+                : null,
+            style: TextStyle(color: c.onSurface),
+            decoration: _inputDec(hint),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dateField(
+    String label,
+    String value,
+    VoidCallback onTap, {
+    bool allowEmpty = false,
+  }) {
     final c = context.c;
     final isEmpty = value.isEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: c.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3))),
-            child: Row(children: [
-              Text(
-                isEmpty && allowEmpty ? 'Optional' : value,
-                style: TextStyle(color: isEmpty && allowEmpty ? c.onSurfaceVariant.withValues(alpha: 0.5) : c.onSurface),
-              ),
-              const Spacer(),
-              Sym(MSym.calendarMonth, size: 18, color: c.onSurfaceVariant),
-            ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ]),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: c.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: c.outlineVariant.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    isEmpty && allowEmpty ? 'Optional' : value,
+                    style: TextStyle(
+                      color: isEmpty && allowEmpty
+                          ? c.onSurfaceVariant.withValues(alpha: 0.5)
+                          : c.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  Sym(MSym.calendarMonth, size: 18, color: c.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _dropdown<T>(String label, T value, List<DropdownMenuItem<T>> items, ValueChanged<T?> onChanged) {
+  Widget _dropdown<T>(
+    String label,
+    T value,
+    List<DropdownMenuItem<T>> items,
+    ValueChanged<T?> onChanged,
+  ) {
     final c = context.c;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: c.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3))),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<T>(
-              value: value,
-              isExpanded: true,
-              dropdownColor: c.surfaceContainerLowest,
-              style: TextStyle(color: c.onSurface, fontFamily: 'PlusJakartaSans', fontSize: 14),
-              items: items,
-              onChanged: onChanged,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
-      ]),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: c.surfaceContainer,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: c.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<T>(
+                value: value,
+                isExpanded: true,
+                dropdownColor: c.surfaceContainerLowest,
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14,
+                ),
+                items: items,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -495,126 +751,254 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     final c = context.c;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Membership Plan', style: TextStyle(color: c.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(color: c.surfaceContainer, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.outlineVariant.withValues(alpha: 0.3))),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _planId,
-              isExpanded: true,
-              hint: Text(_plans.isEmpty ? 'No plans — add from web dashboard' : 'Select plan', style: TextStyle(color: c.onSurfaceVariant)),
-              dropdownColor: c.surfaceContainerLowest,
-              style: TextStyle(color: c.onSurface, fontFamily: 'PlusJakartaSans', fontSize: 14),
-              items: _plans.map((p) {
-                final price = asNum(p['price']);
-                final months = asNum(p['durationMonths']).toInt();
-                return DropdownMenuItem(
-                  value: p['id'] as String,
-                  child: Text('${p['name']}${price > 0 ? ' — ${rupees(price)}' : ''}${months > 0 ? ' (${months}m)' : ''}', overflow: TextOverflow.ellipsis),
-                );
-              }).toList(),
-              onChanged: (id) {
-                final p = _plans.firstWhere((e) => e['id'] == id);
-                setState(() => _applyPlan(p));
-              },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Membership Plan',
+            style: TextStyle(
+              color: c.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ),
-      ]),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: c.surfaceContainer,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: c.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _planId,
+                isExpanded: true,
+                hint: Text(
+                  _plans.isEmpty
+                      ? 'No plans — add from web dashboard'
+                      : 'Select plan',
+                  style: TextStyle(color: c.onSurfaceVariant),
+                ),
+                dropdownColor: c.surfaceContainerLowest,
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14,
+                ),
+                items: _plans.map((p) {
+                  final price = asNum(p['price']);
+                  final months = asNum(p['durationMonths']).toInt();
+                  return DropdownMenuItem(
+                    value: p['id'] as String,
+                    child: Text(
+                      '${p['name']}${price > 0 ? ' — ${rupees(price)}' : ''}${months > 0 ? ' (${months}m)' : ''}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (id) {
+                  final p = _plans.firstWhere((e) => e['id'] == id);
+                  setState(() => _applyPlan(p));
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _feesRow() {
     final c = context.c;
     Widget box(String label, Widget value, String sub) => Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 6),
-            value,
-            const SizedBox(height: 4),
-            Text(sub, style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
-          ]),
-        );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          value,
+          const SizedBox(height: 4),
+          Text(sub, style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
+        ],
+      ),
+    );
     final balancePos = _balance > 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        box(
-          'Grand Total (₹)',
-          _readonlyBox(_finalTotal > 0 ? rupees(_finalTotal) : '—', c.surfaceContainer, c.onSurfaceVariant),
-          _joiningFeesAmt > 0
-              ? 'Plan ${rupees(_discountedTotal)} + Joining ${rupees(_joiningFeesAmt)}'
-              : _discountPct > 0
-                  ? 'After ${_discountPct.toInt()}% discount'
-                  : 'Plan price',
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Paid (₹) *', style: TextStyle(color: c.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 6),
-            SizedBox(
-              height: 46,
-              child: TextField(
-                controller: _paidNow,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (_) => setState(() {}),
-                style: TextStyle(color: c.onSurface, fontSize: 13),
-                decoration: _inputDec('0').copyWith(enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: c.primary.withValues(alpha: 0.5)))),
-              ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          box(
+            'Grand Total (₹)',
+            _readonlyBox(
+              _finalTotal > 0 ? rupees(_finalTotal) : '—',
+              c.surfaceContainer,
+              c.onSurfaceVariant,
             ),
-            const SizedBox(height: 4),
-            Text('Paying now', style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
-          ]),
-        ),
-        const SizedBox(width: 8),
-        box('Balance (₹)', _readonlyBox(rupees(_balance), balancePos ? TW.rose50 : TW.green50, balancePos ? TW.rose600 : TW.green700), 'Remaining'),
-      ]),
+            _joiningFeesAmt > 0
+                ? 'Plan ${rupees(_discountedTotal)} + Joining ${rupees(_joiningFeesAmt)}'
+                : _discountPct > 0
+                ? 'After ${_discountPct.toInt()}% discount'
+                : 'Plan price',
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Paid (₹) *',
+                  style: TextStyle(
+                    color: c.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: 46,
+                  child: TextField(
+                    controller: _paidNow,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (_) => setState(() {}),
+                    style: TextStyle(color: c.onSurface, fontSize: 13),
+                    decoration: _inputDec('0').copyWith(
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: c.primary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Paying now',
+                  style: TextStyle(color: c.onSurfaceVariant, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          box(
+            'Balance (₹)',
+            _readonlyBox(
+              rupees(_balance),
+              balancePos ? TW.rose50 : TW.green50,
+              balancePos ? TW.rose600 : TW.green700,
+            ),
+            'Remaining',
+          ),
+        ],
+      ),
     );
   }
 
   Widget _readonlyBox(String text, Color bg, Color fg) => Container(
-        height: 46,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: fg.withValues(alpha: 0.25))),
-        child: Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis),
-      );
+    height: 46,
+    alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: fg.withValues(alpha: 0.25)),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 13),
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
 
   Widget _summary() {
     final c = context.c;
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: c.primary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: c.primary.withValues(alpha: 0.2))),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Sym(MSym.receiptLong, size: 24, color: c.primary),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Payment Summary', style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
-            const SizedBox(height: 6),
-            Wrap(spacing: 16, runSpacing: 4, children: [
-              _sumItem('Total', rupees(_finalTotal), c.onSurface),
-              _sumItem('Paying', rupees(_paidNum), c.primary),
-              _sumItem('Balance', rupees(_balance), _balance > 0 ? TW.rose500 : TW.green600),
-            ]),
-            const SizedBox(height: 6),
-            Text('Plan: $_planActiveFrom → $_expiryDate · $_paymentMode', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
-          ]),
-        ),
-      ]),
+      decoration: BoxDecoration(
+        color: c.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Sym(MSym.receiptLong, size: 24, color: c.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Payment Summary',
+                  style: TextStyle(
+                    color: c.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 4,
+                  children: [
+                    _sumItem('Total', rupees(_finalTotal), c.onSurface),
+                    _sumItem('Paying', rupees(_paidNum), c.primary),
+                    _sumItem(
+                      'Balance',
+                      rupees(_balance),
+                      _balance > 0 ? TW.rose500 : TW.green600,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Plan: $_planActiveFrom → $_expiryDate · $_paymentMode',
+                  style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _sumItem(String k, String v, Color color) {
-    return RichText(text: TextSpan(children: [
-      TextSpan(text: '$k: ', style: TextStyle(color: context.c.onSurfaceVariant, fontSize: 14, fontFamily: 'PlusJakartaSans')),
-      TextSpan(text: v, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'PlusJakartaSans')),
-    ]));
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '$k: ',
+            style: TextStyle(
+              color: context.c.onSurfaceVariant,
+              fontSize: 14,
+              fontFamily: 'PlusJakartaSans',
+            ),
+          ),
+          TextSpan(
+            text: v,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'PlusJakartaSans',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   InputDecoration _inputDec(String? hint) {
@@ -626,8 +1010,14 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
       filled: true,
       fillColor: c.surfaceContainer,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: c.outlineVariant.withValues(alpha: 0.3))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: c.primary, width: 2)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: c.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: c.primary, width: 2),
+      ),
     );
   }
 }

@@ -56,8 +56,16 @@ class _SupplementsScreenState extends State<SupplementsScreen>
         TenantDb.getCollection(gymId, 'supplementSales'),
       ]);
       final sales = res[1]
-        ..sort((a, b) => (b['date'] as String? ?? '').compareTo(a['date'] as String? ?? ''));
-      if (mounted) setState(() { _inventory = res[0]; _sales = sales; });
+        ..sort(
+          (a, b) => (b['date'] as String? ?? '').compareTo(
+            a['date'] as String? ?? '',
+          ),
+        );
+      if (mounted)
+        setState(() {
+          _inventory = res[0];
+          _sales = sales;
+        });
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -65,10 +73,16 @@ class _SupplementsScreenState extends State<SupplementsScreen>
   List<Map<String, dynamic>> get _filteredInventory {
     var list = _catTab == 0
         ? _inventory
-        : _inventory.where((s) => (s['category'] ?? '') == _supCategories[_catTab]).toList();
+        : _inventory
+              .where((s) => (s['category'] ?? '') == _supCategories[_catTab])
+              .toList();
     if (_search.isNotEmpty) {
       final q = _search.toLowerCase();
-      list = list.where((s) => (s['name'] as String?)?.toLowerCase().contains(q) == true).toList();
+      list = list
+          .where(
+            (s) => (s['name'] as String?)?.toLowerCase().contains(q) == true,
+          )
+          .toList();
     }
     return list;
   }
@@ -135,7 +149,10 @@ class _SupplementsScreenState extends State<SupplementsScreen>
         title: const Text('Delete Supplement'),
         content: Text('Delete "${s['name']}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -145,7 +162,11 @@ class _SupplementsScreenState extends State<SupplementsScreen>
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'supplements', s['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'supplements',
+        s['id'],
+      );
       _fetch();
     }
   }
@@ -159,7 +180,10 @@ class _SupplementsScreenState extends State<SupplementsScreen>
       appBar: AppBar(
         backgroundColor: c.background,
         elevation: 0,
-        title: Text('Supplements', style: KText.h3.copyWith(color: c.onSurface)),
+        title: Text(
+          'Supplements',
+          style: KText.h3.copyWith(color: c.onSurface),
+        ),
         actions: [
           if (_tabCtrl.index == 0)
             IconButton(
@@ -232,9 +256,14 @@ class _InventoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final lowStock = allInventory.where((s) => asNum(s['stock']) < 10 && asNum(s['stock']) > 0).length;
+    final lowStock = allInventory
+        .where((s) => asNum(s['stock']) < 10 && asNum(s['stock']) > 0)
+        .length;
     final outOfStock = allInventory.where((s) => asNum(s['stock']) <= 0).length;
-    final inventoryValue = allInventory.fold<num>(0, (sum, s) => sum + asNum(s['stock']) * asNum(s['price']));
+    final inventoryValue = allInventory.fold<num>(
+      0,
+      (sum, s) => sum + asNum(s['stock']) * asNum(s['price']),
+    );
     final today = DateTime.now().toIso8601String().split('T').first;
     final expired = allInventory.where((s) {
       final exp = s['expiryDate'] as String?;
@@ -249,13 +278,27 @@ class _InventoryTab extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Row(children: [
-                _SupStat(label: 'Total', value: '${allInventory.length}', color: c.primary),
-                const SizedBox(width: 6),
-                _SupStat(label: 'Low Stock', value: '${lowStock + outOfStock}', color: TW.amber600),
-                const SizedBox(width: 6),
-                _SupStat(label: 'Value', value: rupees(inventoryValue), color: TW.emerald600),
-              ]),
+              child: Row(
+                children: [
+                  _SupStat(
+                    label: 'Total',
+                    value: '${allInventory.length}',
+                    color: c.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  _SupStat(
+                    label: 'Low Stock',
+                    value: '${lowStock + outOfStock}',
+                    color: TW.amber600,
+                  ),
+                  const SizedBox(width: 6),
+                  _SupStat(
+                    label: 'Value',
+                    value: rupees(inventoryValue),
+                    color: TW.emerald600,
+                  ),
+                ],
+              ),
             ),
           ),
           // Expired alert banner
@@ -264,20 +307,32 @@ class _InventoryTab extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: TW.rose600.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: TW.rose600.withValues(alpha: 0.25)),
+                    border: Border.all(
+                      color: TW.rose600.withValues(alpha: 0.25),
+                    ),
                   ),
-                  child: Row(children: [
-                    const Sym(MSym.warning, size: 14, color: TW.rose600),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text(
-                      '${expired.length} item${expired.length > 1 ? 's' : ''} expired: ${expired.take(2).map((s) => s['name']).join(', ')}${expired.length > 2 ? '...' : ''}',
-                      style: const TextStyle(color: TW.rose600, fontSize: 12),
-                    )),
-                  ]),
+                  child: Row(
+                    children: [
+                      const Sym(MSym.warning, size: 14, color: TW.rose600),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${expired.length} item${expired.length > 1 ? 's' : ''} expired: ${expired.take(2).map((s) => s['name']).join(', ')}${expired.length > 2 ? '...' : ''}',
+                          style: const TextStyle(
+                            color: TW.rose600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -288,9 +343,15 @@ class _InventoryTab extends StatelessWidget {
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search supplements…',
-                  prefixIcon: Sym(MSym.search, size: 18, color: c.onSurfaceVariant),
+                  prefixIcon: Sym(
+                    MSym.search,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   isDense: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
                 onChanged: onSearch,
@@ -302,7 +363,10 @@ class _InventoryTab extends StatelessWidget {
               height: 44,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 itemCount: _supCategories.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) => FilterChip(
@@ -321,7 +385,9 @@ class _InventoryTab extends StatelessWidget {
             SliverFillRemaining(
               child: KEmpty(
                 icon: MSym.medication,
-                message: catTab == 0 ? 'No supplements added' : 'No ${_supCategories[catTab]} supplements',
+                message: catTab == 0
+                    ? 'No supplements added'
+                    : 'No ${_supCategories[catTab]} supplements',
               ),
             )
           else
@@ -352,8 +418,13 @@ class _InventoryCard extends StatelessWidget {
   final VoidCallback onRestock;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _InventoryCard(
-      {required this.supp, required this.onSell, required this.onRestock, required this.onEdit, required this.onDelete});
+  const _InventoryCard({
+    required this.supp,
+    required this.onSell,
+    required this.onRestock,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -364,13 +435,21 @@ class _InventoryCard extends StatelessWidget {
     final isOut = stock <= 0;
     final isLow = !isOut && stock < 10;
 
-    final stockColor = isOut ? TW.rose600 : isLow ? TW.amber600 : TW.emerald600;
+    final stockColor = isOut
+        ? TW.rose600
+        : isLow
+        ? TW.amber600
+        : TW.emerald600;
     final stockBg = isOut
         ? TW.rose600.withValues(alpha: 0.1)
         : isLow
-            ? TW.amber600.withValues(alpha: 0.1)
-            : TW.emerald500.withValues(alpha: 0.1);
-    final stockLabel = isOut ? 'Out of Stock' : isLow ? 'Low ($stock)' : 'In Stock ($stock)';
+        ? TW.amber600.withValues(alpha: 0.1)
+        : TW.emerald500.withValues(alpha: 0.1);
+    final stockLabel = isOut
+        ? 'Out of Stock'
+        : isLow
+        ? 'Low ($stock)'
+        : 'In Stock ($stock)';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -394,21 +473,39 @@ class _InventoryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(supp['name'] ?? '',
-                          style: KText.bodyLg.copyWith(
-                              color: c.onSurface, fontWeight: FontWeight.w600)),
-                      Row(children: [
-                        if ((supp['category'] ?? '').isNotEmpty)
-                          Pill(supp['category'],
-                              bg: TW.emerald500.withValues(alpha: 0.08), fg: TW.emerald600),
-                        const SizedBox(width: 6),
-                        Pill(stockLabel, bg: stockBg, fg: stockColor, dot: true),
-                      ]),
+                      Text(
+                        supp['name'] ?? '',
+                        style: KText.bodyLg.copyWith(
+                          color: c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          if ((supp['category'] ?? '').isNotEmpty)
+                            Pill(
+                              supp['category'],
+                              bg: TW.emerald500.withValues(alpha: 0.08),
+                              fg: TW.emerald600,
+                            ),
+                          const SizedBox(width: 6),
+                          Pill(
+                            stockLabel,
+                            bg: stockBg,
+                            fg: stockColor,
+                            dot: true,
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
+                  icon: Sym(
+                    MSym.expandMore,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
@@ -416,8 +513,12 @@ class _InventoryCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: TW.rose600),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -426,36 +527,53 @@ class _InventoryCard extends StatelessWidget {
             Row(
               children: [
                 if (price > 0) ...[
-                  Text(rupees(price),
-                      style:
-                          KText.bodyMd.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
-                  Text(' / unit', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  Text(
+                    rupees(price),
+                    style: KText.bodyMd.copyWith(
+                      color: c.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    ' / unit',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
                   const SizedBox(width: 12),
                 ],
                 if (expiry != null && expiry.isNotEmpty)
-                  Text('Exp: ${fmtDate(expiry)}',
-                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  Text(
+                    'Exp: ${fmtDate(expiry)}',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
               ],
             ),
             const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isOut ? null : onSell,
-                  icon: Sym(MSym.sell, size: 16, color: isOut ? TW.slate400 : c.primary),
-                  label: const Text('Sell'),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: isOut ? null : onSell,
+                    icon: Sym(
+                      MSym.sell,
+                      size: 16,
+                      color: isOut ? TW.slate400 : c.primary,
+                    ),
+                    label: const Text('Sell'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onRestock,
-                  icon: Sym(MSym.add, size: 16, color: Colors.white),
-                  label: const Text('Restock'),
-                  style: FilledButton.styleFrom(backgroundColor: TW.emerald600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onRestock,
+                    icon: Sym(MSym.add, size: 16, color: Colors.white),
+                    label: const Text('Restock'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: TW.emerald600,
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
         ),
       ),
@@ -467,7 +585,11 @@ class _SalesLogTab extends StatelessWidget {
   final List<Map<String, dynamic>> sales;
   final bool loading;
   final Future<void> Function() onRefresh;
-  const _SalesLogTab({required this.sales, required this.loading, required this.onRefresh});
+  const _SalesLogTab({
+    required this.sales,
+    required this.loading,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -489,57 +611,132 @@ class _SalesLogTab extends StatelessWidget {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                      child: Row(children: [
-                        Expanded(child: KCard(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(children: [
-                            Text(rupees(totalRevenue), style: TextStyle(color: TW.emerald600, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'PlusJakartaSans')),
-                            Text('Total Revenue', style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
-                          ]),
-                        )),
-                        const SizedBox(width: 10),
-                        Expanded(child: KCard(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(children: [
-                            Text(rupees(monthRevenue), style: TextStyle(color: TW.blue600, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'PlusJakartaSans')),
-                            Text('This Month', style: TextStyle(color: c.onSurfaceVariant, fontSize: 11)),
-                          ]),
-                        )),
-                      ]),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: KCard(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    rupees(totalRevenue),
+                                    style: TextStyle(
+                                      color: TW.emerald600,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
+                                      fontFamily: 'PlusJakartaSans',
+                                    ),
+                                  ),
+                                  Text(
+                                    'Total Revenue',
+                                    style: TextStyle(
+                                      color: c.onSurfaceVariant,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: KCard(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    rupees(monthRevenue),
+                                    style: TextStyle(
+                                      color: TW.blue600,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
+                                      fontFamily: 'PlusJakartaSans',
+                                    ),
+                                  ),
+                                  Text(
+                                    'This Month',
+                                    style: TextStyle(
+                                      color: c.onSurfaceVariant,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 sales.isEmpty
-                    ? const SliverFillRemaining(child: KEmpty(icon: MSym.history, message: 'No sales recorded yet'))
+                    ? const SliverFillRemaining(
+                        child: KEmpty(
+                          icon: MSym.history,
+                          message: 'No sales recorded yet',
+                        ),
+                      )
                     : SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                         sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (_, i) {
-                              final s = sales[i];
-                              final qty = asNum(s['quantity']).toInt();
-                              final total = asNum(s['total']);
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: KCard(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(children: [
+                          delegate: SliverChildBuilderDelegate((_, i) {
+                            final s = sales[i];
+                            final qty = asNum(s['quantity']).toInt();
+                            final total = asNum(s['total']);
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: KCard(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
                                     Container(
-                                      width: 40, height: 40,
-                                      decoration: BoxDecoration(color: TW.emerald500.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                                      child: Sym(MSym.shoppingCart, color: TW.emerald600, size: 18),
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: TW.emerald500.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Sym(
+                                        MSym.shoppingCart,
+                                        color: TW.emerald600,
+                                        size: 18,
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
-                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      Text(s['name'] ?? '', style: KText.bodyLg.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
-                                      Text('$qty unit${qty != 1 ? 's' : ''} · ${fmtDate(s['date'])}', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                                    ])),
-                                    Text(rupees(total), style: KText.bodyLg.copyWith(color: TW.emerald600, fontWeight: FontWeight.w700)),
-                                  ]),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            s['name'] ?? '',
+                                            style: KText.bodyLg.copyWith(
+                                              color: c.onSurface,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            '$qty unit${qty != 1 ? 's' : ''} · ${fmtDate(s['date'])}',
+                                            style: KText.bodyMd.copyWith(
+                                              color: c.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      rupees(total),
+                                      style: KText.bodyLg.copyWith(
+                                        color: TW.emerald600,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                            childCount: sales.length,
-                          ),
+                              ),
+                            );
+                          }, childCount: sales.length),
                         ),
                       ),
               ],
@@ -552,7 +749,11 @@ class _SupStat extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _SupStat({required this.label, required this.value, required this.color});
+  const _SupStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -564,10 +765,27 @@ class _SupStat extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
-        child: Column(children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'PlusJakartaSans')),
-          Text(label, style: const TextStyle(color: TW.slate500, fontSize: 10, fontFamily: 'PlusJakartaSans')),
-        ]),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontFamily: 'PlusJakartaSans',
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                color: TW.slate500,
+                fontSize: 10,
+                fontFamily: 'PlusJakartaSans',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -577,7 +795,11 @@ class _SupplementForm extends StatefulWidget {
   final Map<String, dynamic>? supplement;
   final String gymId;
   final VoidCallback onSaved;
-  const _SupplementForm({this.supplement, required this.gymId, required this.onSaved});
+  const _SupplementForm({
+    this.supplement,
+    required this.gymId,
+    required this.onSaved,
+  });
 
   @override
   State<_SupplementForm> createState() => _SupplementFormState();
@@ -597,8 +819,12 @@ class _SupplementFormState extends State<_SupplementForm> {
     final s = widget.supplement;
     if (s != null) {
       _nameCtrl.text = s['name'] ?? '';
-      _stockCtrl.text = asNum(s['stock']) == 0 ? '' : asNum(s['stock']).toStringAsFixed(0);
-      _priceCtrl.text = asNum(s['price']) == 0 ? '' : asNum(s['price']).toString();
+      _stockCtrl.text = asNum(s['stock']) == 0
+          ? ''
+          : asNum(s['stock']).toStringAsFixed(0);
+      _priceCtrl.text = asNum(s['price']) == 0
+          ? ''
+          : asNum(s['price']).toString();
       _category = s['category'] ?? 'Protein';
       _expiryDate = s['expiryDate'] ?? '';
     }
@@ -619,7 +845,8 @@ class _SupplementFormState extends State<_SupplementForm> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2040),
     );
-    if (d != null) setState(() => _expiryDate = d.toIso8601String().split('T').first);
+    if (d != null)
+      setState(() => _expiryDate = d.toIso8601String().split('T').first);
   }
 
   Future<void> _save() async {
@@ -635,7 +862,12 @@ class _SupplementFormState extends State<_SupplementForm> {
     try {
       final s = widget.supplement;
       if (s != null) {
-        await TenantDb.updateDocument(widget.gymId, 'supplements', s['id'] as String, data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'supplements',
+          s['id'] as String,
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'supplements', data);
       }
@@ -654,7 +886,11 @@ class _SupplementFormState extends State<_SupplementForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -662,15 +898,23 @@ class _SupplementFormState extends State<_SupplementForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(widget.supplement != null ? 'Edit Supplement' : 'Add Supplement', style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  widget.supplement != null
+                      ? 'Edit Supplement'
+                      : 'Add Supplement',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -681,13 +925,18 @@ class _SupplementFormState extends State<_SupplementForm> {
             const SizedBox(height: 16),
             TextField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Name *', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _category,
-              decoration:
-                  const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                border: OutlineInputBorder(),
+              ),
               items: _supCategories
                   .skip(1)
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -695,35 +944,47 @@ class _SupplementFormState extends State<_SupplementForm> {
               onChanged: (v) => setState(() => _category = v!),
             ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _stockCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'Initial Stock', border: OutlineInputBorder()),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _stockCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Initial Stock',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _priceCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'Price / unit (₹)', border: OutlineInputBorder()),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _priceCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Price / unit (₹)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickExpiry,
               child: InputDecorator(
-                decoration:
-                    const InputDecoration(labelText: 'Expiry Date', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Expiry Date',
+                  border: OutlineInputBorder(),
+                ),
                 child: Text(
-                    _expiryDate.isEmpty ? 'Tap to select' : fmtDate(_expiryDate),
-                    style: KText.bodyMd
-                        .copyWith(color: _expiryDate.isEmpty ? TW.slate400 : context.c.onSurface)),
+                  _expiryDate.isEmpty ? 'Tap to select' : fmtDate(_expiryDate),
+                  style: KText.bodyMd.copyWith(
+                    color: _expiryDate.isEmpty
+                        ? TW.slate400
+                        : context.c.onSurface,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -735,7 +996,11 @@ class _SupplementFormState extends State<_SupplementForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Add Supplement'),
               ),
             ),
@@ -750,7 +1015,11 @@ class _SellSheet extends StatefulWidget {
   final Map<String, dynamic> supplement;
   final String gymId;
   final VoidCallback onSaved;
-  const _SellSheet({required this.supplement, required this.gymId, required this.onSaved});
+  const _SellSheet({
+    required this.supplement,
+    required this.gymId,
+    required this.onSaved,
+  });
 
   @override
   State<_SellSheet> createState() => _SellSheetState();
@@ -775,9 +1044,12 @@ class _SellSheetState extends State<_SellSheet> {
     final price = asNum(widget.supplement['price']);
     try {
       await Future.wait([
-        TenantDb.updateDocument(widget.gymId, 'supplements', widget.supplement['id'], {
-          'stock': currentStock - qty,
-        }),
+        TenantDb.updateDocument(
+          widget.gymId,
+          'supplements',
+          widget.supplement['id'],
+          {'stock': currentStock - qty},
+        ),
         TenantDb.createDocument(widget.gymId, 'supplementSales', {
           'supplementId': widget.supplement['id'],
           'name': widget.supplement['name'],
@@ -807,23 +1079,32 @@ class _SellSheetState extends State<_SellSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: TW.slate200,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Text('Sell — ${widget.supplement['name']}',
-                  style: KText.h3.copyWith(color: c.onSurface)),
+              Text(
+                'Sell — ${widget.supplement['name']}',
+                style: KText.h3.copyWith(color: c.onSurface),
+              ),
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
@@ -835,20 +1116,38 @@ class _SellSheetState extends State<_SellSheet> {
           TextField(
             controller: _qtyCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Quantity *', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Quantity *',
+              border: OutlineInputBorder(),
+            ),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Text('Unit price: ', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-              Text(rupees(price),
-                  style: KText.bodyMd.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
+              Text(
+                'Unit price: ',
+                style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+              ),
+              Text(
+                rupees(price),
+                style: KText.bodyMd.copyWith(
+                  color: c.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const Spacer(),
-              Text('Total: ', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-              Text(rupees(total),
-                  style:
-                      KText.bodyLg.copyWith(color: TW.emerald600, fontWeight: FontWeight.w700)),
+              Text(
+                'Total: ',
+                style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+              ),
+              Text(
+                rupees(total),
+                style: KText.bodyLg.copyWith(
+                  color: TW.emerald600,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -861,7 +1160,11 @@ class _SellSheetState extends State<_SellSheet> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Confirm Sale'),
             ),
           ),
@@ -875,7 +1178,11 @@ class _RestockSheet extends StatefulWidget {
   final Map<String, dynamic> supplement;
   final String gymId;
   final VoidCallback onSaved;
-  const _RestockSheet({required this.supplement, required this.gymId, required this.onSaved});
+  const _RestockSheet({
+    required this.supplement,
+    required this.gymId,
+    required this.onSaved,
+  });
 
   @override
   State<_RestockSheet> createState() => _RestockSheetState();
@@ -897,9 +1204,12 @@ class _RestockSheetState extends State<_RestockSheet> {
     setState(() => _saving = true);
     final current = asNum(widget.supplement['stock']).toInt();
     try {
-      await TenantDb.updateDocument(widget.gymId, 'supplements', widget.supplement['id'], {
-        'stock': current + qty,
-      });
+      await TenantDb.updateDocument(
+        widget.gymId,
+        'supplements',
+        widget.supplement['id'],
+        {'stock': current + qty},
+      );
       if (mounted) Navigator.pop(context);
       widget.onSaved();
     } catch (_) {}
@@ -915,23 +1225,32 @@ class _RestockSheetState extends State<_RestockSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: TW.slate200,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Text('Restock — ${widget.supplement['name']}',
-                  style: KText.h3.copyWith(color: c.onSurface)),
+              Text(
+                'Restock — ${widget.supplement['name']}',
+                style: KText.h3.copyWith(color: c.onSurface),
+              ),
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
@@ -940,14 +1259,17 @@ class _RestockSheetState extends State<_RestockSheet> {
             ],
           ),
           Text(
-              'Current stock: ${asNum(widget.supplement['stock']).toInt()} units',
-              style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+            'Current stock: ${asNum(widget.supplement['stock']).toInt()} units',
+            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _qtyCtrl,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-                labelText: 'Units to add *', border: OutlineInputBorder()),
+              labelText: 'Units to add *',
+              border: OutlineInputBorder(),
+            ),
             autofocus: true,
           ),
           const SizedBox(height: 16),
@@ -959,7 +1281,11 @@ class _RestockSheetState extends State<_RestockSheet> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Add Stock'),
             ),
           ),

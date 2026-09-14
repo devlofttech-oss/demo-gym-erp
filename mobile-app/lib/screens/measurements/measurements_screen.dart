@@ -51,9 +51,7 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
     if (mounted) setState(() => _loadingMeasurements = true);
     try {
       final all = await TenantDb.getCollection(gymId, 'measurements');
-      final filtered = all
-          .where((m) => m['memberId'] == memberId)
-          .toList()
+      final filtered = all.where((m) => m['memberId'] == memberId).toList()
         ..sort((a, b) => (a['date'] ?? '').compareTo(b['date'] ?? ''));
       if (mounted) setState(() => _measurements = filtered);
     } catch (_) {}
@@ -64,7 +62,9 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
     if (_search.isEmpty) return _members;
     final term = _search.toLowerCase();
     return _members
-        .where((m) => (m['name'] as String?)?.toLowerCase().contains(term) ?? false)
+        .where(
+          (m) => (m['name'] as String?)?.toLowerCase().contains(term) ?? false,
+        )
         .toList();
   }
 
@@ -99,7 +99,10 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
         title: const Text('Delete Measurement'),
         content: Text('Delete measurement from ${fmtDate(m['date'] ?? '')}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -109,7 +112,11 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'measurements', m['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'measurements',
+        m['id'],
+      );
       _fetchMeasurements(_selectedMember!['id']);
     }
   }
@@ -123,7 +130,10 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
         member: _selectedMember!,
         measurements: _measurements,
         loading: _loadingMeasurements,
-        onBack: () => setState(() { _selectedMember = null; _measurements = []; }),
+        onBack: () => setState(() {
+          _selectedMember = null;
+          _measurements = [];
+        }),
         onAdd: () => _showForm(),
         onEdit: _showForm,
         onDelete: _delete,
@@ -141,7 +151,10 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
           icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Measurements', style: KText.h3.copyWith(color: c.onSurface)),
+        title: Text(
+          'Measurements',
+          style: KText.h3.copyWith(color: c.onSurface),
+        ),
       ),
       body: Column(
         children: [
@@ -151,9 +164,15 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
               controller: _searchCtrl,
               decoration: InputDecoration(
                 hintText: 'Search members…',
-                prefixIcon: Sym(MSym.search, size: 20, color: c.onSurfaceVariant),
+                prefixIcon: Sym(
+                  MSym.search,
+                  size: 20,
+                  color: c.onSurfaceVariant,
+                ),
                 isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
               onChanged: (v) => setState(() => _search = v),
@@ -163,41 +182,56 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
             child: _loadingMembers
                 ? const KLoading()
                 : filtered.isEmpty
-                    ? KEmpty(icon: MSym.group, message: 'No members found')
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) {
-                          final m = filtered[i];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: KCard(
-                              onTap: () => _selectMember(m),
-                              child: Row(
-                                children: [
-                                  InitialAvatar(name: m['name'] ?? '', size: 40, bg: c.primaryContainer, fg: c.primary),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(m['name'] ?? '',
-                                            style: KText.bodyMd.copyWith(
-                                                color: c.onSurface,
-                                                fontWeight: FontWeight.w600)),
-                                        Text(m['phone'] ?? '',
-                                            style: KText.bodyMd
-                                                .copyWith(color: c.onSurfaceVariant)),
-                                      ],
-                                    ),
-                                  ),
-                                  Sym(MSym.chevronRight, size: 20, color: c.onSurfaceVariant),
-                                ],
+                ? KEmpty(icon: MSym.group, message: 'No members found')
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final m = filtered[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: KCard(
+                          onTap: () => _selectMember(m),
+                          child: Row(
+                            children: [
+                              InitialAvatar(
+                                name: m['name'] ?? '',
+                                size: 40,
+                                bg: c.primaryContainer,
+                                fg: c.primary,
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      m['name'] ?? '',
+                                      style: KText.bodyMd.copyWith(
+                                        color: c.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      m['phone'] ?? '',
+                                      style: KText.bodyMd.copyWith(
+                                        color: c.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Sym(
+                                MSym.chevronRight,
+                                size: 20,
+                                color: c.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -227,11 +261,11 @@ class _MemberMeasurementsView extends StatelessWidget {
   });
 
   List<FlSpot> get _weightSpots {
-    final data = measurements
-        .where((m) => asNum(m['weight']) > 0)
-        .toList();
+    final data = measurements.where((m) => asNum(m['weight']) > 0).toList();
     return List.generate(
-        data.length, (i) => FlSpot(i.toDouble(), asNum(data[i]['weight']).toDouble()));
+      data.length,
+      (i) => FlSpot(i.toDouble(), asNum(data[i]['weight']).toDouble()),
+    );
   }
 
   @override
@@ -252,8 +286,14 @@ class _MemberMeasurementsView extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(member['name'] ?? '', style: KText.h3.copyWith(color: c.onSurface)),
-            Text('Measurements', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+            Text(
+              member['name'] ?? '',
+              style: KText.h3.copyWith(color: c.onSurface),
+            ),
+            Text(
+              'Measurements',
+              style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+            ),
           ],
         ),
         actions: [
@@ -266,86 +306,95 @@ class _MemberMeasurementsView extends StatelessWidget {
       body: loading
           ? const KLoading()
           : measurements.isEmpty
-              ? KEmpty(
-                  icon: MSym.monitorWeight,
-                  message: 'No measurements yet',
-                  action: TextButton.icon(
-                    onPressed: onAdd,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Measurement'),
+          ? KEmpty(
+              icon: MSym.monitorWeight,
+              message: 'No measurements yet',
+              action: TextButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add),
+                label: const Text('Add Measurement'),
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (latest != null) ...[
+                  _LatestCard(latest, c),
+                  const SizedBox(height: 12),
+                ],
+                if (spots.length > 1) ...[
+                  Text(
+                    'Weight Trend',
+                    style: KText.labelCaps.copyWith(color: c.onSurfaceVariant),
                   ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (latest != null) ...[
-                      _LatestCard(latest, c),
-                      const SizedBox(height: 12),
-                    ],
-                    if (spots.length > 1) ...[
-                      Text('Weight Trend',
-                          style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
-                      const SizedBox(height: 8),
-                      KCard(
-                        child: SizedBox(
-                          height: 160,
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(show: false),
-                              borderData: FlBorderData(show: false),
-                              titlesData: FlTitlesData(
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 40,
-                                    getTitlesWidget: (v, _) => Text(
-                                      '${v.toStringAsFixed(0)}kg',
-                                      style: KText.bodyMd.copyWith(
-                                          color: c.onSurfaceVariant, fontSize: 10),
-                                    ),
+                  const SizedBox(height: 8),
+                  KCard(
+                    child: SizedBox(
+                      height: 160,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(show: false),
+                          borderData: FlBorderData(show: false),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (v, _) => Text(
+                                  '${v.toStringAsFixed(0)}kg',
+                                  style: KText.bodyMd.copyWith(
+                                    color: c.onSurfaceVariant,
+                                    fontSize: 10,
                                   ),
                                 ),
-                                bottomTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                topTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
                               ),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: spots,
-                                  isCurved: true,
-                                  color: c.primary,
-                                  barWidth: 2,
-                                  dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    color: c.primary.withValues(alpha: 0.08),
-                                  ),
-                                ),
-                              ],
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    Text('History (${measurements.length})',
-                        style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
-                    const SizedBox(height: 8),
-                    ...measurements.reversed.map(
-                      (m) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _MeasurementCard(
-                          m: m,
-                          onEdit: () => onEdit(m),
-                          onDelete: () => onDelete(m),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: spots,
+                              isCurved: true,
+                              color: c.primary,
+                              barWidth: 2,
+                              dotData: FlDotData(show: true),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: c.primary.withValues(alpha: 0.08),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  'History (${measurements.length})',
+                  style: KText.labelCaps.copyWith(color: c.onSurfaceVariant),
                 ),
+                const SizedBox(height: 8),
+                ...measurements.reversed.map(
+                  (m) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _MeasurementCard(
+                      m: m,
+                      onEdit: () => onEdit(m),
+                      onDelete: () => onDelete(m),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -360,9 +409,12 @@ class _LatestCard extends StatelessWidget {
     final bmi = asNum(m['bmi']);
     Color bmiColor = TW.emerald600;
     if (bmi > 0) {
-      if (bmi < 18.5) bmiColor = TW.blue600;
-      else if (bmi > 25) bmiColor = TW.amber600;
-      else if (bmi > 30) bmiColor = TW.rose600;
+      if (bmi < 18.5)
+        bmiColor = TW.blue600;
+      else if (bmi > 25)
+        bmiColor = TW.amber600;
+      else if (bmi > 30)
+        bmiColor = TW.rose600;
     }
 
     return KCard(
@@ -371,8 +423,10 @@ class _LatestCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Latest — ${fmtDate(m['date'] ?? '')}',
-                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+              Text(
+                'Latest — ${fmtDate(m['date'] ?? '')}',
+                style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -384,8 +438,7 @@ class _LatestCard extends StatelessWidget {
                 _Stat('Weight', '${asNum(m['weight'])} kg', TW.blue600),
               if (asNum(m['height']) > 0)
                 _Stat('Height', '${asNum(m['height'])} cm', TW.violet600),
-              if (bmi > 0)
-                _Stat('BMI', bmi.toStringAsFixed(1), bmiColor),
+              if (bmi > 0) _Stat('BMI', bmi.toStringAsFixed(1), bmiColor),
               if (asNum(m['bodyFat']) > 0)
                 _Stat('Body Fat', '${asNum(m['bodyFat'])}%', TW.orange600),
               if (asNum(m['chest']) > 0)
@@ -417,11 +470,21 @@ class _Stat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value,
-            style: KText.bodyLg
-                .copyWith(color: color, fontWeight: FontWeight.w700, fontSize: 18)),
-        Text(label,
-            style: KText.bodyMd.copyWith(color: context.c.onSurfaceVariant, fontSize: 11)),
+        Text(
+          value,
+          style: KText.bodyLg.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+        Text(
+          label,
+          style: KText.bodyMd.copyWith(
+            color: context.c.onSurfaceVariant,
+            fontSize: 11,
+          ),
+        ),
       ],
     );
   }
@@ -431,7 +494,11 @@ class _MeasurementCard extends StatelessWidget {
   final Map<String, dynamic> m;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _MeasurementCard({required this.m, required this.onEdit, required this.onDelete});
+  const _MeasurementCard({
+    required this.m,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -444,38 +511,58 @@ class _MeasurementCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(fmtDate(m['date'] ?? ''),
-                    style: KText.bodyMd.copyWith(
-                        color: c.onSurface, fontWeight: FontWeight.w600)),
+                Text(
+                  fmtDate(m['date'] ?? ''),
+                  style: KText.bodyMd.copyWith(
+                    color: c.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 12,
                   runSpacing: 2,
                   children: [
                     if (asNum(m['weight']) > 0)
-                      Text('${asNum(m['weight'])} kg',
-                          style: KText.bodyMd.copyWith(color: c.onSurface)),
+                      Text(
+                        '${asNum(m['weight'])} kg',
+                        style: KText.bodyMd.copyWith(color: c.onSurface),
+                      ),
                     if (asNum(m['bmi']) > 0)
-                      Text('BMI: ${asNum(m['bmi']).toStringAsFixed(1)}',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'BMI: ${asNum(m['bmi']).toStringAsFixed(1)}',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     if (asNum(m['bodyFat']) > 0)
-                      Text('BF: ${asNum(m['bodyFat'])}%',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'BF: ${asNum(m['bodyFat'])}%',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     if (asNum(m['chest']) > 0)
-                      Text('Chest: ${asNum(m['chest'])} cm',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'Chest: ${asNum(m['chest'])} cm',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     if (asNum(m['waist']) > 0)
-                      Text('Waist: ${asNum(m['waist'])} cm',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'Waist: ${asNum(m['waist'])} cm',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     if (asNum(m['hips']) > 0)
-                      Text('Hips: ${asNum(m['hips'])} cm',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'Hips: ${asNum(m['hips'])} cm',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     if (asNum(m['arms']) > 0)
-                      Text('Arms: ${asNum(m['arms'])} cm',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'Arms: ${asNum(m['arms'])} cm',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                     if (asNum(m['thighs']) > 0)
-                      Text('Thighs: ${asNum(m['thighs'])} cm',
-                          style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                      Text(
+                        'Thighs: ${asNum(m['thighs'])} cm',
+                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                      ),
                   ],
                 ),
               ],
@@ -490,8 +577,9 @@ class _MeasurementCard extends StatelessWidget {
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Text('Edit')),
               const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                value: 'delete',
+                child: Text('Delete', style: TextStyle(color: TW.rose600)),
+              ),
             ],
           ),
         ],
@@ -507,11 +595,12 @@ class _MeasurementForm extends StatefulWidget {
   final String gymId;
   final Map<String, dynamic> member;
   final VoidCallback onSaved;
-  const _MeasurementForm(
-      {this.measurement,
-      required this.gymId,
-      required this.member,
-      required this.onSaved});
+  const _MeasurementForm({
+    this.measurement,
+    required this.gymId,
+    required this.member,
+    required this.onSaved,
+  });
 
   @override
   State<_MeasurementForm> createState() => _MeasurementFormState();
@@ -535,14 +624,26 @@ class _MeasurementFormState extends State<_MeasurementForm> {
     super.initState();
     final m = widget.measurement;
     if (m != null) {
-      _weightCtrl.text = asNum(m['weight']) == 0 ? '' : asNum(m['weight']).toString();
-      _heightCtrl.text = asNum(m['height']) == 0 ? '' : asNum(m['height']).toString();
-      _bodyFatCtrl.text = asNum(m['bodyFat']) == 0 ? '' : asNum(m['bodyFat']).toString();
-      _chestCtrl.text = asNum(m['chest']) == 0 ? '' : asNum(m['chest']).toString();
-      _waistCtrl.text = asNum(m['waist']) == 0 ? '' : asNum(m['waist']).toString();
+      _weightCtrl.text = asNum(m['weight']) == 0
+          ? ''
+          : asNum(m['weight']).toString();
+      _heightCtrl.text = asNum(m['height']) == 0
+          ? ''
+          : asNum(m['height']).toString();
+      _bodyFatCtrl.text = asNum(m['bodyFat']) == 0
+          ? ''
+          : asNum(m['bodyFat']).toString();
+      _chestCtrl.text = asNum(m['chest']) == 0
+          ? ''
+          : asNum(m['chest']).toString();
+      _waistCtrl.text = asNum(m['waist']) == 0
+          ? ''
+          : asNum(m['waist']).toString();
       _hipsCtrl.text = asNum(m['hips']) == 0 ? '' : asNum(m['hips']).toString();
       _armsCtrl.text = asNum(m['arms']) == 0 ? '' : asNum(m['arms']).toString();
-      _thighsCtrl.text = asNum(m['thighs']) == 0 ? '' : asNum(m['thighs']).toString();
+      _thighsCtrl.text = asNum(m['thighs']) == 0
+          ? ''
+          : asNum(m['thighs']).toString();
       _notesCtrl.text = m['notes'] ?? '';
       if ((m['date'] ?? '').isNotEmpty) {
         _date = DateTime.tryParse(m['date']) ?? DateTime.now();
@@ -574,7 +675,11 @@ class _MeasurementFormState extends State<_MeasurementForm> {
 
   Future<void> _pickDate() async {
     final d = await showDatePicker(
-        context: context, initialDate: _date, firstDate: DateTime(2010), lastDate: DateTime.now());
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2010),
+      lastDate: DateTime.now(),
+    );
     if (d != null && mounted) setState(() => _date = d);
   }
 
@@ -598,7 +703,12 @@ class _MeasurementFormState extends State<_MeasurementForm> {
     };
     try {
       if (widget.measurement != null) {
-        await TenantDb.updateDocument(widget.gymId, 'measurements', widget.measurement!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'measurements',
+          widget.measurement!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'measurements', data);
       }
@@ -608,7 +718,11 @@ class _MeasurementFormState extends State<_MeasurementForm> {
     if (mounted) setState(() => _saving = false);
   }
 
-  Widget _field(String label, TextEditingController ctrl, {String suffix = ''}) {
+  Widget _field(
+    String label,
+    TextEditingController ctrl, {
+    String suffix = '',
+  }) {
     return TextField(
       controller: ctrl,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -633,7 +747,11 @@ class _MeasurementFormState extends State<_MeasurementForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -641,16 +759,21 @@ class _MeasurementFormState extends State<_MeasurementForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Measurement' : 'Add Measurement',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Measurement' : 'Add Measurement',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -666,11 +789,16 @@ class _MeasurementFormState extends State<_MeasurementForm> {
                   decoration: InputDecoration(
                     labelText: 'Date',
                     border: const OutlineInputBorder(),
-                    suffixIcon: Sym(MSym.calendarToday, size: 18, color: c.onSurfaceVariant),
+                    suffixIcon: Sym(
+                      MSym.calendarToday,
+                      size: 18,
+                      color: c.onSurfaceVariant,
+                    ),
                     isDense: true,
                   ),
                   controller: TextEditingController(
-                      text: _date.toIso8601String().substring(0, 10)),
+                    text: _date.toIso8601String().substring(0, 10),
+                  ),
                 ),
               ),
             ),
@@ -694,9 +822,13 @@ class _MeasurementFormState extends State<_MeasurementForm> {
                   children: [
                     Sym(MSym.monitorWeight, size: 16, color: c.primary),
                     const SizedBox(width: 6),
-                    Text('BMI: ${bmi.toStringAsFixed(1)}',
-                        style: KText.bodyMd.copyWith(
-                            color: c.primary, fontWeight: FontWeight.w600)),
+                    Text(
+                      'BMI: ${bmi.toStringAsFixed(1)}',
+                      style: KText.bodyMd.copyWith(
+                        color: c.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -725,8 +857,11 @@ class _MeasurementFormState extends State<_MeasurementForm> {
             TextField(
               controller: _notesCtrl,
               maxLines: 2,
-              decoration:
-                  const InputDecoration(labelText: 'Notes', border: OutlineInputBorder(), isDense: true),
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -737,7 +872,11 @@ class _MeasurementFormState extends State<_MeasurementForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Measurement'),
               ),
             ),

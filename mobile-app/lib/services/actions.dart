@@ -5,8 +5,12 @@ import 'package:url_launcher/url_launcher.dart';
 /// (`https://wa.me/91<10digits>?text=...`).
 Future<void> openWhatsApp(String phone, String message) async {
   final number = phone.replaceAll(RegExp(r'\D'), '');
-  final last10 = number.length > 10 ? number.substring(number.length - 10) : number;
-  final uri = Uri.parse('https://wa.me/91$last10?text=${Uri.encodeComponent(message)}');
+  final last10 = number.length > 10
+      ? number.substring(number.length - 10)
+      : number;
+  final uri = Uri.parse(
+    'https://wa.me/91$last10?text=${Uri.encodeComponent(message)}',
+  );
   await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
@@ -27,7 +31,9 @@ class Beep {
     try {
       await _player.stop();
       await _player.play(AssetSource('sounds/$file'));
-    } catch (_) {/* ignore audio failures */}
+    } catch (_) {
+      /* ignore audio failures */
+    }
   }
 
   static Future<void> checkin() => _play('checkin.wav');

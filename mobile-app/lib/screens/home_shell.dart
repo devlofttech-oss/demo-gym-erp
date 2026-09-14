@@ -39,7 +39,8 @@ import 'workouts/workouts_screen.dart';
 
 const _waCreditsUrl = '$kWebAppUrl/whatsapp-credits';
 const _iosAppUrl = 'https://apps.apple.com/in/app/kilos-gym/id6804961729';
-const _androidAppUrl = 'https://play.google.com/store/apps/details?id=com.devloft.kilos';
+const _androidAppUrl =
+    'https://play.google.com/store/apps/details?id=com.devloft.kilos';
 const _youtubeUrl = 'https://www.youtube.com/@DevloftTechnologies';
 const _contactWa = 'https://wa.me/918062181265';
 const _contactEmail = 'mailto:support@kilos.devlofttech.com';
@@ -54,16 +55,16 @@ class _DockItem {
 }
 
 List<_DockItem> _adminDock() => const [
-      _DockItem(MSym.monitoring, 'Home', DashboardScreen()),
-      _DockItem(MSym.group, 'Members', MembersScreen()),
-      _DockItem(MSym.accountBalanceWallet, 'Payments', PaymentsScreen()),
-      _DockItem(MSym.howToReg, 'Check-in', CheckinScreen()),
-    ];
+  _DockItem(MSym.monitoring, 'Home', DashboardScreen()),
+  _DockItem(MSym.group, 'Members', MembersScreen()),
+  _DockItem(MSym.accountBalanceWallet, 'Payments', PaymentsScreen()),
+  _DockItem(MSym.howToReg, 'Check-in', CheckinScreen()),
+];
 
 List<_DockItem> _staffDock() => const [
-      _DockItem(MSym.howToReg, 'Check-in', CheckinScreen()),
-      _DockItem(MSym.eventAvailable, 'Attendance', AttendanceScreen()),
-    ];
+  _DockItem(MSym.howToReg, 'Check-in', CheckinScreen()),
+  _DockItem(MSym.eventAvailable, 'Attendance', AttendanceScreen()),
+];
 
 // ─── Shell ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _fabCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
+    _fabCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
   }
 
   @override
@@ -117,9 +121,9 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open link')));
       }
     }
   }
@@ -154,7 +158,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
             : _KilosDrawer(
                 auth: auth,
                 onNavTap: (idx) {
-                  setState(() { _index = idx; _overlay = null; });
+                  setState(() {
+                    _index = idx;
+                    _overlay = null;
+                  });
                   Navigator.of(context).pop();
                 },
                 onPushScreen: _push,
@@ -190,7 +197,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [c.background.withValues(alpha: 0), c.background],
+                        colors: [
+                          c.background.withValues(alpha: 0),
+                          c.background,
+                        ],
                         stops: const [0.0, 0.5],
                       ),
                     ),
@@ -230,7 +240,10 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                           _QuickBtn(
                             icon: MSym.personAdd,
                             label: 'Add member',
-                            onTap: () { _closeQuick(); _push(const AddMemberScreen()); },
+                            onTap: () {
+                              _closeQuick();
+                              _push(const AddMemberScreen());
+                            },
                           ),
                           const SizedBox(height: 10),
                           _QuickBtn(
@@ -238,14 +251,20 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                             label: 'Scan check-in',
                             onTap: () {
                               _closeQuick();
-                              setState(() { _index = auth.role == 'staff' ? 0 : 3; _overlay = null; });
+                              setState(() {
+                                _index = auth.role == 'staff' ? 0 : 3;
+                                _overlay = null;
+                              });
                             },
                           ),
                           const SizedBox(height: 10),
                           _QuickBtn(
                             icon: MSym.payments,
                             label: 'Record payment',
-                            onTap: () { _closeQuick(); _push(const PaymentScreen()); },
+                            onTap: () {
+                              _closeQuick();
+                              _push(const PaymentScreen());
+                            },
                           ),
                         ],
                       ),
@@ -286,7 +305,11 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
                       animation: _fabCtrl,
                       builder: (_, _) => Transform.rotate(
                         angle: _fabCtrl.value * 0.785398,
-                        child: const Icon(Icons.add, color: Colors.white, size: 22),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                     ),
                   ),
@@ -331,7 +354,11 @@ class _BottomNavArea extends StatelessWidget {
             right: 0,
             bottom: safeBottom + 16,
             child: Center(
-              child: _FloatingDock(items: items, index: index, onSelect: onSelect),
+              child: _FloatingDock(
+                items: items,
+                index: index,
+                onSelect: onSelect,
+              ),
             ),
           ),
         ],
@@ -344,7 +371,11 @@ class _QuickBtn extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _QuickBtn({required this.icon, required this.label, required this.onTap});
+  const _QuickBtn({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -358,19 +389,34 @@ class _QuickBtn extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: c.outlineVariant.withValues(alpha: 0.5)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 26, height: 26,
-              decoration: const BoxDecoration(color: KD.primaryTint, shape: BoxShape.circle),
+              width: 26,
+              height: 26,
+              decoration: const BoxDecoration(
+                color: KD.primaryTint,
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, color: KD.primaryDeep, size: 14),
             ),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KD.ink)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: KD.ink,
+              ),
+            ),
           ],
         ),
       ),
@@ -382,7 +428,11 @@ class _FloatingDock extends StatelessWidget {
   final List<_DockItem> items;
   final int index;
   final ValueChanged<int> onSelect;
-  const _FloatingDock({required this.items, required this.index, required this.onSelect});
+  const _FloatingDock({
+    required this.items,
+    required this.index,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -396,7 +446,11 @@ class _FloatingDock extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(29),
         boxShadow: [
-          BoxShadow(color: KD.primaryDeep.withValues(alpha: 0.35), blurRadius: 36, offset: const Offset(0, 18)),
+          BoxShadow(
+            color: KD.primaryDeep.withValues(alpha: 0.35),
+            blurRadius: 36,
+            offset: const Offset(0, 18),
+          ),
         ],
       ),
       child: Padding(
@@ -421,7 +475,11 @@ class _DockButton extends StatelessWidget {
   final _DockItem item;
   final bool isActive;
   final VoidCallback onTap;
-  const _DockButton({required this.item, required this.isActive, required this.onTap});
+  const _DockButton({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -442,22 +500,27 @@ class _DockButton extends StatelessWidget {
               item.icon,
               size: 18,
               fill: isActive,
-              color: isActive ? KD.primaryDeep : Colors.white.withValues(alpha: 0.55),
+              color: isActive
+                  ? KD.primaryDeep
+                  : Colors.white.withValues(alpha: 0.55),
             ),
             AnimatedSize(
               duration: const Duration(milliseconds: 220),
               child: isActive
-                  ? Row(mainAxisSize: MainAxisSize.min, children: [
-                      const SizedBox(width: 7),
-                      Text(
-                        item.label,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: KD.primaryDeep,
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 7),
+                        Text(
+                          item.label,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: KD.primaryDeep,
+                          ),
                         ),
-                      ),
-                    ])
+                      ],
+                    )
                   : const SizedBox.shrink(),
             ),
           ],
@@ -489,7 +552,9 @@ class _KilosDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final name = auth.userName.isNotEmpty ? auth.userName : (auth.currentUser?.email?.split('@').first ?? 'Admin');
+    final name = auth.userName.isNotEmpty
+        ? auth.userName
+        : (auth.currentUser?.email?.split('@').first ?? 'Admin');
 
     return Drawer(
       backgroundColor: c.surfaceContainerLowest,
@@ -502,110 +567,223 @@ class _KilosDrawer extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 children: [
                   // Drawer head: brand logo + close
-                  Row(children: [
-                    Container(
-                      width: 30, height: 30,
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-                      clipBehavior: Clip.antiAlias,
-                      child: Image.asset('assets/images/kilos_logo.png', fit: BoxFit.contain),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Kilos', style: KText.h3.copyWith(color: c.onSurface, fontSize: 17)),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 32, height: 32,
+                  Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
                         decoration: BoxDecoration(
-                          color: c.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Center(child: Icon(Icons.close, color: c.onSurfaceVariant, size: 14)),
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          'assets/images/kilos_logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                    ),
-                  ]),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Kilos',
+                        style: KText.h3.copyWith(
+                          color: c.onSurface,
+                          fontSize: 17,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: c.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.close,
+                              color: c.onSurfaceVariant,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 16),
 
                   // Profile row
-                  Row(children: [
-                    InitialAvatar(name: name, size: 40, bg: KD.primaryTint, fg: KD.primary),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(name, style: KText.h3.copyWith(color: c.onSurface, fontSize: 14)),
-                        Text(auth.role?.toUpperCase() ?? 'ADMIN',
-                            style: TextStyle(color: c.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-                      ],
-                    )),
-                  ]),
+                  Row(
+                    children: [
+                      InitialAvatar(
+                        name: name,
+                        size: 40,
+                        bg: KD.primaryTint,
+                        fg: KD.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: KText.h3.copyWith(
+                                color: c.onSurface,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              auth.role?.toUpperCase() ?? 'ADMIN',
+                              style: TextStyle(
+                                color: c.onSurfaceVariant,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 14),
 
                   // Subscription card
-                  Builder(builder: (_) {
-                    final left = daysLeft(auth.gymData?['planEndDate'] as String?);
-                    final planName = auth.gymData?['planName'] as String? ?? 'No plan';
-                    final (Color tone, String badge) = switch (left) {
-                      null => (TW.rose600, 'No plan'),
-                      final d when d < 0 => (TW.rose600, 'Expired'),
-                      final d when d <= 14 => (TW.amber600, '${d}d left'),
-                      final d => (KD.teal, '${d}d left'),
-                    };
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: KD.primaryTint,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: KD.primary.withValues(alpha: 0.15)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('PLAN', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.08, color: c.onSurfaceVariant)),
-                          const SizedBox(height: 2),
-                          Text(planName, style: KText.h3.copyWith(fontSize: 16, color: c.onSurface)),
-                          const SizedBox(height: 6),
-                          Row(children: [
-                            Icon(Icons.circle, size: 8, color: tone),
-                            const SizedBox(width: 5),
-                            Text(badge, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: tone)),
-                          ]),
-                          const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 11),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [KD.primary, KD.primaryDeep],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 16),
-                                SizedBox(width: 7),
-                                Text('Buy / Renew', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
-                              ]),
-                            ),
+                  Builder(
+                    builder: (_) {
+                      final left = daysLeft(
+                        auth.gymData?['planEndDate'] as String?,
+                      );
+                      final planName =
+                          auth.gymData?['planName'] as String? ?? 'No plan';
+                      final (Color tone, String badge) = switch (left) {
+                        null => (TW.rose600, 'No plan'),
+                        final d when d < 0 => (TW.rose600, 'Expired'),
+                        final d when d <= 14 => (TW.amber600, '${d}d left'),
+                        final d => (KD.teal, '${d}d left'),
+                      };
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: KD.primaryTint,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: KD.primary.withValues(alpha: 0.15),
                           ),
-                        ],
-                      ),
-                    );
-                  }),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PLAN',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.08,
+                                color: c.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              planName,
+                              style: KText.h3.copyWith(
+                                fontSize: 16,
+                                color: c.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(Icons.circle, size: 8, color: tone),
+                                const SizedBox(width: 5),
+                                Text(
+                                  badge,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: tone,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const SubscriptionScreen(),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 11,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [KD.primary, KD.primaryDeep],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.shopping_cart_outlined,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    SizedBox(width: 7),
+                                    Text(
+                                      'Buy / Renew',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
 
                   // Primary navigation
                   _DrawerSection('Primary', [
-                    _DrawerNavItem(MSym.monitoring, 'Dashboard', () => onNavTap(0), active: currentIndex == 0),
-                    _DrawerNavItem(MSym.group, 'Members', () => onNavTap(1), active: currentIndex == 1),
-                    _DrawerNavItem(MSym.accountBalanceWallet, 'Payments', () => onNavTap(2), active: currentIndex == 2),
-                    _DrawerNavItem(MSym.howToReg, 'Check-in', () => onNavTap(3), active: currentIndex == 3),
+                    _DrawerNavItem(
+                      MSym.monitoring,
+                      'Dashboard',
+                      () => onNavTap(0),
+                      active: currentIndex == 0,
+                    ),
+                    _DrawerNavItem(
+                      MSym.group,
+                      'Members',
+                      () => onNavTap(1),
+                      active: currentIndex == 1,
+                    ),
+                    _DrawerNavItem(
+                      MSym.accountBalanceWallet,
+                      'Payments',
+                      () => onNavTap(2),
+                      active: currentIndex == 2,
+                    ),
+                    _DrawerNavItem(
+                      MSym.howToReg,
+                      'Check-in',
+                      () => onNavTap(3),
+                      active: currentIndex == 3,
+                    ),
                     _DrawerNavItem(MSym.eventAvailable, 'Attendance', () {
                       Navigator.of(context).pop();
                       onPushScreen(const AttendanceScreen());
@@ -683,10 +861,14 @@ class _KilosDrawer extends StatelessWidget {
                       onLaunchUrl(kWebAppUrl);
                     }),
                     if (!Platform.isIOS)
-                      _DrawerNavItem(Icons.phone_iphone, 'Download iOS app', () {
-                        Navigator.of(context).pop();
-                        onLaunchUrl(_iosAppUrl);
-                      }),
+                      _DrawerNavItem(
+                        Icons.phone_iphone,
+                        'Download iOS app',
+                        () {
+                          Navigator.of(context).pop();
+                          onLaunchUrl(_iosAppUrl);
+                        },
+                      ),
                     if (!Platform.isAndroid)
                       _DrawerNavItem(Icons.android, 'Download Android app', () {
                         Navigator.of(context).pop();
@@ -736,32 +918,64 @@ class _ContactSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: const EdgeInsets.all(24),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 36, height: 4, decoration: BoxDecoration(color: c.outlineVariant, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 20),
-        const Sym(MSym.supportAgent, size: 36, color: TW.emerald600),
-        const SizedBox(height: 12),
-        Text('Contact Us', style: KText.h2.copyWith(color: c.onSurface)),
-        const SizedBox(height: 6),
-        Text("We're here to help", style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-        const SizedBox(height: 20),
-        Row(children: [
-          Expanded(child: FilledButton.icon(
-            onPressed: () { Navigator.pop(context); onLaunch(_contactWa); },
-            icon: const Sym(MSym.chat, size: 18),
-            label: const Text('WhatsApp'),
-            style: FilledButton.styleFrom(backgroundColor: TW.emerald600, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
-          )),
-          const SizedBox(width: 12),
-          Expanded(child: OutlinedButton.icon(
-            onPressed: () { Navigator.pop(context); onLaunch(_contactEmail); },
-            icon: const Sym(MSym.sms, size: 18),
-            label: const Text('Mail Us'),
-            style: OutlinedButton.styleFrom(foregroundColor: c.onSurface, padding: const EdgeInsets.symmetric(vertical: 14)),
-          )),
-        ]),
-        const SizedBox(height: 16),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: c.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Sym(MSym.supportAgent, size: 36, color: TW.emerald600),
+          const SizedBox(height: 12),
+          Text('Contact Us', style: KText.h2.copyWith(color: c.onSurface)),
+          const SizedBox(height: 6),
+          Text(
+            "We're here to help",
+            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onLaunch(_contactWa);
+                  },
+                  icon: const Sym(MSym.chat, size: 18),
+                  label: const Text('WhatsApp'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: TW.emerald600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onLaunch(_contactEmail);
+                  },
+                  icon: const Sym(MSym.sms, size: 18),
+                  label: const Text('Mail Us'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: c.onSurface,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
@@ -781,7 +995,12 @@ class _DrawerSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
           child: Text(
             title.toUpperCase(),
-            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.08, color: c.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.08,
+              color: c.onSurfaceVariant,
+            ),
           ),
         ),
         ...items,
@@ -795,7 +1014,12 @@ class _DrawerNavItem extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool active;
-  const _DrawerNavItem(this.icon, this.label, this.onTap, {this.active = false});
+  const _DrawerNavItem(
+    this.icon,
+    this.label,
+    this.onTap, {
+    this.active = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -809,27 +1033,45 @@ class _DrawerNavItem extends StatelessWidget {
           color: active ? KD.primaryTint : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(children: [
-          Container(
-            width: 32, height: 32,
-            decoration: BoxDecoration(
-              color: active ? KD.primary.withValues(alpha: 0.12) : c.surfaceContainer,
-              borderRadius: BorderRadius.circular(10),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: active
+                    ? KD.primary.withValues(alpha: 0.12)
+                    : c.surfaceContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Sym(
+                icon,
+                size: 16,
+                color: active ? KD.primary : KD.primaryDeep,
+                fill: active,
+              ),
             ),
-            child: Sym(icon, size: 16, color: active ? KD.primary : KD.primaryDeep, fill: active),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                color: active ? KD.primary : c.onSurface,
-              ))),
-          if (active)
-            const Icon(Icons.chevron_right, size: 16, color: KD.primary)
-          else
-            Icon(Icons.chevron_right, size: 16, color: c.onSurfaceVariant.withValues(alpha: 0.4)),
-        ]),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: active ? KD.primary : c.onSurface,
+                ),
+              ),
+            ),
+            if (active)
+              const Icon(Icons.chevron_right, size: 16, color: KD.primary)
+            else
+              Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: c.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -847,11 +1089,21 @@ class _DrawerLogoutRow extends StatelessWidget {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 11),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.person_remove_outlined, color: TW.rose500, size: 18),
-              const SizedBox(width: 8),
-              Text('Delete account', style: TextStyle(color: TW.rose500, fontWeight: FontWeight.w600, fontSize: 13.5)),
-            ]),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_remove_outlined, color: TW.rose500, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'Delete account',
+                  style: TextStyle(
+                    color: TW.rose500,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -865,11 +1117,21 @@ class _DrawerLogoutRow extends StatelessWidget {
               color: const Color(0xFFFFECE9),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.logout, color: Color(0xFFC0341F), size: 18),
-              SizedBox(width: 8),
-              Text('Logout', style: TextStyle(color: Color(0xFFC0341F), fontWeight: FontWeight.w700, fontSize: 13.5)),
-            ]),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.logout, color: Color(0xFFC0341F), size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Color(0xFFC0341F),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -898,29 +1160,52 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: true,
       leadingWidth: 52,
       leading: isAdmin
-              ? Builder(builder: (ctx) => IconButton(
-                    icon: Sym(MSym.menu, size: 22, color: c.onSurface),
-                    onPressed: () => Scaffold.of(ctx).openDrawer(),
-                  ))
-              : Padding(
-                  padding: const EdgeInsets.only(left: 14),
-                  child: Image.asset('assets/images/kilos_logo.png', width: 30, height: 30),
-                ),
+          ? Builder(
+              builder: (ctx) => IconButton(
+                icon: Sym(MSym.menu, size: 22, color: c.onSurface),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Image.asset(
+                'assets/images/kilos_logo.png',
+                width: 30,
+                height: 30,
+              ),
+            ),
       title: auth.isMultiBranch
           ? _BranchSwitcher(auth: auth)
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(auth.gymName,
-                    style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
-                Text('powered by Kilos',
-                    style: TextStyle(color: TW.slate400, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.w500)),
+                Text(
+                  auth.gymName,
+                  style: TextStyle(
+                    color: c.onSurface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  'powered by Kilos',
+                  style: TextStyle(
+                    color: TW.slate400,
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ),
       actions: [
         IconButton(
           onPressed: theme.toggle,
-          icon: Sym(theme.isDark ? MSym.lightMode : MSym.darkMode, size: 22, color: c.onSurfaceVariant),
+          icon: Sym(
+            theme.isDark ? MSym.lightMode : MSym.darkMode,
+            size: 22,
+            color: c.onSurfaceVariant,
+          ),
           tooltip: theme.isDark ? 'Light mode' : 'Dark mode',
         ),
         const NotificationBell(),
@@ -945,8 +1230,11 @@ class _BranchSwitcher extends StatelessWidget {
             value: b.id,
             child: Row(
               children: [
-                Expanded(child: Text(b.name, style: TextStyle(color: c.onSurface))),
-                if (b.id == auth.gymId) Sym(MSym.checkCircle, size: 16, color: c.primary),
+                Expanded(
+                  child: Text(b.name, style: TextStyle(color: c.onSurface)),
+                ),
+                if (b.id == auth.gymId)
+                  Sym(MSym.checkCircle, size: 16, color: c.primary),
               ],
             ),
           ),
@@ -957,10 +1245,23 @@ class _BranchSwitcher extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(auth.gymName,
-                  style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w700, fontSize: 16)),
-              Text('powered by Kilos',
-                  style: TextStyle(color: TW.slate400, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.w500)),
+              Text(
+                auth.gymName,
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                'powered by Kilos',
+                style: TextStyle(
+                  color: TW.slate400,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
           Sym(MSym.expandMore, size: 18, color: TW.slate500),
@@ -977,7 +1278,9 @@ class _ProfileMenuMinimal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final name = auth.userName.isNotEmpty ? auth.userName : (auth.currentUser?.email?.split('@').first ?? 'User');
+    final name = auth.userName.isNotEmpty
+        ? auth.userName
+        : (auth.currentUser?.email?.split('@').first ?? 'User');
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
       onSelected: (v) {
@@ -990,32 +1293,50 @@ class _ProfileMenuMinimal extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: TextStyle(color: c.onSurface, fontWeight: FontWeight.w600)),
-              Text(auth.currentUser?.email ?? '', style: TextStyle(color: c.onSurfaceVariant, fontSize: 12)),
+              Text(
+                name,
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                auth.currentUser?.email ?? '',
+                style: TextStyle(color: c.onSurfaceVariant, fontSize: 12),
+              ),
             ],
           ),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',
-          child: Row(children: [
-            Sym(MSym.logout, size: 18, color: c.error),
-            const SizedBox(width: 8),
-            Text('Sign Out', style: TextStyle(color: c.error)),
-          ]),
+          child: Row(
+            children: [
+              Sym(MSym.logout, size: 18, color: c.error),
+              const SizedBox(width: 8),
+              Text('Sign Out', style: TextStyle(color: c.error)),
+            ],
+          ),
         ),
         PopupMenuItem(
           value: 'delete',
-          child: Row(children: [
-            Sym(MSym.close, size: 18, color: TW.rose600),
-            const SizedBox(width: 8),
-            const Text('Delete account', style: TextStyle(color: TW.rose600)),
-          ]),
+          child: Row(
+            children: [
+              Sym(MSym.close, size: 18, color: TW.rose600),
+              const SizedBox(width: 8),
+              const Text('Delete account', style: TextStyle(color: TW.rose600)),
+            ],
+          ),
         ),
       ],
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: InitialAvatar(name: name, size: 34, bg: c.primaryContainer, fg: c.primary),
+        child: InitialAvatar(
+          name: name,
+          size: 34,
+          bg: c.primaryContainer,
+          fg: c.primary,
+        ),
       ),
     );
   }

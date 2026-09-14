@@ -6,12 +6,16 @@ class TenantDb {
   TenantDb._();
   static final _db = FirebaseFirestore.instance;
 
-  static CollectionReference<Map<String, dynamic>> _col(String gymId, String name) =>
-      _db.collection('gyms').doc(gymId).collection(name);
+  static CollectionReference<Map<String, dynamic>> _col(
+    String gymId,
+    String name,
+  ) => _db.collection('gyms').doc(gymId).collection(name);
 
   /// A Firestore `where` condition, mirroring `{field, op, value}` in db.js.
   static Query<Map<String, dynamic>> _applyWhere(
-      Query<Map<String, dynamic>> q, List<Cond>? conditions) {
+    Query<Map<String, dynamic>> q,
+    List<Cond>? conditions,
+  ) {
     if (conditions == null) return q;
     for (final c in conditions) {
       switch (c.op) {
@@ -53,7 +57,10 @@ class TenantDb {
   }
 
   static Future<Map<String, dynamic>?> getDocument(
-      String? gymId, String name, String id) async {
+    String? gymId,
+    String name,
+    String id,
+  ) async {
     if (gymId == null || gymId.isEmpty) return null;
     final snap = await _col(gymId, name).doc(id).get();
     if (!snap.exists) return null;
@@ -62,7 +69,10 @@ class TenantDb {
 
   /// createTenantDocument — stamps createdAt/updatedAt like db.js.
   static Future<Map<String, dynamic>> createDocument(
-      String gymId, String name, Map<String, dynamic> data) async {
+    String gymId,
+    String name,
+    Map<String, dynamic> data,
+  ) async {
     final payload = {
       ...data,
       'createdAt': FieldValue.serverTimestamp(),
@@ -73,11 +83,29 @@ class TenantDb {
   }
 
   static Future<void> updateDocument(
-      String gymId, String name, String id, Map<String, dynamic> data) {
-    return _col(gymId, name).doc(id).update({
+    String gymId,
+    String name,
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    return _col(
+      gymId,
+      name,
+    ).doc(id).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
+  }
+
+  /// Merge-write a tenant document at a known id, mirroring web's
+  /// setTenantDocument (e.g. `gyms/{gymId}/settings/general`).
+  static Future<void> setDocument(
+    String gymId,
+    String name,
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    return _col(gymId, name).doc(id).set({
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
   }
 
   static Future<void> deleteDocument(String gymId, String name, String id) {
@@ -86,7 +114,9 @@ class TenantDb {
 
   /// Top-level (non-tenant) document, e.g. `users/{uid}` or `gyms/{id}`.
   static Future<Map<String, dynamic>?> getTopDocument(
-      String collection, String id) async {
+    String collection,
+    String id,
+  ) async {
     final snap = await _db.collection(collection).doc(id).get();
     if (!snap.exists) return null;
     return {'id': snap.id, ...?snap.data()};
@@ -94,20 +124,27 @@ class TenantDb {
 
   /// Write to a root collection with a specific doc ID (e.g. `receipts/{memberId}`).
   static Future<void> setRootDocument(
-      String collection, String id, Map<String, dynamic> data) =>
-      _db.collection(collection).doc(id).set(data);
+    String collection,
+    String id,
+    Map<String, dynamic> data,
+  ) => _db.collection(collection).doc(id).set(data);
 
   /// Update a root (non-tenant) document, e.g. `users/{uid}`.
-  static Future<void> updateRootDocument(String collection, String id, Map<String, dynamic> data) =>
-      _db.collection(collection).doc(id).update({
-        ...data,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+  static Future<void> updateRootDocument(
+    String collection,
+    String id,
+    Map<String, dynamic> data,
+  ) => _db.collection(collection).doc(id).update({
+    ...data,
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
 
   /// Add a document to a root (non-tenant) collection, auto-ID + timestamps.
   /// Used for platform-wide collections the Super Admin reads (e.g. featureRequests).
   static Future<Map<String, dynamic>> createRootDocument(
-      String collection, Map<String, dynamic> data) async {
+    String collection,
+    Map<String, dynamic> data,
+  ) async {
     final payload = {
       ...data,
       'createdAt': FieldValue.serverTimestamp(),

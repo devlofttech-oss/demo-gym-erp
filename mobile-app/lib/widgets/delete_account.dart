@@ -26,9 +26,15 @@ Future<void> showDeleteAccountDialog(BuildContext context) async {
         style: TextStyle(color: ctx.c.onSurfaceVariant),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: TW.rose600, foregroundColor: Colors.white),
+          style: FilledButton.styleFrom(
+            backgroundColor: TW.rose600,
+            foregroundColor: Colors.white,
+          ),
           onPressed: () => Navigator.pop(ctx, true),
           child: const Text('Delete'),
         ),
@@ -47,28 +53,45 @@ Future<void> _delete(BuildContext context, {required String? password}) async {
     if (user == null) return;
 
     if (password != null && user.email != null) {
-      final cred = EmailAuthProvider.credential(email: user.email!, password: password);
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: password,
+      );
       await user.reauthenticateWithCredential(cred);
     }
 
     // Best-effort profile doc removal, then the auth account itself.
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
-    } catch (_) {/* rules may already block; proceed to auth delete */}
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+    } catch (_) {
+      /* rules may already block; proceed to auth delete */
+    }
     await user.delete();
 
-    if (context.mounted) Navigator.of(context, rootNavigator: true).pop(); // close loading
+    if (context.mounted)
+      Navigator.of(context, rootNavigator: true).pop(); // close loading
     // authStateChanges now fires → AuthGate routes back to Login.
   } on FirebaseAuthException catch (e) {
     if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
     if (e.code == 'requires-recent-login' && context.mounted) {
       await _reauthThenDelete(context);
     } else {
-      messenger.showSnackBar(SnackBar(content: Text('Could not delete account: ${e.message ?? e.code}')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Could not delete account: ${e.message ?? e.code}'),
+        ),
+      );
     }
   } catch (_) {
     if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-    messenger.showSnackBar(const SnackBar(content: Text('Could not delete account. Please try again.')));
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Could not delete account. Please try again.'),
+      ),
+    );
   }
 }
 
@@ -78,28 +101,46 @@ Future<void> _reauthThenDelete(BuildContext context) async {
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: ctx.c.surfaceContainerLowest,
-      title: Text('Confirm your password', style: TextStyle(color: ctx.c.onSurface)),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('For your security, re-enter your password to delete your account.',
-            style: TextStyle(color: ctx.c.onSurfaceVariant, fontSize: 13)),
-        const SizedBox(height: 12),
-        TextField(
-          controller: pw,
-          obscureText: true,
-          autofocus: true,
-          style: TextStyle(color: ctx.c.onSurface),
-          decoration: InputDecoration(
-            hintText: 'Password',
-            filled: true,
-            fillColor: ctx.c.surfaceContainer,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+      title: Text(
+        'Confirm your password',
+        style: TextStyle(color: ctx.c.onSurface),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'For your security, re-enter your password to delete your account.',
+            style: TextStyle(color: ctx.c.onSurfaceVariant, fontSize: 13),
           ),
-        ),
-      ]),
+          const SizedBox(height: 12),
+          TextField(
+            controller: pw,
+            obscureText: true,
+            autofocus: true,
+            style: TextStyle(color: ctx.c.onSurface),
+            decoration: InputDecoration(
+              hintText: 'Password',
+              filled: true,
+              fillColor: ctx.c.surfaceContainer,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
+      ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: TW.rose600, foregroundColor: Colors.white),
+          style: FilledButton.styleFrom(
+            backgroundColor: TW.rose600,
+            foregroundColor: Colors.white,
+          ),
           onPressed: () => Navigator.pop(ctx, true),
           child: const Text('Delete'),
         ),

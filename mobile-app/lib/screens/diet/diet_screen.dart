@@ -8,7 +8,13 @@ import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 
-const _dietGoals = ['All', 'weight-loss', 'muscle-gain', 'maintenance', 'medical'];
+const _dietGoals = [
+  'All',
+  'weight-loss',
+  'muscle-gain',
+  'maintenance',
+  'medical',
+];
 const _dietGoalLabels = {
   'weight-loss': 'Weight Loss',
   'muscle-gain': 'Muscle Gain',
@@ -50,7 +56,11 @@ class _DietScreenState extends State<DietScreen> {
         TenantDb.getCollection(gymId, 'dietPlans'),
         TenantDb.getCollection(gymId, 'members'),
       ]);
-      if (mounted) setState(() { _plans = res[0]; _members = res[1]; });
+      if (mounted)
+        setState(() {
+          _plans = res[0];
+          _members = res[1];
+        });
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -64,9 +74,15 @@ class _DietScreenState extends State<DietScreen> {
     if (_search.isNotEmpty) {
       final term = _search.toLowerCase();
       list = list
-          .where((p) =>
-              ((p['name'] as String?)?.toLowerCase().contains(term) ?? false) ||
-              ((p['assignedMemberName'] as String?)?.toLowerCase().contains(term) ?? false))
+          .where(
+            (p) =>
+                ((p['name'] as String?)?.toLowerCase().contains(term) ??
+                    false) ||
+                ((p['assignedMemberName'] as String?)?.toLowerCase().contains(
+                      term,
+                    ) ??
+                    false),
+          )
           .toList();
     }
     return list;
@@ -94,7 +110,10 @@ class _DietScreenState extends State<DietScreen> {
         title: const Text('Delete Diet Plan'),
         content: Text('Delete "${plan['name']}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -104,7 +123,11 @@ class _DietScreenState extends State<DietScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'dietPlans', plan['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'dietPlans',
+        plan['id'],
+      );
       _fetch();
     }
   }
@@ -113,7 +136,9 @@ class _DietScreenState extends State<DietScreen> {
   Widget build(BuildContext context) {
     final c = context.c;
     final filtered = _filtered;
-    final templates = _plans.where((p) => (p['assignedMemberId'] ?? '').isEmpty).length;
+    final templates = _plans
+        .where((p) => (p['assignedMemberId'] ?? '').isEmpty)
+        .length;
     final assigned = _plans.length - templates;
     final totalKcal = _plans.fold<num>(0, (sum, p) {
       final meals = (p['meals'] as List?) ?? [];
@@ -142,15 +167,33 @@ class _DietScreenState extends State<DietScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: Row(children: [
-                  _DietStat(label: 'Total', value: '${_plans.length}', color: c.primary),
-                  const SizedBox(width: 8),
-                  _DietStat(label: 'Templates', value: '$templates', color: TW.amber600),
-                  const SizedBox(width: 8),
-                  _DietStat(label: 'Assigned', value: '$assigned', color: TW.emerald600),
-                  const SizedBox(width: 8),
-                  _DietStat(label: 'Avg kcal', value: avgKcal.toStringAsFixed(0), color: TW.blue600),
-                ]),
+                child: Row(
+                  children: [
+                    _DietStat(
+                      label: 'Total',
+                      value: '${_plans.length}',
+                      color: c.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    _DietStat(
+                      label: 'Templates',
+                      value: '$templates',
+                      color: TW.amber600,
+                    ),
+                    const SizedBox(width: 8),
+                    _DietStat(
+                      label: 'Assigned',
+                      value: '$assigned',
+                      color: TW.emerald600,
+                    ),
+                    const SizedBox(width: 8),
+                    _DietStat(
+                      label: 'Avg kcal',
+                      value: avgKcal.toStringAsFixed(0),
+                      color: TW.blue600,
+                    ),
+                  ],
+                ),
               ),
             ),
             SliverToBoxAdapter(
@@ -160,9 +203,15 @@ class _DietScreenState extends State<DietScreen> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Search diet plans…',
-                    prefixIcon: Sym(MSym.search, size: 20, color: c.onSurfaceVariant),
+                    prefixIcon: Sym(
+                      MSym.search,
+                      size: 20,
+                      color: c.onSurfaceVariant,
+                    ),
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onChanged: (v) => setState(() => _search = v),
@@ -179,8 +228,12 @@ class _DietScreenState extends State<DietScreen> {
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
                     final goalKey = _dietGoals[i];
-                    final label = i == 0 ? 'All' : (_dietGoalLabels[goalKey] ?? goalKey);
-                    final cnt = i == 0 ? _plans.length : _plans.where((p) => p['goal'] == goalKey).length;
+                    final label = i == 0
+                        ? 'All'
+                        : (_dietGoalLabels[goalKey] ?? goalKey);
+                    final cnt = i == 0
+                        ? _plans.length
+                        : _plans.where((p) => p['goal'] == goalKey).length;
                     return FilterChip(
                       label: Text(i == 0 ? label : '$label ($cnt)'),
                       selected: _goalFilter == i,
@@ -246,7 +299,11 @@ class _DietStat extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _DietStat({required this.label, required this.value, required this.color});
+  const _DietStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -258,10 +315,27 @@ class _DietStat extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
-        child: Column(children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 15, fontFamily: 'PlusJakartaSans')),
-          Text(label, style: const TextStyle(color: TW.slate500, fontSize: 10, fontFamily: 'PlusJakartaSans')),
-        ]),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                fontFamily: 'PlusJakartaSans',
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                color: TW.slate500,
+                fontSize: 10,
+                fontFamily: 'PlusJakartaSans',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -271,7 +345,11 @@ class _DietCard extends StatelessWidget {
   final Map<String, dynamic> plan;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _DietCard({required this.plan, required this.onEdit, required this.onDelete});
+  const _DietCard({
+    required this.plan,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -302,22 +380,41 @@ class _DietCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Expanded(child: Text(plan['name'] ?? '',
-                            style: KText.bodyLg.copyWith(
-                                color: c.onSurface, fontWeight: FontWeight.w600))),
-                        if ((plan['assignedMemberId'] ?? '').isEmpty)
-                          Pill('Template',
-                              bg: TW.amber600.withValues(alpha: 0.1), fg: TW.amber600),
-                      ]),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              plan['name'] ?? '',
+                              style: KText.bodyLg.copyWith(
+                                color: c.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if ((plan['assignedMemberId'] ?? '').isEmpty)
+                            Pill(
+                              'Template',
+                              bg: TW.amber600.withValues(alpha: 0.1),
+                              fg: TW.amber600,
+                            ),
+                        ],
+                      ),
                       if ((plan['assignedMemberName'] ?? '').isNotEmpty)
-                        Text(plan['assignedMemberName'],
-                            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                        Text(
+                          plan['assignedMemberName'],
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
+                  icon: Sym(
+                    MSym.expandMore,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
@@ -325,29 +422,41 @@ class _DietCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: TW.rose600),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 8),
             if (goal != null)
-              Pill(_dietGoalLabels[goal] ?? goal, bg: color.withValues(alpha: 0.08), fg: color),
+              Pill(
+                _dietGoalLabels[goal] ?? goal,
+                bg: color.withValues(alpha: 0.08),
+                fg: color,
+              ),
             const SizedBox(height: 8),
             Row(
               children: [
                 if (asNum(plan['caloriesPerDay']) > 0) ...[
                   Sym(MSym.restaurant, size: 14, color: c.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('${asNum(plan['caloriesPerDay']).toStringAsFixed(0)} kcal/day',
-                      style: KText.bodyMd.copyWith(color: c.onSurface)),
+                  Text(
+                    '${asNum(plan['caloriesPerDay']).toStringAsFixed(0)} kcal/day',
+                    style: KText.bodyMd.copyWith(color: c.onSurface),
+                  ),
                   const SizedBox(width: 12),
                 ],
                 Sym(MSym.schedule, size: 14, color: c.onSurfaceVariant),
                 const SizedBox(width: 4),
-                Text('${meals.length} meals',
-                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  '${meals.length} meals',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
               ],
             ),
             if (asNum(plan['protein']) > 0 ||
@@ -356,11 +465,20 @@ class _DietCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  _MacroPill('P: ${asNum(plan['protein']).toStringAsFixed(0)}g', TW.blue600),
+                  _MacroPill(
+                    'P: ${asNum(plan['protein']).toStringAsFixed(0)}g',
+                    TW.blue600,
+                  ),
                   const SizedBox(width: 6),
-                  _MacroPill('C: ${asNum(plan['carbs']).toStringAsFixed(0)}g', TW.amber600),
+                  _MacroPill(
+                    'C: ${asNum(plan['carbs']).toStringAsFixed(0)}g',
+                    TW.amber600,
+                  ),
                   const SizedBox(width: 6),
-                  _MacroPill('F: ${asNum(plan['fat']).toStringAsFixed(0)}g', TW.rose600),
+                  _MacroPill(
+                    'F: ${asNum(plan['fat']).toStringAsFixed(0)}g',
+                    TW.rose600,
+                  ),
                 ],
               ),
             ],
@@ -385,7 +503,10 @@ class _MacroPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(label, style: KText.bodyMd.copyWith(color: color, fontSize: 11)),
+      child: Text(
+        label,
+        style: KText.bodyMd.copyWith(color: color, fontSize: 11),
+      ),
     );
   }
 }
@@ -397,7 +518,12 @@ class _DietForm extends StatefulWidget {
   final String gymId;
   final List<Map<String, dynamic>> members;
   final VoidCallback onSaved;
-  const _DietForm({this.plan, required this.gymId, required this.members, required this.onSaved});
+  const _DietForm({
+    this.plan,
+    required this.gymId,
+    required this.members,
+    required this.onSaved,
+  });
 
   @override
   State<_DietForm> createState() => _DietFormState();
@@ -428,11 +554,18 @@ class _DietFormState extends State<_DietForm> {
     final plan = widget.plan;
     if (plan != null) {
       _nameCtrl.text = plan['name'] ?? '';
-      _caloriesCtrl.text =
-          asNum(plan['caloriesPerDay']) == 0 ? '' : asNum(plan['caloriesPerDay']).toString();
-      _proteinCtrl.text = asNum(plan['protein']) == 0 ? '' : asNum(plan['protein']).toString();
-      _carbsCtrl.text = asNum(plan['carbs']) == 0 ? '' : asNum(plan['carbs']).toString();
-      _fatCtrl.text = asNum(plan['fat']) == 0 ? '' : asNum(plan['fat']).toString();
+      _caloriesCtrl.text = asNum(plan['caloriesPerDay']) == 0
+          ? ''
+          : asNum(plan['caloriesPerDay']).toString();
+      _proteinCtrl.text = asNum(plan['protein']) == 0
+          ? ''
+          : asNum(plan['protein']).toString();
+      _carbsCtrl.text = asNum(plan['carbs']) == 0
+          ? ''
+          : asNum(plan['carbs']).toString();
+      _fatCtrl.text = asNum(plan['fat']) == 0
+          ? ''
+          : asNum(plan['fat']).toString();
       _descCtrl.text = plan['description'] ?? '';
       _goal = plan['goal'] ?? 'maintenance';
       _memberId = plan['assignedMemberId'] as String?;
@@ -444,7 +577,10 @@ class _DietFormState extends State<_DietForm> {
           nameCtrl: TextEditingController(text: mp['mealName'] ?? ''),
           descCtrl: TextEditingController(text: mp['description'] ?? ''),
           calCtrl: TextEditingController(
-              text: asNum(mp['calories']) == 0 ? '' : asNum(mp['calories']).toString()),
+            text: asNum(mp['calories']) == 0
+                ? ''
+                : asNum(mp['calories']).toString(),
+          ),
         );
       }).toList();
     }
@@ -469,11 +605,15 @@ class _DietFormState extends State<_DietForm> {
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
     setState(() => _saving = true);
-    final mealsData = _meals.map((m) => {
-          'mealName': m.nameCtrl.text.trim(),
-          'description': m.descCtrl.text.trim(),
-          'calories': double.tryParse(m.calCtrl.text) ?? 0,
-        }).toList();
+    final mealsData = _meals
+        .map(
+          (m) => {
+            'mealName': m.nameCtrl.text.trim(),
+            'description': m.descCtrl.text.trim(),
+            'calories': double.tryParse(m.calCtrl.text) ?? 0,
+          },
+        )
+        .toList();
     final data = {
       'name': _nameCtrl.text.trim(),
       'goal': _goal,
@@ -488,7 +628,12 @@ class _DietFormState extends State<_DietForm> {
     };
     try {
       if (widget.plan != null) {
-        await TenantDb.updateDocument(widget.gymId, 'dietPlans', widget.plan!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'dietPlans',
+          widget.plan!['id'],
+          data,
+        );
       } else {
         await TenantDb.createDocument(widget.gymId, 'dietPlans', data);
       }
@@ -509,7 +654,11 @@ class _DietFormState extends State<_DietForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -517,16 +666,21 @@ class _DietFormState extends State<_DietForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Diet Plan' : 'Add Diet Plan',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Diet Plan' : 'Add Diet Plan',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -538,14 +692,26 @@ class _DietFormState extends State<_DietForm> {
             TextField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
-                  labelText: 'Plan Name *', border: OutlineInputBorder()),
+                labelText: 'Plan Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _goal,
-              decoration: const InputDecoration(labelText: 'Goal', border: OutlineInputBorder()),
-              items: _dietGoals.skip(1).map((g) => DropdownMenuItem(
-                  value: g, child: Text(_dietGoalLabels[g] ?? g))).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Goal',
+                border: OutlineInputBorder(),
+              ),
+              items: _dietGoals
+                  .skip(1)
+                  .map(
+                    (g) => DropdownMenuItem(
+                      value: g,
+                      child: Text(_dietGoalLabels[g] ?? g),
+                    ),
+                  )
+                  .toList(),
               onChanged: (v) => setState(() => _goal = v ?? 'maintenance'),
             ),
             const SizedBox(height: 12),
@@ -553,19 +719,27 @@ class _DietFormState extends State<_DietForm> {
               DropdownButtonFormField<String>(
                 initialValue: _memberId,
                 decoration: const InputDecoration(
-                    labelText: 'Assign to Member', border: OutlineInputBorder()),
+                  labelText: 'Assign to Member',
+                  border: OutlineInputBorder(),
+                ),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('No member')),
-                  ...widget.members.map((m) =>
-                      DropdownMenuItem(value: m['id'] as String, child: Text(m['name'] ?? ''))),
+                  ...widget.members.map(
+                    (m) => DropdownMenuItem(
+                      value: m['id'] as String,
+                      child: Text(m['name'] ?? ''),
+                    ),
+                  ),
                 ],
                 onChanged: (v) => setState(() {
                   _memberId = v;
                   _memberName = v == null
                       ? ''
-                      : (widget.members.firstWhere((m) => m['id'] == v,
-                              orElse: () => {})['name'] ??
-                          '');
+                      : (widget.members.firstWhere(
+                              (m) => m['id'] == v,
+                              orElse: () => {},
+                            )['name'] ??
+                            '');
                 }),
               ),
             const SizedBox(height: 12),
@@ -573,7 +747,9 @@ class _DietFormState extends State<_DietForm> {
               controller: _caloriesCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                  labelText: 'Calories per Day (kcal)', border: OutlineInputBorder()),
+                labelText: 'Calories per Day (kcal)',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -583,7 +759,9 @@ class _DietFormState extends State<_DietForm> {
                     controller: _proteinCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Protein (g)', border: OutlineInputBorder()),
+                      labelText: 'Protein (g)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -592,7 +770,9 @@ class _DietFormState extends State<_DietForm> {
                     controller: _carbsCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Carbs (g)', border: OutlineInputBorder()),
+                      labelText: 'Carbs (g)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -601,59 +781,82 @@ class _DietFormState extends State<_DietForm> {
                     controller: _fatCtrl,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                        labelText: 'Fat (g)', border: OutlineInputBorder()),
+                      labelText: 'Fat (g)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Builder(builder: (_) {
-              final target = double.tryParse(_caloriesCtrl.text) ?? 0;
-              final pCal = (double.tryParse(_proteinCtrl.text) ?? 0) * 4;
-              final cCal = (double.tryParse(_carbsCtrl.text) ?? 0) * 4;
-              final fCal = (double.tryParse(_fatCtrl.text) ?? 0) * 9;
-              final macroCal = pCal + cCal + fCal;
-              if (target == 0 || macroCal == 0) return const SizedBox.shrink();
-              final diff = (macroCal - target).abs();
-              final ok = diff < 50;
-              final color = ok ? TW.emerald600 : TW.amber600;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: color.withValues(alpha: 0.3)),
-                ),
-                child: Row(children: [
-                  Sym(ok ? MSym.checkCircle : MSym.info, size: 14, color: color),
-                  const SizedBox(width: 6),
-                  Text(
-                    ok
-                        ? 'Macros match target: ${macroCal.toStringAsFixed(0)} kcal'
-                        : 'Macro-calculated ${macroCal.toStringAsFixed(0)} kcal vs target ${target.toStringAsFixed(0)} kcal (${ok ? "✓" : "Δ ${diff.toStringAsFixed(0)}"})',
-                    style: TextStyle(color: color, fontSize: 12),
+            Builder(
+              builder: (_) {
+                final target = double.tryParse(_caloriesCtrl.text) ?? 0;
+                final pCal = (double.tryParse(_proteinCtrl.text) ?? 0) * 4;
+                final cCal = (double.tryParse(_carbsCtrl.text) ?? 0) * 4;
+                final fCal = (double.tryParse(_fatCtrl.text) ?? 0) * 9;
+                final macroCal = pCal + cCal + fCal;
+                if (target == 0 || macroCal == 0)
+                  return const SizedBox.shrink();
+                final diff = (macroCal - target).abs();
+                final ok = diff < 50;
+                final color = ok ? TW.emerald600 : TW.amber600;
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                ]),
-              );
-            }),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Sym(
+                        ok ? MSym.checkCircle : MSym.info,
+                        size: 14,
+                        color: color,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        ok
+                            ? 'Macros match target: ${macroCal.toStringAsFixed(0)} kcal'
+                            : 'Macro-calculated ${macroCal.toStringAsFixed(0)} kcal vs target ${target.toStringAsFixed(0)} kcal (${ok ? "✓" : "Δ ${diff.toStringAsFixed(0)}"})',
+                        style: TextStyle(color: color, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _descCtrl,
               maxLines: 2,
               decoration: const InputDecoration(
-                  labelText: 'Description', border: OutlineInputBorder()),
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('Meals', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  'Meals',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () => setState(() => _meals.add(_MealEntry(
-                    nameCtrl: TextEditingController(),
-                    descCtrl: TextEditingController(),
-                    calCtrl: TextEditingController(),
-                  ))),
+                  onPressed: () => setState(
+                    () => _meals.add(
+                      _MealEntry(
+                        nameCtrl: TextEditingController(),
+                        descCtrl: TextEditingController(),
+                        calCtrl: TextEditingController(),
+                      ),
+                    ),
+                  ),
                   icon: Sym(MSym.add, size: 16, color: c.primary),
                   label: const Text('Add Meal'),
                 ),
@@ -672,9 +875,13 @@ class _DietFormState extends State<_DietForm> {
                   children: [
                     Row(
                       children: [
-                        Text('Meal ${i + 1}',
-                            style: KText.bodyMd.copyWith(
-                                color: c.onSurface, fontWeight: FontWeight.w600)),
+                        Text(
+                          'Meal ${i + 1}',
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const Spacer(),
                         IconButton(
                           icon: Sym(MSym.close, size: 16, color: TW.rose600),
@@ -687,35 +894,57 @@ class _DietFormState extends State<_DietForm> {
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
-                      children: ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Pre-Workout', 'Post-Workout']
-                          .map((preset) => ActionChip(
-                                label: Text(preset, style: const TextStyle(fontSize: 11)),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () => setState(() => _meals[i].nameCtrl.text = preset),
-                              ))
-                          .toList(),
+                      children:
+                          [
+                                'Breakfast',
+                                'Lunch',
+                                'Dinner',
+                                'Snack',
+                                'Pre-Workout',
+                                'Post-Workout',
+                              ]
+                              .map(
+                                (preset) => ActionChip(
+                                  label: Text(
+                                    preset,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () => setState(
+                                    () => _meals[i].nameCtrl.text = preset,
+                                  ),
+                                ),
+                              )
+                              .toList(),
                     ),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _meals[i].nameCtrl,
                       decoration: const InputDecoration(
-                          labelText: 'Meal Name', border: OutlineInputBorder(), isDense: true),
+                        labelText: 'Meal Name',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _meals[i].descCtrl,
                       decoration: const InputDecoration(
-                          labelText: 'Description', border: OutlineInputBorder(), isDense: true),
+                        labelText: 'Description',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _meals[i].calCtrl,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                          labelText: 'Calories (kcal)',
-                          border: OutlineInputBorder(),
-                          isDense: true),
+                        labelText: 'Calories (kcal)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
                     ),
                   ],
                 ),
@@ -730,7 +959,11 @@ class _DietFormState extends State<_DietForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Plan'),
               ),
             ),
@@ -745,6 +978,9 @@ class _MealEntry {
   final TextEditingController nameCtrl;
   final TextEditingController descCtrl;
   final TextEditingController calCtrl;
-  _MealEntry(
-      {required this.nameCtrl, required this.descCtrl, required this.calCtrl});
+  _MealEntry({
+    required this.nameCtrl,
+    required this.descCtrl,
+    required this.calCtrl,
+  });
 }

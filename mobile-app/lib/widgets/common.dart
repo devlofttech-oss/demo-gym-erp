@@ -10,7 +10,14 @@ class Sym extends StatelessWidget {
   final Color? color;
   final bool fill;
   final double? weight;
-  const Sym(this.icon, {super.key, this.size = 24, this.color, this.fill = false, this.weight});
+  const Sym(
+    this.icon, {
+    super.key,
+    this.size = 24,
+    this.color,
+    this.fill = false,
+    this.weight,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +37,13 @@ class KCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
   final double radius;
-  const KCard({super.key, required this.child, this.padding, this.onTap, this.radius = 16});
+  const KCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.onTap,
+    this.radius = 16,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -67,9 +80,12 @@ class KSpinner extends StatefulWidget {
   State<KSpinner> createState() => _KSpinnerState();
 }
 
-class _KSpinnerState extends State<KSpinner> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl =
-      AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
+class _KSpinnerState extends State<KSpinner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 1),
+  )..repeat();
 
   @override
   void dispose() {
@@ -81,7 +97,11 @@ class _KSpinnerState extends State<KSpinner> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return RotationTransition(
       turns: _ctrl,
-      child: Sym(MSym.progressActivity, size: widget.size, color: widget.color ?? context.c.primary),
+      child: Sym(
+        MSym.progressActivity,
+        size: widget.size,
+        color: widget.color ?? context.c.primary,
+      ),
     );
   }
 }
@@ -112,7 +132,13 @@ class KEmpty extends StatelessWidget {
   final String message;
   final Widget? action;
   final Color? iconColor;
-  const KEmpty({super.key, required this.icon, required this.message, this.action, this.iconColor});
+  const KEmpty({
+    super.key,
+    required this.icon,
+    required this.message,
+    this.action,
+    this.iconColor,
+  });
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -120,9 +146,22 @@ class KEmpty extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Opacity(opacity: 0.4, child: Sym(icon, size: 48, color: iconColor ?? context.c.onSurfaceVariant)),
+          Opacity(
+            opacity: 0.4,
+            child: Sym(
+              icon,
+              size: 48,
+              color: iconColor ?? context.c.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 12),
-          Text(message, style: TextStyle(color: context.c.onSurfaceVariant, fontWeight: FontWeight.w500)),
+          Text(
+            message,
+            style: TextStyle(
+              color: context.c.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           if (action != null) ...[const SizedBox(height: 12), action!],
         ],
       ),
@@ -137,23 +176,45 @@ class Pill extends StatelessWidget {
   final Color bg;
   final IconData? icon;
   final bool dot;
-  const Pill(this.text, {super.key, required this.fg, required this.bg, this.icon, this.dot = false});
+  const Pill(
+    this.text, {
+    super.key,
+    required this.fg,
+    required this.bg,
+    this.icon,
+    this.dot = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (dot)
             Container(
-              width: 6, height: 6, margin: const EdgeInsets.only(right: 5),
+              width: 6,
+              height: 6,
+              margin: const EdgeInsets.only(right: 5),
               decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
             ),
-          if (icon != null) ...[Sym(icon!, size: 12, color: fg), const SizedBox(width: 4)],
-          Text(text, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
+          if (icon != null) ...[
+            Sym(icon!, size: 12, color: fg),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              color: fg,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -166,15 +227,31 @@ class InitialAvatar extends StatelessWidget {
   final double size;
   final Color bg;
   final Color fg;
-  const InitialAvatar({super.key, this.name, this.size = 40, required this.bg, required this.fg});
+  const InitialAvatar({
+    super.key,
+    this.name,
+    this.size = 40,
+    required this.bg,
+    required this.fg,
+  });
   @override
   Widget build(BuildContext context) {
-    final ch = (name != null && name!.isNotEmpty) ? name![0].toUpperCase() : '?';
+    final ch = (name != null && name!.isNotEmpty)
+        ? name![0].toUpperCase()
+        : '?';
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-      child: Text(ch, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: size * 0.4)),
+      child: Text(
+        ch,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w700,
+          fontSize: size * 0.4,
+        ),
+      ),
     );
   }
 }
@@ -196,7 +273,10 @@ class PageHeader extends StatelessWidget {
             children: [
               Text(title, style: KText.h1.copyWith(color: context.c.onSurface)),
               const SizedBox(height: 6),
-              Text(subtitle, style: KText.bodyLg.copyWith(color: context.c.onSurfaceVariant)),
+              Text(
+                subtitle,
+                style: KText.bodyLg.copyWith(color: context.c.onSurfaceVariant),
+              ),
             ],
           ),
         ),
