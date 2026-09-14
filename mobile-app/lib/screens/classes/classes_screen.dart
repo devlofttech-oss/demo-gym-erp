@@ -10,8 +10,43 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../widgets/whatsapp_sheet.dart';
 
-const _classTypes = ['All', 'Zumba', 'Yoga', 'Dance', 'HIIT', 'Kids Dance', 'Gym', 'Other'];
-const _daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const _classTypes = [
+  'All',
+  'Zumba',
+  'Yoga',
+  'Dance',
+  'HIIT',
+  'Kids Dance',
+  'Gym',
+  'Other',
+];
+const _daysOfWeek = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
+/// Stored schedule times are 24-hour "HH:mm" so both apps parse them the same.
+String _hhmm(TimeOfDay t) =>
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+/// Renders a stored time for display, tolerating the locale-formatted values
+/// written by older mobile builds.
+String fmtSlotTime(dynamic raw) {
+  final v = (raw ?? '').toString().trim();
+  if (v.isEmpty) return '';
+  final m = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(v);
+  if (m == null) return v;
+  final h = int.parse(m.group(1)!);
+  final mins = m.group(2)!;
+  final suffix = h >= 12 ? 'PM' : 'AM';
+  final h12 = h % 12 == 0 ? 12 : h % 12;
+  return '$h12:$mins $suffix';
+}
 
 class ClassesScreen extends StatefulWidget {
   const ClassesScreen({super.key});
@@ -47,7 +82,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
         TenantDb.getCollection(gymId, 'classes'),
         TenantDb.getCollection(gymId, 'staff'),
       ]);
-      if (mounted) setState(() { _classes = res[0]; _staff = res[1]; });
+      if (mounted)
+        setState(() {
+          _classes = res[0];
+          _staff = res[1];
+        });
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -63,9 +102,15 @@ class _ClassesScreenState extends State<ClassesScreen> {
     }
     if (_search.isNotEmpty) {
       final term = _search.toLowerCase();
-      list = list.where((c) =>
-          ((c['name'] as String?)?.toLowerCase().contains(term) ?? false) ||
-          ((c['trainerName'] as String?)?.toLowerCase().contains(term) ?? false)).toList();
+      list = list
+          .where(
+            (c) =>
+                ((c['name'] as String?)?.toLowerCase().contains(term) ??
+                    false) ||
+                ((c['trainerName'] as String?)?.toLowerCase().contains(term) ??
+                    false),
+          )
+          .toList();
     }
     return list;
   }
@@ -92,7 +137,10 @@ class _ClassesScreenState extends State<ClassesScreen> {
         title: const Text('Delete Class'),
         content: Text('Delete "${cls['name']}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TW.rose600),
             onPressed: () => Navigator.pop(context, true),
@@ -102,7 +150,11 @@ class _ClassesScreenState extends State<ClassesScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(context.read<AuthProvider>().gymId ?? '', 'classes', cls['id']);
+      await TenantDb.deleteDocument(
+        context.read<AuthProvider>().gymId ?? '',
+        'classes',
+        cls['id'],
+      );
       _fetch();
     }
   }
@@ -136,9 +188,15 @@ class _ClassesScreenState extends State<ClassesScreen> {
                   controller: _searchCtrl,
                   decoration: InputDecoration(
                     hintText: 'Search classes…',
-                    prefixIcon: Sym(MSym.search, size: 20, color: c.onSurfaceVariant),
+                    prefixIcon: Sym(
+                      MSym.search,
+                      size: 20,
+                      color: c.onSurfaceVariant,
+                    ),
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onChanged: (v) => setState(() => _search = v),
@@ -157,7 +215,13 @@ class _ClassesScreenState extends State<ClassesScreen> {
                     final label = _classTypes[i];
                     final cnt = i == 0
                         ? _classes.length
-                        : _classes.where((c) => (c['type'] ?? '') == label).length;
+                        : _classes
+                              .where(
+                                (c) =>
+                                    ((c['type'] as List?)?.cast<String>() ?? [])
+                                        .contains(label),
+                              )
+                              .length;
                     return FilterChip(
                       label: Text(i == 0 ? label : '$label ($cnt)'),
                       selected: _tab == i,
@@ -175,7 +239,9 @@ class _ClassesScreenState extends State<ClassesScreen> {
               SliverFillRemaining(
                 child: KEmpty(
                   icon: MSym.groups,
-                  message: _search.isNotEmpty ? 'No classes found' : 'No classes yet',
+                  message: _search.isNotEmpty
+                      ? 'No classes found'
+                      : 'No classes yet',
                   action: _search.isEmpty
                       ? TextButton.icon(
                           onPressed: () => _showForm(),
@@ -220,14 +286,19 @@ class _ClassCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _ClassCard(
-      {required this.cls, required this.onTap, required this.onEdit, required this.onDelete});
+  const _ClassCard({
+    required this.cls,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final types = (cls['type'] as List?)?.cast<String>() ?? [];
-    final schedule = (cls['schedule'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final schedule =
+        (cls['schedule'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final enrolled = (cls['enrolledMemberIds'] as List?)?.length ?? 0;
     final capacity = asNum(cls['capacity']).toInt();
 
@@ -254,17 +325,29 @@ class _ClassCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(cls['name'] ?? '',
-                          style: KText.bodyLg.copyWith(
-                              color: c.onSurface, fontWeight: FontWeight.w600)),
+                      Text(
+                        cls['name'] ?? '',
+                        style: KText.bodyLg.copyWith(
+                          color: c.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       if ((cls['trainerName'] ?? '').isNotEmpty)
-                        Text(cls['trainerName'],
-                            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                        Text(
+                          cls['trainerName'],
+                          style: KText.bodyMd.copyWith(
+                            color: c.onSurfaceVariant,
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Sym(MSym.expandMore, size: 18, color: c.onSurfaceVariant),
+                  icon: Sym(
+                    MSym.expandMore,
+                    size: 18,
+                    color: c.onSurfaceVariant,
+                  ),
                   onSelected: (v) {
                     if (v == 'edit') onEdit();
                     if (v == 'delete') onDelete();
@@ -272,8 +355,12 @@ class _ClassCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit')),
                     const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Delete', style: TextStyle(color: TW.rose600))),
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: TW.rose600),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -284,14 +371,20 @@ class _ClassCard extends StatelessWidget {
               runSpacing: 4,
               children: [
                 for (final t in types)
-                  Pill(t, bg: TW.pink600.withValues(alpha: 0.08), fg: TW.pink600),
+                  Pill(
+                    t,
+                    bg: TW.pink600.withValues(alpha: 0.08),
+                    fg: TW.pink600,
+                  ),
               ],
             ),
             if (schedule.isNotEmpty) ...[
               const SizedBox(height: 6),
               for (final slot in schedule.take(3))
-                Text('${slot['day']} ${slot['startTime']}–${slot['endTime']}',
-                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  '${slot['day']} ${fmtSlotTime(slot['startTime'])}–${fmtSlotTime(slot['endTime'])}',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
             ],
             if (capacity > 0) ...[
               const SizedBox(height: 8),
@@ -299,21 +392,26 @@ class _ClassCard extends StatelessWidget {
                 children: [
                   Sym(MSym.group, size: 16, color: c.onSurfaceVariant),
                   const SizedBox(width: 4),
-                  Text('$enrolled / $capacity',
-                      style: KText.bodyMd.copyWith(color: c.onSurface)),
+                  Text(
+                    '$enrolled / $capacity',
+                    style: KText.bodyMd.copyWith(color: c.onSurface),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: capacity > 0 ? (enrolled / capacity).clamp(0.0, 1.0) : 0,
+                        value: capacity > 0
+                            ? (enrolled / capacity).clamp(0.0, 1.0)
+                            : 0,
                         backgroundColor: TW.slate200,
                         valueColor: AlwaysStoppedAnimation(
-                            enrolled >= capacity
-                                ? TW.rose600
-                                : capacity > 0 && (enrolled / capacity) >= 0.7
-                                    ? TW.amber600
-                                    : TW.emerald600),
+                          enrolled >= capacity
+                              ? TW.rose600
+                              : capacity > 0 && (enrolled / capacity) >= 0.7
+                              ? TW.amber600
+                              : TW.emerald600,
+                        ),
                         minHeight: 6,
                       ),
                     ),
@@ -361,7 +459,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       final cls = res[0] as Map<String, dynamic>?;
       if (cls != null && mounted) setState(() => _cls = cls);
       final allM = res[1] as List<Map<String, dynamic>>;
-      final enrolledIds = (_cls['enrolledMemberIds'] as List?)?.cast<String>() ?? [];
+      final enrolledIds =
+          (_cls['enrolledMemberIds'] as List?)?.cast<String>() ?? [];
       if (mounted) {
         setState(() {
           _allMembers = allM;
@@ -374,7 +473,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
 
   Future<void> _toggleEnroll(String memberId, bool enroll) async {
     final enrolledIds = List<String>.from(
-        (_cls['enrolledMemberIds'] as List?)?.cast<String>() ?? []);
+      (_cls['enrolledMemberIds'] as List?)?.cast<String>() ?? [],
+    );
     if (enroll) {
       enrolledIds.add(memberId);
     } else {
@@ -387,7 +487,8 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   }
 
   void _showEnrollPicker() {
-    final enrolledIds = (_cls['enrolledMemberIds'] as List?)?.cast<String>() ?? [];
+    final enrolledIds =
+        (_cls['enrolledMemberIds'] as List?)?.cast<String>() ?? [];
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -410,14 +511,16 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
       phone: '',
       defaultMessage:
           'Hi, this is a reminder about your ${_cls['name']} class. Please be on time!',
-      recipientLabel: '${_members.length} enrolled — choose recipients in WhatsApp',
+      recipientLabel:
+          '${_members.length} enrolled — choose recipients in WhatsApp',
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final schedule = (_cls['schedule'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final schedule =
+        (_cls['schedule'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final types = (_cls['type'] as List?)?.cast<String>() ?? [];
     final capacity = asNum(_cls['capacity']).toInt();
     final enrolled = _members.length;
@@ -431,7 +534,10 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
           icon: Sym(MSym.arrowBack, size: 20, color: c.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(_cls['name'] ?? 'Class', style: KText.h3.copyWith(color: c.onSurface)),
+        title: Text(
+          _cls['name'] ?? 'Class',
+          style: KText.h3.copyWith(color: c.onSurface),
+        ),
         actions: [
           if (_members.isNotEmpty)
             IconButton(
@@ -459,16 +565,26 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                         Wrap(
                           spacing: 6,
                           children: types
-                              .map((t) =>
-                                  Pill(t, bg: TW.pink600.withValues(alpha: 0.1), fg: TW.pink600))
+                              .map(
+                                (t) => Pill(
+                                  t,
+                                  bg: TW.pink600.withValues(alpha: 0.1),
+                                  fg: TW.pink600,
+                                ),
+                              )
                               .toList(),
                         ),
-                      if ((c.onSurface != Colors.transparent) && types.isNotEmpty)
+                      if ((c.onSurface != Colors.transparent) &&
+                          types.isNotEmpty)
                         const SizedBox(height: 8),
                       if (((_cls['trainerName'] ?? '') as String).isNotEmpty)
                         _InfoRow(MSym.badge, 'Trainer', _cls['trainerName']),
                       if (capacity > 0)
-                        _InfoRow(MSym.group, 'Capacity', '$enrolled / $capacity enrolled'),
+                        _InfoRow(
+                          MSym.group,
+                          'Capacity',
+                          '$enrolled / $capacity enrolled',
+                        ),
                       if ((_cls['description'] ?? '').isNotEmpty)
                         _InfoRow(MSym.info, 'Description', _cls['description']),
                     ],
@@ -476,33 +592,52 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (schedule.isNotEmpty) ...[
-                  Text('Schedule', style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+                  Text(
+                    'Schedule',
+                    style: KText.labelCaps.copyWith(color: c.onSurfaceVariant),
+                  ),
                   const SizedBox(height: 8),
                   KCard(
                     child: Column(
                       children: schedule
-                          .map((slot) => Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  children: [
-                                    Sym(MSym.schedule, size: 16, color: c.primary),
-                                    const SizedBox(width: 8),
-                                    Text('${slot['day']}',
-                                        style: KText.bodyMd.copyWith(
-                                            color: c.onSurface, fontWeight: FontWeight.w600)),
-                                    const SizedBox(width: 8),
-                                    Text('${slot['startTime']} – ${slot['endTime']}',
-                                        style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-                                  ],
-                                ),
-                              ))
+                          .map(
+                            (slot) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                children: [
+                                  Sym(
+                                    MSym.schedule,
+                                    size: 16,
+                                    color: c.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${slot['day']}',
+                                    style: KText.bodyMd.copyWith(
+                                      color: c.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${fmtSlotTime(slot['startTime'])} – ${fmtSlotTime(slot['endTime'])}',
+                                    style: KText.bodyMd.copyWith(
+                                      color: c.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                   ),
                   const SizedBox(height: 12),
                 ],
-                Text('Enrolled Members ($enrolled)',
-                    style: KText.labelCaps.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  'Enrolled Members ($enrolled)',
+                  style: KText.labelCaps.copyWith(color: c.onSurfaceVariant),
+                ),
                 const SizedBox(height: 8),
                 if (_members.isEmpty)
                   KEmpty(
@@ -522,36 +657,66 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            InitialAvatar(name: m['name'] ?? '', size: 36, bg: c.primaryContainer, fg: c.primary),
+                            InitialAvatar(
+                              name: m['name'] ?? '',
+                              size: 36,
+                              bg: c.primaryContainer,
+                              fg: c.primary,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(children: [
-                                    Text(m['name'] ?? '',
+                                  Row(
+                                    children: [
+                                      Text(
+                                        m['name'] ?? '',
                                         style: KText.bodyMd.copyWith(
-                                            color: c.onSurface, fontWeight: FontWeight.w600)),
-                                    const SizedBox(width: 6),
-                                    Pill(
-                                      m['status']?.toString() ?? 'Active',
-                                      fg: m['status'] == 'Inactive' ? TW.slate500 : TW.emerald600,
-                                      bg: m['status'] == 'Inactive' ? TW.slate100 : TW.emerald100,
+                                          color: c.onSurface,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Pill(
+                                        m['status']?.toString() ?? 'Active',
+                                        fg: m['status'] == 'Inactive'
+                                            ? TW.slate500
+                                            : TW.emerald600,
+                                        bg: m['status'] == 'Inactive'
+                                            ? TW.slate100
+                                            : TW.emerald100,
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    m['phone'] ?? '',
+                                    style: KText.bodyMd.copyWith(
+                                      color: c.onSurfaceVariant,
                                     ),
-                                  ]),
-                                  Text(m['phone'] ?? '',
-                                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                                  ),
                                 ],
                               ),
                             ),
                             if ((m['phone'] as String?)?.isNotEmpty == true)
                               IconButton(
-                                icon: const Sym(MSym.chat, size: 18, color: TW.whatsapp),
-                                onPressed: () => openWhatsApp(m['phone'] as String, 'Hi ${m['name']}, this is a reminder for your class.'),
+                                icon: const Sym(
+                                  MSym.chat,
+                                  size: 18,
+                                  color: TW.whatsapp,
+                                ),
+                                onPressed: () => openWhatsApp(
+                                  m['phone'] as String,
+                                  'Hi ${m['name']}, this is a reminder for your class.',
+                                ),
                                 tooltip: 'WhatsApp',
                               ),
                             IconButton(
-                              icon: Sym(MSym.personOff, size: 20, color: TW.rose600),
+                              icon: Sym(
+                                MSym.personOff,
+                                size: 20,
+                                color: TW.rose600,
+                              ),
                               onPressed: () => _toggleEnroll(m['id'], false),
                             ),
                           ],
@@ -580,8 +745,16 @@ class _InfoRow extends StatelessWidget {
         children: [
           Sym(icon, size: 16, color: c.onSurfaceVariant),
           const SizedBox(width: 8),
-          Text('$label: ', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
-          Expanded(child: Text(value, style: KText.bodyMd.copyWith(color: c.onSurface))),
+          Text(
+            '$label: ',
+            style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: KText.bodyMd.copyWith(color: c.onSurface),
+            ),
+          ),
         ],
       ),
     );
@@ -592,8 +765,11 @@ class _MemberPicker extends StatefulWidget {
   final List<Map<String, dynamic>> allMembers;
   final List<String> enrolledIds;
   final Future<void> Function(String memberId, bool enroll) onToggle;
-  const _MemberPicker(
-      {required this.allMembers, required this.enrolledIds, required this.onToggle});
+  const _MemberPicker({
+    required this.allMembers,
+    required this.enrolledIds,
+    required this.onToggle,
+  });
 
   @override
   State<_MemberPicker> createState() => _MemberPickerState();
@@ -620,8 +796,14 @@ class _MemberPickerState extends State<_MemberPicker> {
   Widget build(BuildContext context) {
     final c = context.c;
     final filtered = widget.allMembers
-        .where((m) => _search.isEmpty ||
-            ((m['name'] as String?)?.toLowerCase().contains(_search.toLowerCase()) ?? false))
+        .where(
+          (m) =>
+              _search.isEmpty ||
+              ((m['name'] as String?)?.toLowerCase().contains(
+                    _search.toLowerCase(),
+                  ) ??
+                  false),
+        )
         .toList();
 
     return Container(
@@ -634,16 +816,22 @@ class _MemberPickerState extends State<_MemberPicker> {
         children: [
           const SizedBox(height: 8),
           Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: TW.slate200,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Text('Manage Enrolment', style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  'Manage Enrolment',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -658,9 +846,15 @@ class _MemberPickerState extends State<_MemberPicker> {
               controller: _ctrl,
               decoration: InputDecoration(
                 hintText: 'Search members…',
-                prefixIcon: Sym(MSym.search, size: 18, color: c.onSurfaceVariant),
+                prefixIcon: Sym(
+                  MSym.search,
+                  size: 18,
+                  color: c.onSurfaceVariant,
+                ),
                 isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
               onChanged: (v) => setState(() => _search = v),
@@ -670,26 +864,40 @@ class _MemberPickerState extends State<_MemberPicker> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Text('${_enrolled.length} enrolled',
-                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  '${_enrolled.length} enrolled',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
                 const Spacer(),
                 TextButton(
                   onPressed: () async {
-                    final allIds = widget.allMembers.map((m) => m['id'] as String).toList();
+                    final allIds = widget.allMembers
+                        .map((m) => m['id'] as String)
+                        .toList();
                     final allEnrolled = allIds.every(_enrolled.contains);
                     if (allEnrolled) {
                       for (final id in allIds) {
-                        if (_enrolled.contains(id)) await widget.onToggle(id, false);
+                        if (_enrolled.contains(id))
+                          await widget.onToggle(id, false);
                       }
                       setState(() => _enrolled.clear());
                     } else {
                       for (final id in allIds) {
-                        if (!_enrolled.contains(id)) await widget.onToggle(id, true);
+                        if (!_enrolled.contains(id))
+                          await widget.onToggle(id, true);
                       }
-                      setState(() { for (final id in allIds) { if (!_enrolled.contains(id)) _enrolled.add(id); } });
+                      setState(() {
+                        for (final id in allIds) {
+                          if (!_enrolled.contains(id)) _enrolled.add(id);
+                        }
+                      });
                     }
                   },
-                  child: Text(widget.allMembers.every((m) => _enrolled.contains(m['id'])) ? 'Deselect All' : 'Select All'),
+                  child: Text(
+                    widget.allMembers.every((m) => _enrolled.contains(m['id']))
+                        ? 'Deselect All'
+                        : 'Select All',
+                  ),
                 ),
               ],
             ),
@@ -702,11 +910,23 @@ class _MemberPickerState extends State<_MemberPicker> {
                 final m = filtered[i];
                 final isEnrolled = _enrolled.contains(m['id']);
                 return ListTile(
-                  leading: InitialAvatar(name: m['name'] ?? '', size: 36, bg: c.primaryContainer, fg: c.primary),
-                  title: Text(m['name'] ?? '',
-                      style: KText.bodyMd.copyWith(color: c.onSurface, fontWeight: FontWeight.w600)),
-                  subtitle: Text(m['phone'] ?? '',
-                      style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                  leading: InitialAvatar(
+                    name: m['name'] ?? '',
+                    size: 36,
+                    bg: c.primaryContainer,
+                    fg: c.primary,
+                  ),
+                  title: Text(
+                    m['name'] ?? '',
+                    style: KText.bodyMd.copyWith(
+                      color: c.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    m['phone'] ?? '',
+                    style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                  ),
                   trailing: Switch(
                     value: isEnrolled,
                     onChanged: (v) async {
@@ -737,7 +957,12 @@ class _ClassForm extends StatefulWidget {
   final String gymId;
   final List<Map<String, dynamic>> staff;
   final VoidCallback onSaved;
-  const _ClassForm({this.cls, required this.gymId, required this.staff, required this.onSaved});
+  const _ClassForm({
+    this.cls,
+    required this.gymId,
+    required this.staff,
+    required this.onSaved,
+  });
 
   @override
   State<_ClassForm> createState() => _ClassFormState();
@@ -759,7 +984,9 @@ class _ClassFormState extends State<_ClassForm> {
     final cls = widget.cls;
     if (cls != null) {
       _nameCtrl.text = cls['name'] ?? '';
-      _capacityCtrl.text = asNum(cls['capacity']) == 0 ? '' : asNum(cls['capacity']).toString();
+      _capacityCtrl.text = asNum(cls['capacity']) == 0
+          ? ''
+          : asNum(cls['capacity']).toString();
       _descCtrl.text = cls['description'] ?? '';
       _selectedTypes = (cls['type'] as List?)?.cast<String>() ?? [];
       _trainerId = cls['trainerId'] as String?;
@@ -783,7 +1010,10 @@ class _ClassFormState extends State<_ClassForm> {
     TimeOfDay start = const TimeOfDay(hour: 9, minute: 0);
     TimeOfDay end = const TimeOfDay(hour: 10, minute: 0);
 
-    final pickedStart = await showTimePicker(context: context, initialTime: start);
+    final pickedStart = await showTimePicker(
+      context: context,
+      initialTime: start,
+    );
     if (pickedStart == null || !mounted) return;
     start = pickedStart;
 
@@ -802,12 +1032,17 @@ class _ClassFormState extends State<_ClassForm> {
             builder: (_, ss) => DropdownButton<String>(
               value: d,
               isExpanded: true,
-              items: _daysOfWeek.map((dw) => DropdownMenuItem(value: dw, child: Text(dw))).toList(),
+              items: _daysOfWeek
+                  .map((dw) => DropdownMenuItem(value: dw, child: Text(dw)))
+                  .toList(),
               onChanged: (v) => ss(() => d = v!),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
                 day = d;
@@ -823,8 +1058,8 @@ class _ClassFormState extends State<_ClassForm> {
     setState(() {
       _schedule.add({
         'day': day,
-        'startTime': start.format(context),
-        'endTime': end.format(context),
+        'startTime': _hhmm(start),
+        'endTime': _hhmm(end),
       });
     });
   }
@@ -843,7 +1078,12 @@ class _ClassFormState extends State<_ClassForm> {
     };
     try {
       if (widget.cls != null) {
-        await TenantDb.updateDocument(widget.gymId, 'classes', widget.cls!['id'], data);
+        await TenantDb.updateDocument(
+          widget.gymId,
+          'classes',
+          widget.cls!['id'],
+          data,
+        );
       } else {
         data['enrolledMemberIds'] = [];
         await TenantDb.createDocument(widget.gymId, 'classes', data);
@@ -865,7 +1105,11 @@ class _ClassFormState extends State<_ClassForm> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 12, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -873,16 +1117,21 @@ class _ClassFormState extends State<_ClassForm> {
           children: [
             Center(
               child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: TW.slate200, borderRadius: BorderRadius.circular(2))),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: TW.slate200,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(isEdit ? 'Edit Class' : 'Add Class',
-                    style: KText.h3.copyWith(color: c.onSurface)),
+                Text(
+                  isEdit ? 'Edit Class' : 'Add Class',
+                  style: KText.h3.copyWith(color: c.onSurface),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
@@ -893,11 +1142,16 @@ class _ClassFormState extends State<_ClassForm> {
             const SizedBox(height: 16),
             TextField(
               controller: _nameCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Class Name *', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Class Name *',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
-            Text('Type', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+            Text(
+              'Type',
+              style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+            ),
             const SizedBox(height: 6),
             Wrap(
               spacing: 8,
@@ -922,21 +1176,32 @@ class _ClassFormState extends State<_ClassForm> {
             if (widget.staff.isNotEmpty)
               DropdownButtonFormField<String>(
                 initialValue: _trainerId,
-                decoration:
-                    const InputDecoration(labelText: 'Trainer', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Trainer',
+                  border: OutlineInputBorder(),
+                ),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('No trainer')),
-                  ...widget.staff.map((s) => DropdownMenuItem(
-                      value: s['id'] as String, child: Text(s['name'] ?? ''))),
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('No trainer'),
+                  ),
+                  ...widget.staff.map(
+                    (s) => DropdownMenuItem(
+                      value: s['id'] as String,
+                      child: Text(s['name'] ?? ''),
+                    ),
+                  ),
                 ],
                 onChanged: (v) {
                   setState(() {
                     _trainerId = v;
                     _trainerName = v == null
                         ? ''
-                        : (widget.staff.firstWhere((s) => s['id'] == v,
-                                orElse: () => {})['name'] ??
-                            '');
+                        : (widget.staff.firstWhere(
+                                (s) => s['id'] == v,
+                                orElse: () => {},
+                              )['name'] ??
+                              '');
                   });
                 },
               ),
@@ -944,20 +1209,27 @@ class _ClassFormState extends State<_ClassForm> {
             TextField(
               controller: _capacityCtrl,
               keyboardType: TextInputType.number,
-              decoration:
-                  const InputDecoration(labelText: 'Capacity', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Capacity',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _descCtrl,
               maxLines: 2,
-              decoration:
-                  const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Text('Schedule', style: KText.bodyMd.copyWith(color: c.onSurfaceVariant)),
+                Text(
+                  'Schedule',
+                  style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
+                ),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: _addScheduleSlot,
@@ -971,7 +1243,8 @@ class _ClassFormState extends State<_ClassForm> {
                 dense: true,
                 leading: Sym(MSym.schedule, size: 18, color: c.primary),
                 title: Text(
-                    '${_schedule[i]['day']} ${_schedule[i]['startTime']}–${_schedule[i]['endTime']}'),
+                  '${_schedule[i]['day']} ${fmtSlotTime(_schedule[i]['startTime'])}–${fmtSlotTime(_schedule[i]['endTime'])}',
+                ),
                 trailing: IconButton(
                   icon: Sym(MSym.close, size: 16, color: TW.rose600),
                   onPressed: () => setState(() => _schedule.removeAt(i)),
@@ -987,7 +1260,11 @@ class _ClassFormState extends State<_ClassForm> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(isEdit ? 'Save Changes' : 'Add Class'),
               ),
             ),

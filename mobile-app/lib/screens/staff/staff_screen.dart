@@ -13,6 +13,12 @@ import '../../widgets/common.dart';
 
 const _roles = ['All', 'Trainer', 'Staff', 'Manager', 'Receptionist'];
 
+/// Web stores commissionPercent; older mobile builds stored `commission`.
+num _staffCommission(Map<String, dynamic> s) =>
+    asNum(s['commissionPercent']) > 0
+    ? asNum(s['commissionPercent'])
+    : asNum(s['commission']);
+
 const _roleColor = {
   'Trainer': TW.violet600,
   'Manager': TW.blue600,
@@ -108,11 +114,19 @@ class _StaffScreenState extends State<StaffScreen> {
       ),
     );
     if (ok == true && mounted) {
-      await TenantDb.deleteDocument(
-        context.read<AuthProvider>().gymId ?? '',
-        'staff',
-        s['id'],
-      );
+      final gymId = context.read<AuthProvider>().gymId ?? '';
+      await TenantDb.deleteDocument(gymId, 'staff', s['id']);
+      // Web deletes users/{authUid} alongside the staff doc. Without this the
+      // person keeps a working app login after being removed.
+      final authUid = (s['authUid'] ?? s['uid']) as String?;
+      if (authUid != null && authUid.isNotEmpty) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(authUid)
+              .delete();
+        } catch (_) {}
+      }
       _fetch();
     }
   }
@@ -305,11 +319,9 @@ class _StaffCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      if (asNum(staff['commission']) > 0)
+                      if (_staffCommission(staff) > 0)
                         Text(
-                          staff['commissionType'] == 'Fixed'
-                              ? '${rupees(asNum(staff['commission']))} commission'
-                              : '${asNum(staff['commission']).toStringAsFixed(0)}% commission',
+                          '${_staffCommission(staff).toStringAsFixed(0)}% commission',
                           style: KText.bodyMd.copyWith(
                             color: c.onSurfaceVariant,
                           ),
@@ -363,14 +375,37 @@ class _StaffFormState extends State<_StaffForm> {
   final _passwordCtrl = TextEditingController();
 
   String _role = 'Trainer';
-  String _commissionType = 'Percent';
+  String _commissionType = 'salary';
   String _joiningDate = todayStr();
   bool _saving = false;
   bool _createLogin = false;
   bool _showPassword = false;
 
   static const _validRoles = ['Trainer', 'Staff', 'Manager', 'Receptionist'];
-  static const _validCommTypes = ['Percent', 'Fixed'];
+  // Web's model: salary | commission | both, with commissionPercent.
+  // Older mobile builds wrote Percent | Fixed with a `commission` amount.
+  static const _validCommTypes = ['salary', 'commission', 'both'];
+  static const _commTypeLabels = {
+    'salary': 'Fixed Salary Only',
+    'commission': 'Commission Only',
+    'both': 'Salary + Commission',
+  };
+
+  static String _canonCommType(String? raw) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'salary':
+        return 'salary';
+      case 'commission':
+      case 'percent':
+        return 'commission';
+      case 'both':
+        return 'both';
+      case 'fixed':
+        return 'salary';
+      default:
+        return 'salary';
+    }
+  }
 
   @override
   void initState() {
@@ -382,7 +417,9 @@ class _StaffFormState extends State<_StaffForm> {
       _emailCtrl.text = (s['email'] as String?) ?? '';
       final salary = asNum(s['salary']);
       _salaryCtrl.text = salary == 0 ? '' : salary.toStringAsFixed(0);
-      final comm = asNum(s['commission']);
+      final comm = asNum(s['commissionPercent']) > 0
+          ? asNum(s['commissionPercent'])
+          : asNum(s['commission']);
       _commissionCtrl.text = comm == 0 ? '' : comm.toStringAsFixed(0);
       _addressCtrl.text = (s['address'] as String?) ?? '';
       final certs = s['certifications'];
@@ -392,7 +429,7 @@ class _StaffFormState extends State<_StaffForm> {
       // Sanitise dropdown values so the form never crashes on unexpected data
       final storedRole = s['role'] as String? ?? '';
       _role = _validRoles.contains(storedRole) ? storedRole : 'Trainer';
-      final storedCommType = s['commissionType'] as String? ?? '';
+      final storedCommType = _canonCommType(s['commissionType'] as String?);
       _commissionType = _validCommTypes.contains(storedCommType)
           ? storedCommType
           : 'Percent';
@@ -491,7 +528,7 @@ class _StaffFormState extends State<_StaffForm> {
       'phone': _phoneCtrl.text.trim(),
       'email': _emailCtrl.text.trim(),
       'salary': num.tryParse(_salaryCtrl.text) ?? 0,
-      'commission': num.tryParse(_commissionCtrl.text) ?? 0,
+      'commissionPercent': num.tryParse(_commissionCtrl.text) ?? 0,
       'commissionType': _commissionType,
       'address': _addressCtrl.text.trim(),
       'joiningDate': _joiningDate,
@@ -533,7 +570,7 @@ class _StaffFormState extends State<_StaffForm> {
           });
           // Link the auth UID back to the staff document.
           await TenantDb.updateDocument(widget.gymId, 'staff', staffDocId, {
-            'uid': uid,
+            'authUid': uid,
             'loginEmail': email,
             'hasLogin': true,
           });
@@ -559,7 +596,11 @@ class _StaffFormState extends State<_StaffForm> {
   Widget build(BuildContext context) {
     final c = context.c;
     final isEdit = widget.staff != null;
-    final existingLogin = isEdit && widget.staff!['hasLogin'] == true;
+    final existingLogin =
+        isEdit &&
+        (widget.staff!['authUid'] != null ||
+            widget.staff!['uid'] != null ||
+            widget.staff!['hasLogin'] == true);
 
     return Container(
       decoration: BoxDecoration(
@@ -687,16 +728,14 @@ class _StaffFormState extends State<_StaffForm> {
                       labelText: 'Commission Type',
                       border: OutlineInputBorder(),
                     ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Percent',
-                        child: Text('Percent (%)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Fixed',
-                        child: Text('Fixed (₹)'),
-                      ),
-                    ],
+                    items: _validCommTypes
+                        .map(
+                          (t) => DropdownMenuItem(
+                            value: t,
+                            child: Text(_commTypeLabels[t]!),
+                          ),
+                        )
+                        .toList(),
                     onChanged: (v) => setState(() => _commissionType = v!),
                   ),
                 ),
@@ -706,9 +745,7 @@ class _StaffFormState extends State<_StaffForm> {
                     controller: _commissionCtrl,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: _commissionType == 'Percent'
-                          ? 'Commission %'
-                          : 'Commission (₹)',
+                      labelText: 'Commission %',
                       border: const OutlineInputBorder(),
                     ),
                   ),
