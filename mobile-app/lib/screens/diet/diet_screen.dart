@@ -140,8 +140,10 @@ class _DietScreenState extends State<DietScreen> {
         .where((p) => (p['assignedMemberId'] ?? '').isEmpty)
         .length;
     final assigned = _plans.length - templates;
-    final totalKcal =
-        _plans.fold<num>(0, (sum, p) => sum + asNum(p['caloriesPerDay']));
+    final totalKcal = _plans.fold<num>(
+      0,
+      (sum, p) => sum + asNum(p['caloriesPerDay']),
+    );
     final avgKcal = _plans.isEmpty ? 0.0 : totalKcal / _plans.length;
 
     return Scaffold(

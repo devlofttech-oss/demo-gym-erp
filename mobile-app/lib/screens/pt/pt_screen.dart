@@ -88,6 +88,7 @@ class _PTScreenState extends State<PTScreen>
 
   // Stats
   int get _totalPackages => _packages.length;
+
   /// Web counts distinct members across sessions, not packages — a package is
   /// a template that any number of members can be booked against.
   int get _activeClients => _sessions

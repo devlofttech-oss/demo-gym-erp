@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getTenantCollection, updateTenantDocument } from '../../firebase/tenantDb';
 import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import toast from 'react-hot-toast';
+import { unfreezePatch } from '../../utils/membership';
 
 function daysUntil(dateStr) {
   if (!dateStr) return null;
@@ -72,11 +73,7 @@ export default function RenewalsList() {
 
   const handleUnfreeze = async (member) => {
     try {
-      await updateTenantDocument(gymId, 'members', member.id, {
-        status: 'Active',
-        frozenOn: null,
-        resumeDate: null,
-      });
+      await updateTenantDocument(gymId, 'members', member.id, unfreezePatch(member));
       toast.success(`${member.name}'s membership resumed`);
       fetchMembers();
     } catch { toast.error('Failed to unfreeze membership'); }

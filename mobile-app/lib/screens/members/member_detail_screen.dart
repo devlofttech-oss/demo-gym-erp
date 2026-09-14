@@ -168,11 +168,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final gymId = context.read<AuthProvider>().gymId ?? '';
     if (gymId.isEmpty) return;
     if (isFrozen) {
-      await TenantDb.updateDocument(gymId, 'members', _m['id'], {
-        'status': 'Active',
-        'frozenOn': null,
-        'resumeDate': null,
-      });
+      await TenantDb.updateDocument(
+        gymId,
+        'members',
+        _m['id'],
+        unfreezePatch(_m),
+      );
       await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

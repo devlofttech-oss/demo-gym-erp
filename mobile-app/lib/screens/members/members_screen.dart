@@ -687,8 +687,11 @@ class _MembersScreenState extends State<MembersScreen> {
                           );
                         },
                         icon: const Sym(MSym.sms, size: 14),
-                        label: const Text('Remind',
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        label: const Text(
+                          'Remind',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   if (isExpiring && asNum(m['balanceFees']) > 0)
@@ -712,8 +715,11 @@ class _MembersScreenState extends State<MembersScreen> {
                           );
                         },
                         icon: const Sym(MSym.sms, size: 14),
-                        label: Text('${rupees(asNum(m['balanceFees']))} Due',
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        label: Text(
+                          '${rupees(asNum(m['balanceFees']))} Due',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                 ],
@@ -798,11 +804,9 @@ class _MembersScreenState extends State<MembersScreen> {
         ..._absentees.map((m) {
           final lv = m['lastVisit'] as String?;
           final since = lv != null
-              ? (DateTime.now()
-                          .difference(DateTime.parse(lv))
-                          .inMilliseconds /
-                      86400000)
-                  .ceil()
+              ? (DateTime.now().difference(DateTime.parse(lv)).inMilliseconds /
+                        86400000)
+                    .ceil()
               : null;
           final phone = m['phone'] as String?;
           return Padding(

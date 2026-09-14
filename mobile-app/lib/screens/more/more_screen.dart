@@ -433,7 +433,6 @@ class _BulkImportSheet extends StatelessWidget {
   final Future<void> Function(String) onLaunch;
   const _BulkImportSheet({required this.onLaunch});
 
-
   static const _cols = <(IconData, String, bool)>[
     (MSym.person, 'Name', true),
     (MSym.sms, 'Phone number', true),

@@ -9,6 +9,7 @@ import kilosLogo from '../../assets/kilos_logo.png';
 import SendWhatsAppModal from '../../components/messaging/SendWhatsAppModal';
 import MeasurementForm from '../measurements/MeasurementForm';
 import { shareQrOnWhatsApp } from '../../utils/memberQr';
+import { unfreezePatch } from '../../utils/membership';
 import { publishReceipt, openReceiptWhatsApp } from '../../utils/receiptShare';
 import { openWhatsApp } from '../../utils/whatsapp';
 
@@ -359,7 +360,7 @@ export default function MemberProfile() {
 
   const handleUnfreeze = async () => {
     try {
-      const updates = { status: 'Active', frozenOn: null, resumeDate: null };
+      const updates = unfreezePatch(member);
       await updateTenantDocument(gymId, 'members', id, updates);
       setMember(prev => ({ ...prev, ...updates }));
       toast.success('Membership resumed');

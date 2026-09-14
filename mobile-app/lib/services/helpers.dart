@@ -50,6 +50,38 @@ String addMonths(String dateStr, int months) {
   ).toIso8601String().split('T').first;
 }
 
+/// Whole days a membership has been paused, measured midnight to midnight.
+/// Mirrors frozenDays() in src/utils/membership.js — change both together.
+int frozenDays(dynamic frozenOn) {
+  final f = toDate(frozenOn);
+  if (f == null) return 0;
+  final from = DateTime(f.year, f.month, f.day);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final days = today.difference(from).inDays;
+  return days > 0 ? days : 0;
+}
+
+/// The update that resumes a frozen membership.
+///
+/// Freezing pauses the clock, so expiry moves out by the days the member was
+/// actually frozen — a freeze never costs them time on a plan they paid for.
+/// Measuring elapsed days rather than the planned resume date means resuming
+/// early gives back only the days genuinely lost.
+Map<String, dynamic> unfreezePatch(Map<String, dynamic> member) {
+  final patch = <String, dynamic>{
+    'status': 'Active',
+    'frozenOn': null,
+    'resumeDate': null,
+  };
+  final days = frozenDays(member['frozenOn']);
+  final expiry = member['expiryDate'] as String?;
+  if (days > 0 && expiry != null && expiry.isNotEmpty) {
+    patch['expiryDate'] = addDays(expiry, days);
+  }
+  return patch;
+}
+
 /// Entry eligibility from the live expiry date (not the stale status field).
 bool isMemberEligible(Map<String, dynamic> m) {
   if (m['status'] == 'Frozen') return false;

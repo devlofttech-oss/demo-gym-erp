@@ -91,13 +91,12 @@ class _RenewalsScreenState extends State<RenewalsScreen> {
 
   Future<void> _unfreeze(Map<String, dynamic> member) async {
     final gymId = context.read<AuthProvider>().gymId ?? '';
-    // Web clears the freeze without touching expiryDate. Extending it here gave
-    // members unfrozen from the phone days the web app would not have granted.
-    await TenantDb.updateDocument(gymId, 'members', member['id'] as String, {
-      'status': 'Active',
-      'frozenOn': null,
-      'resumeDate': null,
-    });
+    await TenantDb.updateDocument(
+      gymId,
+      'members',
+      member['id'] as String,
+      unfreezePatch(member),
+    );
     _fetch();
   }
 
@@ -618,7 +617,7 @@ class _FreezeSheetState extends State<_FreezeSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'The membership is paused until the resume date. Expiry is unchanged.',
+            'The membership is paused until the resume date. Expiry moves out by the days frozen.',
             style: KText.bodyMd.copyWith(color: c.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
