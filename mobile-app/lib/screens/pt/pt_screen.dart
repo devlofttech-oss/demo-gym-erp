@@ -65,6 +65,12 @@ class _PTScreenState extends State<PTScreen>
     if (mounted) setState(() => _loading = false);
   }
 
+  /// Web restricts trainer pickers to Trainer and Manager roles, so a
+  /// receptionist or cleaner cannot be assigned to a PT package or session.
+  List<Map<String, dynamic>> get _trainers => _staff
+      .where((s) => s['role'] == 'Trainer' || s['role'] == 'Manager')
+      .toList();
+
   List<Map<String, dynamic>> get _filteredSessions {
     if (_sessionStatusFilter == 0) return _sessions;
     final status = _sessionStatuses[_sessionStatusFilter];
@@ -117,7 +123,7 @@ class _PTScreenState extends State<PTScreen>
       builder: (_) => _PackageForm(
         pkg: pkg,
         gymId: context.read<AuthProvider>().gymId ?? '',
-        staff: _staff,
+        staff: _trainers,
         members: _members,
         onSaved: _fetch,
       ),
@@ -134,7 +140,7 @@ class _PTScreenState extends State<PTScreen>
         session: session,
         gymId: context.read<AuthProvider>().gymId ?? '',
         packages: _packages,
-        staff: _staff,
+        staff: _trainers,
         onSaved: _fetch,
       ),
     );

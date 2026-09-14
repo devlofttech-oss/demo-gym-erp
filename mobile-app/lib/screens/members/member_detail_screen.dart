@@ -69,10 +69,13 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         ),
       );
       atts.sort(
-        (a, b) => (toDate(b['checkInTime'] ?? b['timestamp']) ?? DateTime(1970))
-            .compareTo(
-              toDate(a['checkInTime'] ?? a['timestamp']) ?? DateTime(1970),
-            ),
+        (a, b) =>
+            (toDate(b['checkInTime'] ?? b['timestamp'] ?? b['date']) ??
+                    DateTime(1970))
+                .compareTo(
+                  toDate(a['checkInTime'] ?? a['timestamp'] ?? a['date']) ??
+                      DateTime(1970),
+                ),
       );
       opps.sort(
         (a, b) => (b['createdAt'] as String? ?? '').compareTo(

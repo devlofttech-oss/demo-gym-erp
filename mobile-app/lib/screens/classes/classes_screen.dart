@@ -57,6 +57,10 @@ class ClassesScreen extends StatefulWidget {
 class _ClassesScreenState extends State<ClassesScreen> {
   List<Map<String, dynamic>> _classes = [];
   List<Map<String, dynamic>> _staff = [];
+
+  /// Web offers only Trainers as class instructors.
+  List<Map<String, dynamic>> get _trainers =>
+      _staff.where((s) => s['role'] == 'Trainer').toList();
   bool _loading = true;
   int _tab = 0;
   String _search = '';
@@ -124,7 +128,7 @@ class _ClassesScreenState extends State<ClassesScreen> {
       builder: (_) => _ClassForm(
         cls: cls,
         gymId: context.read<AuthProvider>().gymId ?? '',
-        staff: _staff,
+        staff: _trainers,
         onSaved: _fetch,
       ),
     );

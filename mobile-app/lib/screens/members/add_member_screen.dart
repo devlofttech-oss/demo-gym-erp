@@ -147,8 +147,13 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
     setState(() {});
   }
 
-  num get _discountPct => (num.tryParse(_discount.text) ?? 0).clamp(0, 100);
-  num get _discountedTotal => (_totalFees * (1 - _discountPct / 100)).round();
+  num get _discountAmtNum =>
+      (num.tryParse(_discountAmt.text) ?? 0).clamp(0, _totalFees);
+  num get _discountPct => _totalFees > 0
+      ? double.parse((_discountAmtNum * 100 / _totalFees).toStringAsFixed(1))
+      : 0;
+  num get _discountedTotal =>
+      (_totalFees - _discountAmtNum).clamp(0, double.infinity);
   num get _joiningFeesAmt => num.tryParse(_joiningFees.text) ?? 0;
   num get _finalTotal => _discountedTotal + _joiningFeesAmt;
   num get _paidNum => num.tryParse(_paidNow.text) ?? 0;
@@ -848,7 +853,7 @@ class _AddMemberScreenState extends State<AddMemberScreen> {
             _joiningFeesAmt > 0
                 ? 'Plan ${rupees(_discountedTotal)} + Joining ${rupees(_joiningFeesAmt)}'
                 : _discountPct > 0
-                ? 'After ${_discountPct.toInt()}% discount'
+                ? 'After ${_discountPct.toStringAsFixed(1)}% discount'
                 : 'Plan price',
           ),
           const SizedBox(width: 8),

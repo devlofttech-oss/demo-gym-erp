@@ -92,7 +92,7 @@ String fmtDuration(dynamic mins) {
 String? recordDate(Map<String, dynamic> a) {
   final d = a['date'];
   if (d is String && RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(d)) return d;
-  final ts = a['checkInTime'] ?? a['timestamp'];
+  final ts = a['checkInTime'] ?? a['timestamp'] ?? a['date'];
   final dt = toDate(ts);
   if (dt == null) return null;
   return dt.toIso8601String().split('T').first;

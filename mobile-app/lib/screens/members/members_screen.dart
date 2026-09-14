@@ -659,57 +659,64 @@ class _MembersScreenState extends State<MembersScreen> {
                 ],
               ),
             ],
-            if (isExpiring && phone != null && phone.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: c.primary,
-                    foregroundColor: c.onPrimary,
-                  ),
-                  onPressed: () {
-                    final auth = context.read<AuthProvider>();
-                    showWhatsAppApiSheet(
-                      context,
-                      gymId: auth.gymId ?? '',
-                      gymName: auth.gymName,
-                      type: 'renewal',
-                      recipients: [m],
-                      recipientLabel: '${m['name']} · $phone',
-                    );
-                  },
-                  icon: const Sym(MSym.sms, size: 14),
-                  label: const Text('Remind'),
-                ),
-              ),
-            ] else if (!isExpiring &&
-                !isExpired &&
-                asNum(m['balanceFees']) > 0 &&
+            // Web shows these independently: the renewal nudge when expiry is
+            // near, the dues nudge whenever money is owed — including for
+            // members already expired, who are the ones most worth chasing.
+            if ((isExpiring || asNum(m['balanceFees']) > 0) &&
                 phone != null &&
                 phone.isNotEmpty) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: TW.amber600,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    final auth = context.read<AuthProvider>();
-                    showWhatsAppApiSheet(
-                      context,
-                      gymId: auth.gymId ?? '',
-                      gymName: auth.gymName,
-                      type: 'payment',
-                      recipients: [m],
-                      recipientLabel: '${m['name']} · $phone',
-                    );
-                  },
-                  icon: const Sym(MSym.sms, size: 14),
-                  label: const Text('Payment Reminder'),
-                ),
+              Row(
+                children: [
+                  if (isExpiring)
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: c.primary,
+                          foregroundColor: c.onPrimary,
+                        ),
+                        onPressed: () {
+                          final auth = context.read<AuthProvider>();
+                          showWhatsAppApiSheet(
+                            context,
+                            gymId: auth.gymId ?? '',
+                            gymName: auth.gymName,
+                            type: 'renewal',
+                            recipients: [m],
+                            recipientLabel: '${m['name']} · $phone',
+                          );
+                        },
+                        icon: const Sym(MSym.sms, size: 14),
+                        label: const Text('Remind',
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                  if (isExpiring && asNum(m['balanceFees']) > 0)
+                    const SizedBox(width: 8),
+                  if (asNum(m['balanceFees']) > 0)
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: TW.amber600,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          final auth = context.read<AuthProvider>();
+                          showWhatsAppApiSheet(
+                            context,
+                            gymId: auth.gymId ?? '',
+                            gymName: auth.gymName,
+                            type: 'payment',
+                            recipients: [m],
+                            recipientLabel: '${m['name']} · $phone',
+                          );
+                        },
+                        icon: const Sym(MSym.sms, size: 14),
+                        label: Text('${rupees(asNum(m['balanceFees']))} Due',
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                ],
               ),
             ],
           ],
@@ -791,7 +798,11 @@ class _MembersScreenState extends State<MembersScreen> {
         ..._absentees.map((m) {
           final lv = m['lastVisit'] as String?;
           final since = lv != null
-              ? DateTime.now().difference(DateTime.parse(lv)).inDays
+              ? (DateTime.now()
+                          .difference(DateTime.parse(lv))
+                          .inMilliseconds /
+                      86400000)
+                  .ceil()
               : null;
           final phone = m['phone'] as String?;
           return Padding(

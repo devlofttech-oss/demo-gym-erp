@@ -92,9 +92,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   List<Map<String, dynamic>> get _duesMembers => _members.where((m) {
     final days = daysUntilExpiry(m['expiryDate'] as String?);
-    return m['status'] == 'Expired' ||
-        (days != null && days < 0) ||
-        (m['planName'] == null || (m['planName'] as String).isEmpty);
+    return (days != null && days < 0) || asNum(m['balanceFees']) > 0;
   }).toList();
 
   List<Map<String, dynamic>> get _filteredDues {

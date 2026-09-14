@@ -98,10 +98,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       now.month,
       now.day,
     ).subtract(Duration(days: (now.weekday - 1) % 7));
-    return List.generate(7, (i) {
-      final d = monday.add(Duration(days: i));
-      return d.toIso8601String().split('T').first;
-    });
+    final today = DateTime(now.year, now.month, now.day);
+    return [
+      for (var i = 0; i < 7; i++)
+        if (!monday.add(Duration(days: i)).isAfter(today))
+          monday.add(Duration(days: i)).toIso8601String().split('T').first,
+    ];
   }
 
   List<String> _monthDays() {
