@@ -88,13 +88,13 @@ class _PTScreenState extends State<PTScreen>
 
   // Stats
   int get _totalPackages => _packages.length;
-  int get _activeClients {
-    final ids = <String>{};
-    for (final p in _packages) {
-      if ((p['memberId'] ?? '').isNotEmpty) ids.add(p['memberId'] as String);
-    }
-    return ids.length;
-  }
+  /// Web counts distinct members across sessions, not packages — a package is
+  /// a template that any number of members can be booked against.
+  int get _activeClients => _sessions
+      .map((s) => (s['memberName'] as String?) ?? '')
+      .where((n) => n.isNotEmpty)
+      .toSet()
+      .length;
 
   int get _sessionsThisMonth {
     final now = DateTime.now();
@@ -454,13 +454,6 @@ class _PackageCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if ((pkg['memberName'] ?? '').isNotEmpty)
-                        Text(
-                          pkg['memberName'],
-                          style: KText.bodyMd.copyWith(
-                            color: c.onSurfaceVariant,
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -728,8 +721,6 @@ class _PackageFormState extends State<_PackageForm> {
   final _descCtrl = TextEditingController();
   String? _trainerId;
   String _trainerName = '';
-  String? _memberId;
-  String _memberName = '';
   bool _saving = false;
 
   @override
@@ -750,8 +741,6 @@ class _PackageFormState extends State<_PackageForm> {
       _descCtrl.text = pkg['description'] ?? '';
       _trainerId = pkg['trainerId'] as String?;
       _trainerName = pkg['trainerName'] ?? '';
-      _memberId = pkg['memberId'] as String?;
-      _memberName = pkg['memberName'] ?? '';
     }
   }
 
@@ -766,7 +755,25 @@ class _PackageFormState extends State<_PackageForm> {
   }
 
   Future<void> _save() async {
-    if (_nameCtrl.text.trim().isEmpty) return;
+    // Same guards web applies before saving a package.
+    String? problem;
+    if (_nameCtrl.text.trim().isEmpty) {
+      problem = 'Package name is required';
+    } else if (_trainerName.trim().isEmpty) {
+      problem = 'Trainer name is required';
+    } else if ((int.tryParse(_sessionsCtrl.text) ?? 0) < 1) {
+      problem = 'Sessions included must be at least 1';
+    } else if ((double.tryParse(_priceCtrl.text) ?? -1) < 0) {
+      problem = 'Price must be a valid number';
+    } else if ((int.tryParse(_durationCtrl.text) ?? 0) < 1) {
+      problem = 'Duration must be at least 1 month';
+    }
+    if (problem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(problem), backgroundColor: TW.rose600),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final data = {
       'name': _nameCtrl.text.trim(),
@@ -774,10 +781,7 @@ class _PackageFormState extends State<_PackageForm> {
       'sessionsIncluded': int.tryParse(_sessionsCtrl.text) ?? 0,
       'durationMonths': int.tryParse(_durationCtrl.text) ?? 0,
       'description': _descCtrl.text.trim(),
-      'trainerId': _trainerId ?? '',
       'trainerName': _trainerName,
-      'memberId': _memberId ?? '',
-      'memberName': _memberName,
     };
     try {
       if (widget.pkg != null) {
@@ -849,34 +853,6 @@ class _PackageFormState extends State<_PackageForm> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
-            if (widget.members.isNotEmpty)
-              DropdownButtonFormField<String>(
-                initialValue: _memberId,
-                decoration: const InputDecoration(
-                  labelText: 'Member',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text('No member')),
-                  ...widget.members.map(
-                    (m) => DropdownMenuItem(
-                      value: m['id'] as String,
-                      child: Text(m['name'] ?? ''),
-                    ),
-                  ),
-                ],
-                onChanged: (v) => setState(() {
-                  _memberId = v;
-                  _memberName = v == null
-                      ? ''
-                      : (widget.members.firstWhere(
-                              (m) => m['id'] == v,
-                              orElse: () => {},
-                            )['name'] ??
-                            '');
-                }),
-              ),
             const SizedBox(height: 12),
             if (widget.staff.isNotEmpty)
               DropdownButtonFormField<String>(
@@ -1143,7 +1119,6 @@ class _SessionFormState extends State<_SessionForm> {
                       (p) => p['id'] == v,
                       orElse: () => {},
                     );
-                    _memberName = pkg['memberName'] ?? '';
                     _trainerId = pkg['trainerId'] as String?;
                     _trainerName = pkg['trainerName'] ?? '';
                   }
