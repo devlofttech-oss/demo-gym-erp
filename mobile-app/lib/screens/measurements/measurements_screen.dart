@@ -684,21 +684,36 @@ class _MeasurementFormState extends State<_MeasurementForm> {
   }
 
   Future<void> _save() async {
+    // Web requires a date and a weight before saving.
+    if (_weightCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Weight is required'),
+          backgroundColor: TW.rose600,
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final bmi = _calcBmi();
+    // Blank fields are written as null, not 0 — web's history table only
+    // dashes on null, so zeros rendered as a row of literal 0s.
+    double? numOrNull(TextEditingController ctrl) =>
+        ctrl.text.trim().isEmpty ? null : double.tryParse(ctrl.text);
     final data = {
       'memberId': widget.member['id'],
       'memberName': widget.member['name'] ?? '',
       'date': _date.toIso8601String().substring(0, 10),
-      'weight': double.tryParse(_weightCtrl.text) ?? 0,
-      'height': double.tryParse(_heightCtrl.text) ?? 0,
-      'bodyFat': double.tryParse(_bodyFatCtrl.text) ?? 0,
-      'chest': double.tryParse(_chestCtrl.text) ?? 0,
-      'waist': double.tryParse(_waistCtrl.text) ?? 0,
-      'hips': double.tryParse(_hipsCtrl.text) ?? 0,
-      'arms': double.tryParse(_armsCtrl.text) ?? 0,
-      'thighs': double.tryParse(_thighsCtrl.text) ?? 0,
-      'bmi': double.parse(bmi.toStringAsFixed(2)),
+      'weight': numOrNull(_weightCtrl),
+      'height': numOrNull(_heightCtrl),
+      'bodyFat': numOrNull(_bodyFatCtrl),
+      'chest': numOrNull(_chestCtrl),
+      'waist': numOrNull(_waistCtrl),
+      'hips': numOrNull(_hipsCtrl),
+      'arms': numOrNull(_armsCtrl),
+      'thighs': numOrNull(_thighsCtrl),
+      // Web stores this as a one-decimal string.
+      'bmi': bmi > 0 ? bmi.toStringAsFixed(1) : null,
       'notes': _notesCtrl.text.trim(),
     };
     try {

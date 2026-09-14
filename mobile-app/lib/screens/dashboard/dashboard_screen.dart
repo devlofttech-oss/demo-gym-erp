@@ -88,12 +88,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           });
       _dailyAttendance = _todayAttendance.length;
 
-      final in7 = now.add(const Duration(days: 7));
       _expiringSoon = members.where((m) {
-        final e = toDate(m['expiryDate']);
-        return e != null &&
-            e.isAfter(now.subtract(const Duration(days: 1))) &&
-            e.isBefore(in7);
+        final d = daysUntilExpiry(m['expiryDate'] as String?);
+        return d != null && d >= 0 && d <= 7;
       }).toList();
 
       // Revenue trend grouped by date label

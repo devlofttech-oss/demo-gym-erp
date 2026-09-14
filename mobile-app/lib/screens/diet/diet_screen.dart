@@ -140,10 +140,8 @@ class _DietScreenState extends State<DietScreen> {
         .where((p) => (p['assignedMemberId'] ?? '').isEmpty)
         .length;
     final assigned = _plans.length - templates;
-    final totalKcal = _plans.fold<num>(0, (sum, p) {
-      final meals = (p['meals'] as List?) ?? [];
-      return sum + meals.fold<num>(0, (ms, m) => ms + asNum(m['calories']));
-    });
+    final totalKcal =
+        _plans.fold<num>(0, (sum, p) => sum + asNum(p['caloriesPerDay']));
     final avgKcal = _plans.isEmpty ? 0.0 : totalKcal / _plans.length;
 
     return Scaffold(
@@ -536,7 +534,7 @@ class _DietFormState extends State<_DietForm> {
   final _carbsCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  String _goal = 'maintenance';
+  String _goal = 'weight-loss';
   String? _memberId;
   String _memberName = '';
   List<_MealEntry> _meals = [];
@@ -604,6 +602,15 @@ class _DietFormState extends State<_DietForm> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
+    if ((double.tryParse(_caloriesCtrl.text) ?? 0) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Calories per day must be a positive number'),
+          backgroundColor: TW.rose600,
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final mealsData = _meals
         .map(

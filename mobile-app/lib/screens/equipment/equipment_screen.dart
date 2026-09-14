@@ -71,7 +71,9 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
     final next = DateTime.tryParse(nextStr);
     if (next == null) return _ServiceStatus.ok;
     final now = DateTime.now();
-    final diff = next.difference(now).inDays;
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(next.year, next.month, next.day);
+    final diff = due.difference(today).inDays;
     if (diff < 0) return _ServiceStatus.overdue;
     if (diff <= 30) return _ServiceStatus.dueSoon;
     return _ServiceStatus.ok;

@@ -620,7 +620,15 @@ class _ExpenseFormState extends State<_ExpenseForm> {
   }
 
   Future<void> _save() async {
-    if (_amountCtrl.text.trim().isEmpty) return;
+    if ((num.tryParse(_amountCtrl.text) ?? 0) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter a valid amount'),
+          backgroundColor: TW.rose600,
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final data = {
       'category': _category,

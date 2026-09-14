@@ -10,6 +10,7 @@ import '../../services/tenant_db.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../members/bulk_import_screen.dart';
 import '../classes/classes_screen.dart';
 import '../diet/diet_screen.dart';
 import '../equipment/equipment_screen.dart';
@@ -432,7 +433,6 @@ class _BulkImportSheet extends StatelessWidget {
   final Future<void> Function(String) onLaunch;
   const _BulkImportSheet({required this.onLaunch});
 
-  static const _importUrl = 'https://app-kilos.devlofttech.com/members/import';
 
   static const _cols = <(IconData, String, bool)>[
     (MSym.person, 'Name', true),
@@ -627,10 +627,15 @@ class _BulkImportSheet extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        onLaunch(_importUrl);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const BulkImportScreen(),
+                          ),
+                        );
                       },
                       icon: const Sym(MSym.upload, size: 18),
-                      label: const Text('Open Web App to Upload'),
+                      label: const Text('Import Members'),
                       style: FilledButton.styleFrom(
                         backgroundColor: TW.emerald600,
                         foregroundColor: Colors.white,

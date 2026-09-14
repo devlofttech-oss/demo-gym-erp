@@ -15,7 +15,6 @@ const _workoutGoals = [
   'Endurance',
   'Flexibility',
   'General Fitness',
-  'Strength',
 ];
 
 class WorkoutsScreen extends StatefulWidget {
@@ -481,6 +480,27 @@ class _WorkoutFormState extends State<_WorkoutForm> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
+    // Web rejects a zero duration and a week outside 1-7.
+    final duration = double.tryParse(_durationCtrl.text) ?? 0;
+    final days = double.tryParse(_daysCtrl.text) ?? 0;
+    if (duration <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Duration must be greater than 0'),
+          backgroundColor: TW.rose600,
+        ),
+      );
+      return;
+    }
+    if (days < 1 || days > 7) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Days per week must be between 1 and 7'),
+          backgroundColor: TW.rose600,
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final exercisesData = _exercises
         .map(

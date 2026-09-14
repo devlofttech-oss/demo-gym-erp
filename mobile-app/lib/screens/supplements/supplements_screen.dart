@@ -61,9 +61,11 @@ class _SupplementsScreenState extends State<SupplementsScreen>
             a['date'] as String? ?? '',
           ),
         );
+      final inventory = res[0]
+        ..sort((a, b) => asNum(a['stock']).compareTo(asNum(b['stock'])));
       if (mounted)
         setState(() {
-          _inventory = res[0];
+          _inventory = inventory;
           _sales = sales;
         });
     } catch (_) {}
@@ -1057,7 +1059,7 @@ class _SellSheetState extends State<_SellSheet> {
           'quantity': qty,
           'unitPrice': price,
           'total': price * qty,
-          'date': todayStr(),
+          'date': DateTime.now().toIso8601String(),
         }),
       ]);
       if (mounted) Navigator.pop(context);
